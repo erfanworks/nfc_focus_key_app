@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:focus_key/routes/app_routes.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../widgets/friend_list_item.dart';
+import '../controllers/friends_controller.dart';
+
+class FriendsPage extends StatelessWidget {
+  FriendsPage({super.key});
+
+  final FriendsController controller = Get.put(FriendsController());
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTitle(),
+              SizedBox(height: 24.h),
+              Expanded(
+                child: Obx(
+                  () => controller.addedFriends.isNotEmpty
+                      ? _buildFriendsList()
+                      : _buildEmptyState(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTitle() {
+    return Text(
+      'Friends',
+      style: GoogleFonts.cormorantGaramond(
+        fontSize: 24.sp,
+        fontWeight: FontWeight.w300,
+        color: const Color(0xFF1A1814),
+        height: 1.0,
+        letterSpacing: 0.4.w,
+      ),
+    );
+  }
+
+  Widget _buildFriendsList() {
+    return Column(
+      children: [
+        Expanded(
+          child: Obx(
+            () => ListView(
+              physics: const BouncingScrollPhysics(),
+              children: [
+                ...controller.addedFriends.map(
+                  (friend) => FriendListItem(
+                    name: friend.name,
+                    initials: friend.initials,
+                    isDarkAvatar: friend.isDarkAvatar,
+                    status: friend.status,
+                    isFocusing: friend.isFocusing,
+                    onTap: () {
+                      if (!friend.isFocusing) {
+                        Get.toNamed(Routes.friendDetails, arguments: friend);
+                      }
+                    },
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                _buildAddFriendsOutlineButton(),
+                SizedBox(height: 24.h),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddFriendsOutlineButton() {
+    return InkWell(
+      onTap: () => Get.toNamed(Routes.addPartner),
+      borderRadius: BorderRadius.circular(24.r),
+      child: Container(
+        width: double.infinity,
+        height: 48.h,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add, size: 18.sp, color: const Color(0xFF1A1814)),
+            SizedBox(width: 8.w),
+            Text(
+              'Add friends',
+              style: GoogleFonts.dmSans(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF1A1814),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildIconPlaceholder(),
+          SizedBox(height: 24.h),
+          _buildDescription(),
+          SizedBox(height: 32.h),
+          _buildAddPartnerButton(),
+          SizedBox(height: 48.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconPlaceholder() {
+    return Container(
+      width: 72.w,
+      height: 72.w,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: const Color(0xFF8A8278).withValues(alpha: 0.5),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.supervisor_account_outlined,
+          size: 32.sp,
+          color: const Color(0xFF8A8278),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Text(
+        'Add up to 5 friends to keep each other\naccountable.',
+        textAlign: TextAlign.center,
+        style: GoogleFonts.dmSans(
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w400,
+          color: const Color(0xFF8A8278),
+          height: 27.2 / 16,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddPartnerButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Get.toNamed(Routes.addPartner),
+        borderRadius: BorderRadius.circular(30.r),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30.r),
+            border: Border.all(color: const Color(0xFF1A1814), width: 1.0),
+          ),
+          child: Text(
+            'Add a partner',
+            style: GoogleFonts.dmSans(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1A1814),
+              height: 19.5 / 13,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
