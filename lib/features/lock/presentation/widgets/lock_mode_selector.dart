@@ -14,9 +14,9 @@ class LockModeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final modesController = Get.find<ModesController>();
+      final modesController = Get.put<ModesController>(ModesController());
       final modeTitle = controller.selectedMode.value;
-      
+
       final selectedItem = modesController.modes.firstWhere(
         (m) => m.title == modeTitle,
         orElse: () => modesController.modes.first,
@@ -25,8 +25,7 @@ class LockModeSelector extends StatelessWidget {
       return GestureDetector(
         onTap: () => _showModesDialog(context, modesController),
         child: Container(
-          height: 36.h,
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
             borderRadius: BorderRadius.circular(20.r),
@@ -34,28 +33,29 @@ class LockModeSelector extends StatelessWidget {
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               FocusIcon(
                 selectedItem.icon,
                 color: const Color(0xFFC4A97D),
-                size: 16.sp,
+                size: 16.r,
               ),
               SizedBox(width: 4.w),
               Text(
-                '${selectedItem.title.replaceAll('.', '')} Mode',
+                selectedItem.title.replaceAll('.', ''),
                 style: GoogleFonts.dmSans(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
                   color: const Color(0xFF8A8278),
                   letterSpacing: 0.55,
-                  height: 16.5 / 12.0,
                 ),
               ),
               SizedBox(width: 4.w),
               Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: const Color(0xFF8A8278),
-                size: 16.sp,
+                size: 16.r,
               ),
             ],
           ),
@@ -91,7 +91,7 @@ class LockModeSelector extends StatelessWidget {
                 itemCount: modesController.modes.length,
                 itemBuilder: (context, index) {
                   return _buildDialogItem(modesController.modes[index]);
-                }
+                },
               ),
             ],
           ),

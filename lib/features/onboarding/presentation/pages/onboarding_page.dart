@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../routes/app_routes.dart';
@@ -8,36 +9,35 @@ import '../../../../routes/app_routes.dart';
 class FK {
   // Colors (sampled from approved reference)
   static const cream = Color(0xFFFCF7F1); // splash bg
-  static const ink   = Color(0xFF152026); // primary text
-  static const mid   = Color(0xFF8A8278);
-  static const deep  = Color(0xFF5C564E);
+  static const ink = Color(0xFF152026); // primary text
+  static const mid = Color(0xFF8A8278);
+  static const deep = Color(0xFF5C564E);
   static const faint = Color(0xFFB5AFA5);
   static const stone = Color(0xFFE8E3DA);
-  static const warm  = Color(0xFFF0EBE2); // screen bg
-  static const gold  = Color(0xFFC4A97D);
-  static const lost  = Color(0xFF9B4D3C); // "lost time" red-brown
+  static const warm = Color(0xFFF0EBE2); // screen bg
+  static const gold = Color(0xFFC4A97D);
+  static const lost = Color(0xFF9B4D3C); // "lost time" red-brown
   static const accent = Color(0xFFE8632A); // FocusKey orange
 
   // Type helpers
   static TextStyle wordmark({double size = 40}) => GoogleFonts.lora(
-        fontSize: size,
-        fontWeight: FontWeight.w400,
-        color: ink,
-        height: 1.0,
-      );
+    fontSize: size,
+    fontWeight: FontWeight.w400,
+    color: ink,
+    height: 1.0,
+  );
 
   static TextStyle serif({
     double size = 25,
     FontWeight weight = FontWeight.w400,
     Color color = ink,
     double height = 1.35,
-  }) =>
-      GoogleFonts.cormorantGaramond(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        height: height,
-      );
+  }) => GoogleFonts.cormorantGaramond(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+  );
 
   static TextStyle sans({
     double size = 13,
@@ -45,14 +45,13 @@ class FK {
     Color color = ink,
     double height = 1.4,
     double letterSpacing = 0,
-  }) =>
-      GoogleFonts.dmSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        height: height,
-        letterSpacing: letterSpacing,
-      );
+  }) => GoogleFonts.dmSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    height: height,
+    letterSpacing: letterSpacing,
+  );
 }
 
 // ─── REVEAL: fade + translate-up on mount, with delay ────────────
@@ -82,7 +81,9 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this, duration: Duration(milliseconds: widget.durationMs));
+      vsync: this,
+      duration: Duration(milliseconds: widget.durationMs),
+    );
     _anim = CurvedAnimation(parent: _c, curve: const Cubic(.16, 1, .3, 1));
     _t = Timer(Duration(milliseconds: widget.delayMs), () {
       if (mounted) _c.forward();
@@ -98,16 +99,16 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _anim,
-        builder: (context, child) => Opacity(
-          opacity: _anim.value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - _anim.value) * widget.offsetY),
-            child: child,
-          ),
-        ),
-        child: widget.child,
-      );
+    animation: _anim,
+    builder: (context, child) => Opacity(
+      opacity: _anim.value,
+      child: Transform.translate(
+        offset: Offset(0, (1 - _anim.value) * widget.offsetY),
+        child: child,
+      ),
+    ),
+    child: widget.child,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -128,12 +129,24 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timers.add(Timer(const Duration(milliseconds: 60),
-        () => mounted ? setState(() => _opacity = 1) : null));
-    _timers.add(Timer(const Duration(milliseconds: 60 + 600 + 2700),
-        () => mounted ? setState(() => _opacity = 0) : null));
-    _timers.add(Timer(const Duration(milliseconds: 60 + 600 + 2700 + 500),
-        () => mounted ? widget.onDone() : null));
+    _timers.add(
+      Timer(
+        const Duration(milliseconds: 60),
+        () => mounted ? setState(() => _opacity = 1) : null,
+      ),
+    );
+    _timers.add(
+      Timer(
+        const Duration(milliseconds: 60 + 600 + 2700),
+        () => mounted ? setState(() => _opacity = 0) : null,
+      ),
+    );
+    _timers.add(
+      Timer(
+        const Duration(milliseconds: 60 + 600 + 2700 + 500),
+        () => mounted ? widget.onDone() : null,
+      ),
+    );
   }
 
   @override
@@ -158,12 +171,14 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             Text('FocusKey', style: FK.wordmark(size: 40)),
             const SizedBox(height: 9),
-            Text('by Presence Labs',
-                style: GoogleFonts.lora(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: FK.ink,
-                )),
+            Text(
+              'by Presence Labs',
+              style: GoogleFonts.lora(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: FK.ink,
+              ),
+            ),
           ],
         ),
       ),
@@ -245,18 +260,19 @@ class _QuestionScreenState extends State<QuestionScreen> {
                       style: FK.sans(size: 13, color: FK.deep, height: 1.65),
                     ),
                   ),
-                  const SizedBox(height: 44),
+                  SizedBox(height: 44.h),
                   Reveal(
                     delayMs: 750,
                     child: Column(
                       children: [
                         SizedBox(
-                          height: 90,
+                          height: 88.h,
                           child: Center(
                             child: Text(
                               _hrs.isEmpty ? '0' : _hrs,
-                              style: FK.serif(
-                                size: 76,
+                              style: GoogleFonts.inter(
+                                fontSize: 62.sp,
+                                fontWeight: FontWeight.w300,
                                 color: _hrs.isEmpty ? FK.faint : FK.ink,
                                 height: 1.0,
                               ),
@@ -267,7 +283,7 @@ class _QuestionScreenState extends State<QuestionScreen> {
                         Text(
                           'HOURS',
                           style: FK.sans(
-                            size: 11,
+                            size: 11.sp,
                             weight: FontWeight.w500,
                             color: FK.accent,
                             letterSpacing: 1.3,
@@ -289,7 +305,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
                 color: FK.warm,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              padding: EdgeInsets.fromLTRB(20, 10, 20, 30 + MediaQuery.paddingOf(context).bottom),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                10,
+                20,
+                0 + MediaQuery.paddingOf(context).bottom,
+              ),
               child: Column(
                 children: [
                   GridView(
@@ -297,11 +318,11 @@ class _QuestionScreenState extends State<QuestionScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 7,
-                      crossAxisSpacing: 7,
-                      mainAxisExtent: 50,
-                    ),
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 7,
+                          crossAxisSpacing: 7,
+                          mainAxisExtent: 50,
+                        ),
                     children: [
                       for (var n = 1; n <= 9; n++) _key('$n', () => _tap(n)),
                       const SizedBox.shrink(),
@@ -394,16 +415,16 @@ class _TruthScreenState extends State<TruthScreen>
   }
 
   Widget _legendDot(Color fill, {Color? borderColor}) => Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: fill,
-          borderRadius: BorderRadius.circular(3),
-          border: borderColor != null
-              ? Border.all(color: borderColor, width: 1.5)
-              : null,
-        ),
-      );
+    width: 12,
+    height: 12,
+    decoration: BoxDecoration(
+      color: fill,
+      borderRadius: BorderRadius.circular(3),
+      border: borderColor != null
+          ? Border.all(color: borderColor, width: 1.5)
+          : null,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -425,10 +446,12 @@ class _TruthScreenState extends State<TruthScreen>
                   TextSpan(text: widget.hours == 1 ? 'hour' : 'hours'),
                   const TextSpan(text: ' a day becomes '),
                   TextSpan(
-                    text:
-                        '$screenYears ${screenYears == 1 ? 'year' : 'years'}',
+                    text: '$screenYears ${screenYears == 1 ? 'year' : 'years'}',
                     style: FK.serif(
-                        size: 25, weight: FontWeight.w500, color: FK.lost),
+                      size: 25,
+                      weight: FontWeight.w500,
+                      color: FK.lost,
+                    ),
                   ),
                   const TextSpan(text: ' of your life.'),
                 ],
@@ -495,7 +518,7 @@ class _TruthScreenState extends State<TruthScreen>
           ),
           const SizedBox(height: 22),
           Reveal(
-            delayMs: 1400, 
+            delayMs: 1400,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -515,7 +538,7 @@ class _TruthScreenState extends State<TruthScreen>
           ),
           const SizedBox(height: 26),
           Reveal(
-            delayMs: 1900, 
+            delayMs: 1900,
             durationMs: 1200,
             child: Text(
               'That time was engineered away by apps built to steal your attention, pulling you away from the people and goals that matter most.',
@@ -525,7 +548,7 @@ class _TruthScreenState extends State<TruthScreen>
           ),
           const SizedBox(height: 28),
           Reveal(
-            delayMs: 2500, 
+            delayMs: 2500,
             child: Material(
               color: FK.ink,
               borderRadius: BorderRadius.circular(28),
@@ -533,15 +556,18 @@ class _TruthScreenState extends State<TruthScreen>
                 borderRadius: BorderRadius.circular(28),
                 onTap: widget.onNext,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 14, horizontal: 48),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 48,
+                  ),
                   child: Text(
                     'Continue',
                     style: FK.sans(
-                        size: 14,
-                        weight: FontWeight.w500,
-                        color: FK.cream,
-                        letterSpacing: 0.3),
+                      size: 14,
+                      weight: FontWeight.w500,
+                      color: FK.cream,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
               ),
@@ -621,14 +647,20 @@ class MessageScreen extends StatelessWidget {
                 foregroundColor: FK.ink,
                 side: const BorderSide(color: FK.mid, width: 1),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 13, horizontal: 44),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 13,
+                  horizontal: 44,
+                ),
               ),
               child: Text(
                 'Begin',
                 style: FK.sans(
-                    size: 14, weight: FontWeight.w500, letterSpacing: 0.3),
+                  size: 14,
+                  weight: FontWeight.w500,
+                  letterSpacing: 0.3,
+                ),
               ),
             ),
           ),
@@ -659,19 +691,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final Widget current = switch (_screen) {
       0 => SplashScreen(key: const ValueKey(0), onDone: () => _go(1)),
       1 => QuestionScreen(
-          key: const ValueKey(1),
-          onNext: (h) {
-            _hours = h;
-            _go(2);
-          }),
+        key: const ValueKey(1),
+        onNext: (h) {
+          _hours = h;
+          _go(2);
+        },
+      ),
       2 => TruthScreen(
-          key: const ValueKey(2), hours: _hours, onNext: () => _go(3)),
+        key: const ValueKey(2),
+        hours: _hours,
+        onNext: () => _go(3),
+      ),
       _ => MessageScreen(
-          key: const ValueKey(3),
-          onBegin: () {
-            Get.offAllNamed(Routes.login);
-          },
-        ),
+        key: const ValueKey(3),
+        onBegin: () {
+          Get.offAllNamed(Routes.login);
+        },
+      ),
     };
 
     return Scaffold(

@@ -23,14 +23,20 @@ class LockStatusPills extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(20.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
+          // padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          // decoration: BoxDecoration(
+          //   color: const Color(0xFFF0EBE2),
+          //   borderRadius: BorderRadius.circular(12.r),
+          //   border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+          // ),
           child: Obx(() {
-            final modesController = Get.find<ModesController>();
+            final modesController = Get.put<ModesController>(ModesController());
             final selectedItem = modesController.modes.firstWhere(
               (m) => m.title == mode,
               orElse: () => modesController.modes.first,
@@ -38,15 +44,17 @@ class LockStatusPills extends StatelessWidget {
 
             return Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 FocusIcon(
                   selectedItem.icon,
                   color: const Color(0xFFC4A97D),
-                  size: 16.sp,
+                  size: 16.r,
                 ),
                 SizedBox(width: 6.w),
                 Text(
-                  '${selectedItem.title.replaceAll('.', '')} Mode',
+                  selectedItem.title.replaceAll('.', ''),
                   style: GoogleFonts.dmSans(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,

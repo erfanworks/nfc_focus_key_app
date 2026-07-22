@@ -52,18 +52,22 @@ class AppSelectionController extends GetxController {
     if (!isEditMode && args != null) {
       try {
         final modesController = Get.find<ModesController>();
-        modesController.addMode(ModeItem(
-          args['modeName'] ?? 'Custom Mode',
-          args['description'] ?? 'Custom blocklist',
-          args['icon'] as FKIcon,
-        ));
+        modesController.addMode(
+          ModeItem(
+            args['modeName'] ?? 'Custom Mode',
+            args['description'] ?? 'Custom blocklist',
+            args['icon'] as FKIcon,
+          ),
+        );
       } catch (_) {}
     }
 
     if (isEditMode) {
-      Get.until((route) => route.settings.name == Routes.lock);
+      // Get.until((route) => route.settings.name == Routes.lock);
+      Get.close(2);
     } else {
-      Get.until((route) => route.settings.name == Routes.modes);
+      // Get.until((route) => route.settings.name == Routes.modes);
+      Get.close(2);
     }
   }
 }

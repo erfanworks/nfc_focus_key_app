@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/lock_controller.dart';
 import '../widgets/hold_to_lock_circle.dart';
 import '../widgets/lock_mode_selector.dart';
-import '../widgets/lock_stat_card.dart';
 import '../widgets/lock_header.dart';
 import '../widgets/lock_status_section.dart';
 import '../widgets/lock_status_pills.dart';
@@ -28,10 +27,11 @@ class LockPage extends GetView<LockController> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(height: 16.h),
+                // SizedBox(height: 16.h),
                 LockHeader(controller: controller),
                 Expanded(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Spacer(flex: 4),
                       HoldToLockCircle(
@@ -40,18 +40,24 @@ class LockPage extends GetView<LockController> {
                             ? controller.endBreak
                             : controller.toggleLock,
                       ),
-                      SizedBox(height: 32.h),
-                      LockStatusSection(controller: controller, isLocked: isLocked),
+                      // SizedBox(height: 16.h),
+                      LockStatusSection(
+                        controller: controller,
+                        isLocked: isLocked,
+                      ),
                       SizedBox(height: 16.h),
                       SizedBox(
                         height: 140.h,
                         child: Align(
                           alignment: Alignment.topCenter,
-                          child: isLocked 
+                          child: isLocked
                               ? Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    LockStatusPills(controller: controller, mode: mode),
+                                    LockStatusPills(
+                                      controller: controller,
+                                      mode: mode,
+                                    ),
                                     SizedBox(height: 16.h),
                                     BreakCard(controller: controller),
                                   ],
@@ -65,7 +71,7 @@ class LockPage extends GetView<LockController> {
                                 ),
                         ),
                       ),
-                      const Spacer(flex: 5),
+                      const Spacer(flex: 2),
                     ],
                   ),
                 ),

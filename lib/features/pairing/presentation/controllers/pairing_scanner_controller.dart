@@ -5,7 +5,8 @@ import '../../../../routes/app_routes.dart';
 
 class PairingScannerController extends GetxController {
   final isPairing = false.obs;
-  final statusMessage = 'Hold your key against the back of your phone'.obs;
+  final statusMessage =
+      'Hold your key against the front camera of your phone'.obs;
 
   @override
   void onReady() {
@@ -17,7 +18,8 @@ class PairingScannerController extends GetxController {
     if (isPairing.value) return;
 
     isPairing.value = true;
-    statusMessage.value = 'Hold your key against the back of your phone';
+    statusMessage.value =
+        'Hold your key against the front camera of your phone';
 
     // Simulate pairing process for 5 seconds
     await Future.delayed(const Duration(seconds: 5));
