@@ -49,7 +49,7 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
-    
+
     _splashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -79,7 +79,9 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
     _vibrationTimer?.cancel();
     if (!widget.isLocked) {
       HapticFeedback.mediumImpact();
-      _vibrationTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
+      _vibrationTimer = Timer.periodic(const Duration(milliseconds: 200), (
+        timer,
+      ) {
         HapticFeedback.mediumImpact();
       });
     }
@@ -138,7 +140,7 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: const Color(0xFFC4A97D),
-                          width: 4.w,
+                          width: 1.w,
                         ),
                       ),
                     ),

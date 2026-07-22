@@ -13,7 +13,9 @@ class AppSelectionPage extends GetView<AppSelectionController> {
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic>? args = Get.arguments as Map<String, dynamic>?;
-    final String modeName = (args?['modeName'] ?? 'Deep Work').toString().toUpperCase();
+    final String modeName = (args?['modeName'] ?? 'Deep Work')
+        .toString()
+        .toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -21,7 +23,11 @@ class AppSelectionPage extends GetView<AppSelectionController> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: 18.sp, color: const Color(0xFF1A1814)),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            size: 18.sp,
+            color: const Color(0xFF1A1814),
+          ),
           onPressed: () => Get.back(),
         ),
       ),
@@ -71,15 +77,19 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                               onTap: () => controller.setBlockMode(true),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: isBlock ? Colors.white : Colors.transparent,
+                                  color: isBlock
+                                      ? Colors.white
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(9.r),
                                   boxShadow: isBlock
                                       ? [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.04),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.04,
+                                            ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
-                                          )
+                                          ),
                                         ]
                                       : null,
                                 ),
@@ -101,15 +111,19 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                               onTap: () => controller.setBlockMode(false),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: !isBlock ? Colors.white : Colors.transparent,
+                                  color: !isBlock
+                                      ? Colors.white
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(9.r),
                                   boxShadow: !isBlock
                                       ? [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.04),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.04,
+                                            ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
-                                          )
+                                          ),
                                         ]
                                       : null,
                                 ),
@@ -119,7 +133,9 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                                     style: GoogleFonts.dmSans(
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w600,
-                                      color: isBlock ? const Color(0xFF8A8278) : const Color(0xFF1A1814),
+                                      color: isBlock
+                                          ? const Color(0xFF8A8278)
+                                          : const Color(0xFF1A1814),
                                     ),
                                   ),
                                 ),
@@ -254,6 +270,7 @@ class AppSelectionPage extends GetView<AppSelectionController> {
     final isEditMode = args?['isEditMode'] == true;
 
     return GestureDetector(
+     
       onTap: controller.onDone,
       child: Container(
         width: double.infinity,

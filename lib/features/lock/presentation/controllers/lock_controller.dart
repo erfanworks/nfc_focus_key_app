@@ -110,6 +110,11 @@ class LockController extends GetxController {
     // If unlocked, lock immediately
     if (!isLocked.value) {
       isLocked.value = true;
+      Get.snackbar(
+        'Locked',
+        'Your device is now locked. Please scan your NFC key to unlock.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
@@ -201,10 +206,7 @@ class LockController extends GetxController {
               const Text(
                 'Hold your Focus Key against the back of your phone',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF8A8278),
-                ),
+                style: TextStyle(fontSize: 14, color: Color(0xFF8A8278)),
               ),
               const SizedBox(height: 24),
             ],

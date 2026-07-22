@@ -88,7 +88,7 @@ class BreakPage extends GetView<BreakController> {
 
                           // Subtitle
                           Text(
-                            'A limited release valve for when you truly need those apps. Few, short, and spent on purpose.',
+                            'A limited release valve for when you truly need those apps. Few, short, and spent intentionally.',
                             style: GoogleFonts.dmSans(
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w400,
