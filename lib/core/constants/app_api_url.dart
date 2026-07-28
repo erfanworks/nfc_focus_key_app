@@ -15,40 +15,27 @@ class AppApiUrl {
   final String imgBaseUrl = domain;
 
   // ==================== Auth ====================
-  final String register = "/users";
-  final String registerVerifyOtp = "/auth/verify-email";
   final String singIn = "/auth/login";
+  final String singUp = "/users";
   final String forgotPassword = "/auth/forget-password";
-  final String forgotVerifyOtp = "/auth/verify-email";
   final String resetPassword = "/auth/reset-password";
+  final String verifyEmailOtp = "/auth/verify-email";
+  final String forgotOtp = "/auth/verify-email";
+  final String resendOtp = "/auth/resend-otp";
+  final String googleLogin = "/auth/google-login";
 
-  // ==================== Home Screen ====================
-  final String nearbyListingProperty = "/listings/nearby";
-  final String listingById = "/listings";
-  final String listingsSearch = "/listings/search";
-  final String popularLocations = "/popular-locations";
-
-  // ==================== Saved Screen ====================
-  final String addFavouriteProperty = "/favorite-properties/toggle";
-  final String favouriteProperties = "/favorite-properties";
-  final String savedSearches = "/saved-searches";
-  final String deleteSavedSearch = "/saved-searches";
-
-  // ==================== Enquires ====================
-  final String createEnquiries = "/enquiries";
-  final String myEnquiries = "/enquiries/my-enqueries";
-  final String myEnquiriesById = "/enquiries/my-enqueries";
 
   // ==================== Profile ====================
-  final String userProfile = "/users";
-  final String userProfileInfo = "/users/profile";
-  final String userDeleteProfile = "/users/profile";
+  final String refreshToken = "/refreshToken";
   final String changePassword = "/auth/change-password";
+  final String userProfile = "/users/profile";
+  final String updateProfile = "/users";
+  final String deleteAccount = "/users/profile";
+  final String helpAndSupport = "/supports";
+  final String faq = "/faqs";
   final String about = "/rules/about";
   final String privacy = "/rules/privacy";
   final String terms = "/rules/terms";
-  final String faqs = "/faqs";
-  final String refreshToken = "/refreshToken";
 
   // ==================== Banner ====================
   final String banner = "/banners";
