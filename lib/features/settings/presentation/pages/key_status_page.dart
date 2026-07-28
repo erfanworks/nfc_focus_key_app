@@ -3,16 +3,15 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/services/storage_service.dart';
 import '../../../../routes/app_routes.dart';
+import '../controllers/key_status_controller.dart';
 import '../widgets/key_paired_card.dart';
 import '../widgets/key_detail_card.dart';
 
 class KeyStatusPage extends StatelessWidget {
   KeyStatusPage({super.key});
 
-  final RxBool _showConfirmUnpair = false.obs;
-  final RxBool _isPaired = StorageService.hasPairedKey().obs;
+  final KeyStatusController controller = Get.put(KeyStatusController());
 
   @override
   Widget build(BuildContext context) {
@@ -22,17 +21,17 @@ class KeyStatusPage extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
           child: Obx(
-            () => Column(
+                () => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(),
                 SizedBox(height: 24.h),
-                if (_isPaired.value) ...[
+                if (controller.isPaired.value) ...[
                   const KeyPairedCard(),
                   SizedBox(height: 16.h),
                   const KeyDetailCard(),
                   SizedBox(height: 16.h),
-                  _showConfirmUnpair.value
+                  controller.showConfirmUnpair.value
                       ? _buildConfirmUnpairCard()
                       : _buildInitialUnpairButton(),
                 ] else ...[
@@ -86,7 +85,7 @@ class KeyStatusPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14.r),
-          onTap: () => _showConfirmUnpair.value = true,
+          onTap: () => controller.requestUnpairConfirmation(),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             child: Text(
@@ -141,9 +140,7 @@ class KeyStatusPage extends StatelessWidget {
             backgroundColor: const Color(0xFFC0392B),
             textColor: const Color(0xFFF7F4EE),
             onTap: () async {
-              _showConfirmUnpair.value = false;
-              await StorageService.clearPairedKeyId();
-              _isPaired.value = false; // Transition to unpacked state
+              await controller.confirmUnpair();
               Get.snackbar(
                 'Unpaired',
                 'Your Focus Key has been unpaired.',
@@ -160,7 +157,7 @@ class KeyStatusPage extends StatelessWidget {
             text: 'Cancel',
             backgroundColor: const Color(0xFFCCC8C0),
             textColor: const Color(0xFF1A1814),
-            onTap: () => _showConfirmUnpair.value = false,
+            onTap: () => controller.cancelUnpair(),
           ),
         ],
       ),

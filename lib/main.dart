@@ -6,14 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import 'core/services/storage_service.dart';
+import 'core/services/storage_services.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await StorageService.init();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

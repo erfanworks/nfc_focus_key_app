@@ -12,13 +12,19 @@ class StorageKey {
   final String loginDataStore      = "loginDataStore";
   final String token               = "token";
   final String refreshToken        = "refreshToken";
-  final String resetToken          = "resetToken";       // ✅ new
+  final String resetToken          = "resetToken";
   final String user                = "user";
   final String language            = "language";
   final String isDarkMode          = "isDarkMode";
   final String appFirstTime        = "appFirstTime";
   final String appUserRollData     = "appUserRollData";
   final String selectedRole        = "selectedRole";
+
+  // ==================== NFC Pairing (merged from previous dev's storage_service.dart) ====================
+  final String pairedTagId         = "pairedTagId";
+
+  // ==================== Onboarding (merged from previous dev's storage_service.dart) ====================
+  final String completedOnboarding = "completedOnboarding";
 }
 
 class StorageServices {
@@ -203,6 +209,73 @@ class StorageServices {
   Future<bool> getAppFirstTime() async {
     final pref = await _pref;
     return pref.getBool(StorageKey.instance.appFirstTime) ?? true;
+  }
+
+  // ==================== NFC Pairing ====================
+  // Merged from previous developer's storage_service.dart (GetStorage -> SharedPreferences)
+
+  /// Save the paired NFC tag's unique ID (UID) after successful pairing.
+  Future<void> savePairedKeyId(String keyId) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.pairedTagId, keyId);
+    } catch (e) {
+      errorLog("savePairedKeyId", e);
+    }
+  }
+
+  /// Get the paired NFC tag's unique ID (UID). Returns null if not paired.
+  Future<String?> getPairedKeyId() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.pairedTagId);
+    } catch (e) {
+      errorLog("getPairedKeyId", e);
+      return null;
+    }
+  }
+
+  /// Clear/unpair the currently stored NFC tag ID.
+  Future<void> clearPairedKeyId() async {
+    try {
+      final pref = await _pref;
+      await pref.remove(StorageKey.instance.pairedTagId);
+    } catch (e) {
+      errorLog("clearPairedKeyId", e);
+    }
+  }
+
+  /// Check if a tag is currently paired on this device.
+  Future<bool> hasPairedKey() async {
+    try {
+      final pref = await _pref;
+      return pref.containsKey(StorageKey.instance.pairedTagId);
+    } catch (e) {
+      errorLog("hasPairedKey", e);
+      return false;
+    }
+  }
+
+  // ==================== Onboarding ====================
+  // Merged from previous developer's storage_service.dart (GetStorage -> SharedPreferences)
+
+  Future<void> setCompletedOnboarding() async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(StorageKey.instance.completedOnboarding, true);
+    } catch (e) {
+      errorLog("setCompletedOnboarding", e);
+    }
+  }
+
+  Future<bool> hasCompletedOnboarding() async {
+    try {
+      final pref = await _pref;
+      return pref.getBool(StorageKey.instance.completedOnboarding) ?? false;
+    } catch (e) {
+      errorLog("hasCompletedOnboarding", e);
+      return false;
+    }
   }
 
   // ==================== Logout ====================

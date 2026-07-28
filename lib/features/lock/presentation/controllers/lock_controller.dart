@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/services/nfc_service.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/storage_services.dart';
 
 class LockController extends GetxController {
   final isLocked = false.obs;
@@ -130,16 +131,7 @@ class LockController extends GetxController {
         _dismissAndroidNfcScanner();
 
         // Get the stored paired key ID
-        final pairedId = StorageService.getPairedKeyId();
-
-        if (pairedId == null) {
-          Get.snackbar(
-            'Unlock Failed',
-            'No key is paired. Please pair a key in Settings.',
-            snackPosition: SnackPosition.BOTTOM,
-          );
-          return;
-        }
+        final pairedId = StorageServices.instance.getPairedKeyId();
 
         if (tagId == pairedId) {
           // Success vibration

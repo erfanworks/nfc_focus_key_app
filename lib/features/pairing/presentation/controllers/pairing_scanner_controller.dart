@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/services/storage_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 
 class PairingScannerController extends GetxController {
@@ -31,7 +32,7 @@ class PairingScannerController extends GetxController {
     await HapticFeedback.vibrate();
 
     // Save a mock paired key ID to local storage
-    await StorageService.savePairedKeyId("MOCK_FOCUS_KEY_ID");
+    await StorageServices.instance.savePairedKeyId("MOCK_FOCUS_KEY_ID");
 
     // Navigate to paired success screen
     Get.offNamed(Routes.paired);
