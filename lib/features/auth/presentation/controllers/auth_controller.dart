@@ -11,7 +11,7 @@ class AuthController extends GetxController {
   AuthController({required this.loginUseCase});
 
   final emailController = TextEditingController(
-    text: kDebugMode ? "chiro@gmail.com" : "",
+    text: kDebugMode ? "shawon@gmail.com" : "",
   );
   final passwordController = TextEditingController(
     text: kDebugMode ? "hello123" : "",

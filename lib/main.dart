@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
 
           theme: AppTheme.light,
 
-          initialRoute: Routes.signup,
+          initialRoute: Routes.login,
           getPages: AppPages.pages,
 
           // Device Preview Support
