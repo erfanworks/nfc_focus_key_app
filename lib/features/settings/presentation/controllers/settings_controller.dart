@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
 
 class ModeSetting {
   final String name;
@@ -10,7 +12,7 @@ class ModeSetting {
     required int initialAppCount,
     required List<String> initialBlockedApps,
   }) : appCount = initialAppCount.obs,
-       blockedApps = initialBlockedApps.obs;
+        blockedApps = initialBlockedApps.obs;
 }
 
 class SettingsController extends GetxController {
@@ -60,11 +62,52 @@ class SettingsController extends GetxController {
   final userContact = '+88 9999 9999'.obs;
   final userEmail = 'jhon@mail.com'.obs;
 
+  final isProfileLoading = false.obs;
+
   void updateBlockedApps(String modeName, List<String> newBlockedApps) {
     final mode = modes.firstWhereOrNull((m) => m.name == modeName);
     if (mode != null) {
       mode.blockedApps.assignAll(newBlockedApps);
       mode.appCount.value = newBlockedApps.length;
+    }
+  }
+
+  Future<void> fetchProfile() async {
+    isProfileLoading.value = true;
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.userProfile,
+      );
+
+      if (response != null && response["success"] == true) {
+        final data = response["data"];
+        userName.value = data["name"] ?? userName.value;
+        userEmail.value = data["email"] ?? userEmail.value;
+        if (data["phone"] != null) {
+          userContact.value = "${data["countryCode"] ?? ''} ${data["phone"]}".trim();
+        }
+      }
+    } finally {
+      isProfileLoading.value = false;
+    }
+  }
+
+  Future<bool> updateProfile(String name) async {
+    isProfileLoading.value = true;
+    try {
+      final response = await ApiServices.instance.patchServices(
+        url: AppApiUrl.instance.updateProfile,
+        body: {"name": name},
+      );
+
+      if (response != null && response["success"] == true) {
+        final data = response["data"];
+        userName.value = data["name"] ?? name;
+        return true;
+      }
+      return false;
+    } finally {
+      isProfileLoading.value = false;
     }
   }
 }

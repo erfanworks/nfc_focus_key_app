@@ -24,6 +24,13 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
     _settingsController = Get.find<SettingsController>();
     _nameController = TextEditingController(text: _settingsController.userName.value);
     _emailController = TextEditingController(text: _settingsController.userEmail.value);
+
+    _settingsController.fetchProfile().then((_) {
+      if (mounted) {
+        _nameController.text = _settingsController.userName.value;
+        _emailController.text = _settingsController.userEmail.value;
+      }
+    });
   }
 
   @override
@@ -170,36 +177,53 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
   Widget _buildSaveButton() {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-      child: InkWell(
-        onTap: () {
-          _settingsController.userName.value = _nameController.text.trim();
-          Get.back();
-          Get.snackbar(
-            'Success',
-            'Information updated successfully.',
-            backgroundColor: const Color(0xFFF0EBE2),
-            colorText: const Color(0xFF1A1814),
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20.w),
-            borderRadius: 14.r,
-          );
-        },
-        borderRadius: BorderRadius.circular(90.r),
-        child: Container(
-          width: double.infinity,
-          height: 52.h,
-          decoration: BoxDecoration(
-            color: const Color(0xFF141210),
-            borderRadius: BorderRadius.circular(90.r),
-          ),
-          child: Center(
-            child: Text(
-              'Save Change',
-              style: GoogleFonts.dmSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFFF7F4EE),
-              ),
+      child: Obx(
+        () => InkWell(
+          onTap: _settingsController.isProfileLoading.value
+              ? null
+              : () async {
+                  final success = await _settingsController.updateProfile(
+                    _nameController.text.trim(),
+                  );
+                  if (success) {
+                    Get.back();
+                    Get.snackbar(
+                      'Success',
+                      'Information updated successfully.',
+                      backgroundColor: const Color(0xFFF0EBE2),
+                      colorText: const Color(0xFF1A1814),
+                      snackPosition: SnackPosition.BOTTOM,
+                      margin: EdgeInsets.all(20.w),
+                      borderRadius: 14.r,
+                    );
+                  }
+                },
+          borderRadius: BorderRadius.circular(90.r),
+          child: Container(
+            width: double.infinity,
+            height: 52.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFF141210),
+              borderRadius: BorderRadius.circular(90.r),
+            ),
+            child: Center(
+              child: _settingsController.isProfileLoading.value
+                  ? SizedBox(
+                      height: 20.h,
+                      width: 20.h,
+                      child: const CircularProgressIndicator(
+                        color: Color(0xFFF7F4EE),
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Save Change',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFFF7F4EE),
+                      ),
+                    ),
             ),
           ),
         ),
