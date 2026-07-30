@@ -22,17 +22,18 @@ class PrimaryButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         minimumSize: Size(double.infinity, 52.h),
         backgroundColor: AppColors.primary,
+        disabledBackgroundColor: AppColors.primary.withOpacity(0.8),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(90.r),
         ),
       ),
       child: isLoading
           ? SizedBox(
-              height: 24.h,
-              width: 24.h,
+              height: 20.h,
+              width: 20.h,
               child: const CircularProgressIndicator(
-                color: AppColors.textLight,
-                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.textLight),
+                strokeWidth: 2,
               ),
             )
           : Text(label, style: AppTextStyles.button),

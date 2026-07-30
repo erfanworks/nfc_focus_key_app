@@ -18,8 +18,8 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    emailController.dispose();
-    passwordController.dispose();
+    // emailController.dispose();
+    // passwordController.dispose();
     super.onClose();
   }
 
@@ -44,6 +44,11 @@ class AuthController extends GetxController {
           message: failure.message,
           isError: true,
         );
+        // If account is not verified, navigate to verification screen
+        if (failure.message.toLowerCase().contains('verify') || 
+            failure.message.toLowerCase().contains('unverified')) {
+          Get.toNamed(Routes.userVerify, arguments: emailController.text.trim());
+        }
       },
       (user) {
         CustomSnackbar.show(title: 'Success', message: 'Welcome ${user.name}');
