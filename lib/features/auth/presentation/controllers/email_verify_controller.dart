@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../core/constants/app_api_url.dart';
@@ -49,6 +50,12 @@ class EmailVerifyController extends GetxController {
           title: 'Success',
           message: response["message"] ?? 'Email verified successfully',
         );
+
+        final resetToken = response["data"];
+        if (resetToken is String && resetToken.isNotEmpty) {
+          await StorageServices.instance.setResetToken(resetToken);
+        }
+
         Get.offAllNamed(Routes.resetPassword);
       }
     } finally {

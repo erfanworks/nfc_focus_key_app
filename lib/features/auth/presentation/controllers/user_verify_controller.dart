@@ -24,8 +24,8 @@ class UserVerifyController extends GetxController {
         title: 'Success',
         message: 'Account verified successfully!',
       );
-      // Navigate to pairing landing screen
-      Get.offAllNamed(Routes.pairing);
+      // Navigate to login screen
+      Get.offAllNamed(Routes.login);
     } else {
       CustomSnackbar.show(
         title: 'Error',

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
 
 class ForgotPasswordController extends GetxController {
   final formKey = GlobalKey<FormState>();
@@ -14,19 +16,25 @@ class ForgotPasswordController extends GetxController {
     super.onClose();
   }
 
-  void sendCode() async {
-    if (formKey.currentState!.validate()) {
-      isLoading.value = true;
-      // Simulate network call
-      await Future.delayed(const Duration(seconds: 2));
-      isLoading.value = false;
+  Future<void> sendCode() async {
+    if (!formKey.currentState!.validate()) return;
 
-      CustomSnackbar.show(
-        title: 'Success',
-        message: 'Reset code sent to your email',
+    isLoading.value = true;
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.forgotPassword,
+        body: {"email": emailController.text.trim()},
       );
-      // Navigate to email verification screen
-      Get.toNamed(Routes.emailVerify);
+
+      if (response != null && response["success"] == true) {
+        CustomSnackbar.show(
+          title: 'Success',
+          message: response["message"] ?? 'Reset code sent to your email',
+        );
+        Get.toNamed(Routes.emailVerify, arguments: emailController.text.trim());
+      }
+    } finally {
+      isLoading.value = false;
     }
   }
 }

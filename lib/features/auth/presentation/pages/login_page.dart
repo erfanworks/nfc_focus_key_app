@@ -47,7 +47,7 @@ class LoginPage extends GetView<AuthController> {
                 // Email Field
                 UnderlineTextField(
                   label: 'Email',
-                  hint: 'you@example.com',
+                  hint: 'enter your mail',
                   controller: controller.emailController,
                   validator: Validators.emailValidator,
                 ),
@@ -56,7 +56,7 @@ class LoginPage extends GetView<AuthController> {
                 // Password Field
                 UnderlineTextField(
                   label: 'Password',
-                  hint: '••••••••',
+                  hint: 'enter your password',
                   controller: controller.passwordController,
                   obscure: true,
                   validator: Validators.passwordValidator,

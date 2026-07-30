@@ -10,12 +10,8 @@ class AuthController extends GetxController {
 
   AuthController({required this.loginUseCase});
 
-  final emailController = TextEditingController(
-    text: kDebugMode ? "shawon@gmail.com" : "",
-  );
-  final passwordController = TextEditingController(
-    text: kDebugMode ? "hello123" : "",
-  );
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
   final RxBool isLoading = false.obs;
