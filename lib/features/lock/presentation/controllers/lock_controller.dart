@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/services/nfc_service.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/services/storage_services.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class LockController extends GetxController {
   final isLocked = false.obs;
@@ -111,10 +112,9 @@ class LockController extends GetxController {
     // If unlocked, lock immediately
     if (!isLocked.value) {
       isLocked.value = true;
-      Get.snackbar(
-        'Locked',
-        'Your device is now locked. Please scan your NFC key to unlock.',
-        snackPosition: SnackPosition.BOTTOM,
+      CustomSnackbar.show(
+        title: 'Locked',
+        message: 'Your device is now locked. Please scan your NFC key to unlock.',
       );
       return;
     }
@@ -138,18 +138,17 @@ class LockController extends GetxController {
           await HapticFeedback.vibrate();
           // Temporarily disabled unlocking on success
           // isLocked.value = false;
-          Get.snackbar(
-            'Unlocked (Simulated)',
-            'NFC Key matched! (Unlock action is temporarily disabled).',
-            snackPosition: SnackPosition.BOTTOM,
+          CustomSnackbar.show(
+            title: 'Unlocked (Simulated)',
+            message: 'NFC Key matched! (Unlock action is temporarily disabled).',
           );
         } else {
           // Error vibration
           HapticFeedback.heavyImpact();
-          Get.snackbar(
-            'Access Denied',
-            'This NFC card is not paired with this device.',
-            snackPosition: SnackPosition.BOTTOM,
+          CustomSnackbar.show(
+            title: 'Access Denied',
+            message: 'This NFC card is not paired with this device.',
+            isError: true,
           );
         }
       },
@@ -157,10 +156,10 @@ class LockController extends GetxController {
         isScanningNfc.value = false;
         _dismissAndroidNfcScanner();
         HapticFeedback.heavyImpact();
-        Get.snackbar(
-          'Scanning Failed',
-          error,
-          snackPosition: SnackPosition.BOTTOM,
+        CustomSnackbar.show(
+          title: 'Scanning Failed',
+          message: error,
+          isError: true,
         );
       },
     );

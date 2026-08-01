@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../controllers/key_status_controller.dart';
 import '../widgets/key_paired_card.dart';
@@ -141,14 +142,9 @@ class KeyStatusPage extends StatelessWidget {
             textColor: const Color(0xFFF7F4EE),
             onTap: () async {
               await controller.confirmUnpair();
-              Get.snackbar(
-                'Unpaired',
-                'Your Focus Key has been unpaired.',
-                backgroundColor: const Color(0xFFF0EBE2),
-                colorText: const Color(0xFF1A1814),
-                snackPosition: SnackPosition.BOTTOM,
-                margin: EdgeInsets.all(20.w),
-                borderRadius: 14.r,
+              CustomSnackbar.show(
+                title: 'Unpaired',
+                message: 'Your Focus Key has been unpaired.',
               );
             },
           ),

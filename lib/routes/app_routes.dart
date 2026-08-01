@@ -35,4 +35,8 @@ abstract class Routes {
   static const String personalInformation = '/personal-information';
   static const String deleteAccount = '/delete-account';
   static const String legalInformation = '/legal-information';
+
+
+
+  static const String nfcUidDebugPage = '/nfcUidDebugPage';
 }

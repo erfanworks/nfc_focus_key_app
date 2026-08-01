@@ -24,6 +24,17 @@ class AppApiUrl {
   final String resendOtp = "/auth/resend-otp";
   final String googleLogin = "/auth/google-login";
 
+  // ==================== App ========================
+  final String pairing = "/users/pair-device";
+  final String unpairing = "/users/unpair-device";
+  final String createMood = "/modes";
+  final String getAllMood = "/modes";
+  final String getMoodById = "/modes";
+  final String updateMoodById = "/modes";
+  final String deleteMoodById = "/modes";
+  String toggleModeActivation(String modeId) =>
+      "/modes/$modeId/toggle-activation";
+  final String lockStatus = "/modes/lock-status";
 
   // ==================== Profile ====================
   final String refreshToken = "/refreshToken";

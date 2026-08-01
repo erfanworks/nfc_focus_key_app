@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:focus_key/core/services/storage_services.dart';
 import '../utils/log_print.dart';
-import '../widgets/AppSbackBar/app_snack_bar.dart';
+import '../widgets/custom_snackbar.dart';
 import 'api.dart';
 
 class ApiServices {
@@ -117,21 +117,21 @@ class ApiServices {
 
       if (isSuccess) return response.data;
 
-      AppSnackBar.error("Unexpected response: $code");
+      CustomSnackbar.show(title: 'Error', message: "Unexpected response: $code", isError: true);
       return null;
     } on SocketException catch (e) {
       errorLog('SocketException', e);
-      AppSnackBar.error("Check your internet connection");
+      CustomSnackbar.show(title: 'Error', message: "Check your internet connection", isError: true);
       return null;
     } on TimeoutException catch (e) {
       errorLog('TimeoutException', e);
-      AppSnackBar.error("Request timed out. Please try again.");
+      CustomSnackbar.show(title: 'Error', message: "Request timed out. Please try again.", isError: true);
       return null;
     } on DioException catch (e) {
       return _handleDioException(e);
     } catch (e) {
       errorLog('UnknownException', e);
-      AppSnackBar.error("Something went wrong");
+      CustomSnackbar.show(title: 'Error', message: "Something went wrong", isError: true);
       return null;
     }
   }
@@ -143,9 +143,17 @@ class ApiServices {
     if (e.response != null) {
       // 401 is already handled in AppApi interceptor (token refresh + redirect)
       final message = e.response?.data?["message"];
-      AppSnackBar.error(message != null ? "$message" : "Error: ${e.response?.statusCode}");
+      CustomSnackbar.show(
+        title: 'Error',
+        message: message != null ? "$message" : "Error: ${e.response?.statusCode}",
+        isError: true,
+      );
     } else {
-      AppSnackBar.error("Network error. Please check your connection.");
+      CustomSnackbar.show(
+        title: 'Error',
+        message: "Network error. Please check your connection.",
+        isError: true,
+      );
     }
 
     return null;

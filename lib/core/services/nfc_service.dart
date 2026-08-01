@@ -22,27 +22,20 @@ class NfcService {
         try {
           String? tagId;
 
-          // Print raw tag data to debug console
-          print("====================================");
-          print("NFC TAG DISCOVERED!");
-          print("Raw Data: ${tag.data}");
-
-          // Parse tag identifier based on tag type
-          final identifier = tag.data['ndef']?['identifier'] ?? 
-                             tag.data['nfca']?['identifier'] ?? 
-                             tag.data['mifare']?['identifier'] ??
-                             tag.data['nfcb']?['identifier'] ??
-                             tag.data['nfcf']?['identifier'] ??
-                             tag.data['nfcv']?['identifier'];
+          final identifier = tag.data['ndef']?['identifier'] ??
+              tag.data['nfca']?['identifier'] ??
+              tag.data['mifare']?['identifier'] ??
+              tag.data['nfcb']?['identifier'] ??
+              tag.data['nfcf']?['identifier'] ??
+              tag.data['nfcv']?['identifier'];
 
           if (identifier != null) {
+            // Plain hex, no separator — matches backend UID format (e.g. 04598A7AD92290)
             tagId = (identifier as List<int>)
                 .map((e) => e.toRadixString(16).padLeft(2, '0'))
-                .join(':')
+                .join()
                 .toUpperCase();
-            print("Parsed Tag ID (HEX): $tagId");
           }
-          print("====================================");
 
           if (tagId != null) {
             onTagScanned(tagId);
@@ -50,7 +43,6 @@ class NfcService {
             onError("NFC tag detected, but could not retrieve unique ID.");
           }
 
-          // Stop scanning session after successful read
           await stopScanning();
         } catch (e) {
           onError("Error reading NFC tag: $e");

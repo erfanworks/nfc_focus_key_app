@@ -1,4 +1,5 @@
 import 'package:focus_key/features/pairing/presentation/bindings/new_mode_binding.dart';
+import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
 import 'app_routes.dart';
@@ -185,6 +186,14 @@ class AppPages {
     GetPage(
       name: Routes.legalInformation,
       page: () => const LegalInformationPage(),
+    ),
+
+
+
+
+    GetPage(
+      name: Routes.nfcUidDebugPage,
+      page: () => const NfcUidDebugPage(),
     ),
   ];
 }
