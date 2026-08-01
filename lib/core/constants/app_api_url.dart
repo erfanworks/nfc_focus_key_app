@@ -30,7 +30,7 @@ class AppApiUrl {
   final String createMood = "/modes";
   final String getAllMood = "/modes";
   final String getMoodById = "/modes";
-  final String updateMoodById = "/modes";
+  String updateMoodById(String modeId) => "/modes/$modeId";
   final String deleteMoodById = "/modes";
   String toggleModeActivation(String modeId) =>
       "/modes/$modeId/toggle-activation";

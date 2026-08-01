@@ -36,6 +36,12 @@ class PairingScannerController extends GetxController {
     );
   }
 
+  // TEMPORARY DEBUG METHOD
+  // Future<void> skipPairingForDebug() async {
+  //   await StorageServices.instance.savePairedKeyId("DEBUG_UID_123");
+  //   Get.offAllNamed(Routes.lock);
+  // }
+
   Future<void> _onTagScanned(String uid) async {
     try {
       statusMessage.value = 'Key Found! Verifying...';

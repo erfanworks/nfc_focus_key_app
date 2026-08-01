@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
@@ -50,9 +51,15 @@ class AuthController extends GetxController {
           Get.toNamed(Routes.userVerify, arguments: emailController.text.trim());
         }
       },
-      (user) {
+      (user) async {
         CustomSnackbar.show(title: 'Success', message: 'Welcome ${user.name}');
-        Get.offAllNamed(Routes.pairing);
+        
+        // // --- TEMPORARY BYPASS FOR TESTING ---
+        // await StorageServices.instance.savePairedKeyId("TEST_DEBUG_UID");
+        // Get.offAllNamed(Routes.lock);
+        // // ------------------------------------
+        
+        Get.offAllNamed(Routes.pairing); // Original flow
       },
     );
   }

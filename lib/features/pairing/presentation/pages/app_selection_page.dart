@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/app_selection_controller.dart';
 
@@ -83,14 +82,14 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                                   borderRadius: BorderRadius.circular(9.r),
                                   boxShadow: isBlock
                                       ? [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.04,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
                                       : null,
                                 ),
                                 child: Center(
@@ -117,14 +116,14 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                                   borderRadius: BorderRadius.circular(9.r),
                                   boxShadow: !isBlock
                                       ? [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.04,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
                                       : null,
                                 ),
                                 child: Center(
@@ -178,18 +177,32 @@ class AppSelectionPage extends GetView<AppSelectionController> {
               ),
             ),
             Expanded(
-              child: Obx(
-                () => ListView.separated(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (controller.apps.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No apps found on this device.',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13.sp,
+                        color: const Color(0xFF8A8278),
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
                   padding: EdgeInsets.symmetric(horizontal: 20.w),
                   physics: const BouncingScrollPhysics(),
                   itemCount: controller.apps.length,
-                  separatorBuilder: (context, index) => SizedBox.shrink(),
+                  separatorBuilder: (context, index) => const SizedBox.shrink(),
                   itemBuilder: (context, index) {
                     final app = controller.apps[index];
                     return Obx(() {
-                      final isSelected = app.isSelected.value;
+                      final isSelected = controller.isSelected(app.packageName);
                       return GestureDetector(
-                        onTap: () => controller.toggleApp(index),
+                        onTap: () => controller.toggleApp(app.packageName),
                         behavior: HitTestBehavior.opaque,
                         child: Container(
                           height: 56.h,
@@ -202,23 +215,28 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                               SizedBox(
                                 width: 28.w,
                                 height: 28.w,
-                                child: app.iconPath.isNotEmpty
-                                    ? SvgPicture.asset(
-                                        app.iconPath,
-                                        fit: BoxFit.contain,
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
-                              SizedBox(width: 12.w),
-                              Text(
-                                app.name,
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF141210),
+                                child: app.icon != null
+                                    ? Image.memory(
+                                  app.icon!,
+                                  fit: BoxFit.contain,
+                                )
+                                    : const Icon(
+                                  Icons.apps,
+                                  color: Color(0xFF8A8278),
                                 ),
                               ),
-                              const Spacer(),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text(
+                                  app.name,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF141210),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               SizedBox(
                                 width: 42.w,
                                 height: 24.h,
@@ -227,7 +245,7 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                                   child: CupertinoSwitch(
                                     value: isSelected,
                                     onChanged: (val) =>
-                                        controller.toggleApp(index),
+                                        controller.toggleApp(app.packageName),
                                     activeColor: const Color(0xFF1A1814),
                                     trackColor: const Color(0xFFE8E3DA),
                                   ),
@@ -239,8 +257,8 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                       );
                     });
                   },
-                ),
-              ),
+                );
+              }),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -269,44 +287,55 @@ class AppSelectionPage extends GetView<AppSelectionController> {
     final args = Get.arguments as Map<String, dynamic>?;
     final isEditMode = args?['isEditMode'] == true;
 
-    return GestureDetector(
-     
-      onTap: controller.onDone,
-      child: Container(
-        width: double.infinity,
-        height: 56.h,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1814),
-          borderRadius: BorderRadius.circular(28.r),
+    return Obx(() {
+      final isSubmitting = controller.isSubmitting.value;
+      return GestureDetector(
+        onTap: isSubmitting ? null : controller.onDone,
+        child: Container(
+          width: double.infinity,
+          height: 56.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1814),
+            borderRadius: BorderRadius.circular(28.r),
+          ),
+          child: Center(
+            child: isSubmitting
+                ? SizedBox(
+              width: 20.w,
+              height: 20.w,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE)),
+              ),
+            )
+                : isEditMode
+                ? Text(
+              'Save',
+              style: GoogleFonts.dmSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFF7F4EE),
+              ),
+            )
+                : Builder(builder: (_) {
+              final count = controller.selectedCount;
+              final isBlock = controller.isBlockMode.value;
+              final action = isBlock ? 'Block' : 'Allow';
+              final text = count == 1
+                  ? '$action 1 app'
+                  : '$action $count apps';
+              return Text(
+                text,
+                style: GoogleFonts.dmSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFFF7F4EE),
+                ),
+              );
+            }),
+          ),
         ),
-        child: Center(
-          child: isEditMode
-              ? Text(
-                  'Save',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFFF7F4EE),
-                  ),
-                )
-              : Obx(() {
-                  final count = controller.selectedCount;
-                  final isBlock = controller.isBlockMode.value;
-                  final action = isBlock ? 'Block' : 'Allow';
-                  final text = count == 1
-                      ? '$action 1 app'
-                      : '$action $count apps';
-                  return Text(
-                    text,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFF7F4EE),
-                    ),
-                  );
-                }),
-        ),
-      ),
-    );
+      );
+    });
   }
 }
