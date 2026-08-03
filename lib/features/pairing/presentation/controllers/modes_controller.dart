@@ -134,6 +134,21 @@ class ModesController extends GetxController {
   }
 
   void onStartMode() {
-    Get.offAllNamed(Routes.lock);
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isNudgeFlow = args?['isNudgeFlow'] == true;
+
+    if (isNudgeFlow) {
+      final selectedMode = modes[selectedIndex.value];
+      Get.toNamed(
+        Routes.takeBreak,
+        arguments: {
+          'isNudgeFlow': true,
+          'modeId': selectedMode.id,
+          'participantIds': args?['participantIds'],
+        },
+      );
+    } else {
+      Get.offAllNamed(Routes.lock);
+    }
   }
 }

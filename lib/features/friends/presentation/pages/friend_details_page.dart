@@ -32,7 +32,8 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
       // Backward-compatible single-friend entry point.
       _participants = [args];
     } else if (args is Map<String, dynamic>) {
-      _participants = List<FriendModel>.from(args['selectedFriends'] ?? []);
+      final ids = List<String>.from(args['selectedFriends'] ?? []);
+      _participants = controller.addedFriends.where((f) => ids.contains(f.id)).toList();
       _modeId = args['modeId'] as String?;
       _breaksPerDay = args['breaksPerDay'] ?? 3;
       _breakDurationMinutes = args['breakDurationMinutes'] ?? 10;

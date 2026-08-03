@@ -51,6 +51,22 @@ class BreakController extends GetxController {
   Future<void> onContinue() async {
     if (isSaving.value) return;
 
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isNudgeFlow = args?['isNudgeFlow'] == true;
+
+    if (isNudgeFlow) {
+      Get.toNamed(
+        Routes.friendDetails,
+        arguments: {
+          'selectedFriends': args?['participantIds'],
+          'modeId': args?['modeId'],
+          'breaksPerDay': breaksPerDay.value ?? 0,
+          'breakDurationMinutes': breakLengthMinutes.value,
+        },
+      );
+      return;
+    }
+
     try {
       isSaving.value = true;
       final response = await ApiServices.instance.patchServices(
@@ -69,16 +85,6 @@ class BreakController extends GetxController {
         );
         return;
       }
-
-      // Success Snackbar with "World Class" transition
-      CustomSnackbar.show(
-        title: "Settings Saved",
-        message: "Your break preferences have been updated.",
-        isError: false,
-      );
-
-      // Brief delay for the user to see the success state before navigating
-      await Future.delayed(const Duration(milliseconds: 500));
 
       if (Get.previousRoute == Routes.customizeModes) {
         Get.toNamed(Routes.modes);
