@@ -18,9 +18,15 @@ class LockModeSelector extends StatelessWidget {
       final modeTitle = controller.selectedMode.value;
 
       final selectedItem = modesController.modes.firstWhere(
-        (m) => m.title == modeTitle,
+            (m) => m.title == modeTitle,
         orElse: () => modesController.modes.first,
       );
+
+      if (controller.selectedModeId == null && modesController.modes.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          controller.selectMode(modesController.modes.first);
+        });
+      }
 
       return GestureDetector(
         onTap: () => _showModesDialog(context, modesController),
@@ -112,7 +118,7 @@ class LockModeSelector extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 4.h),
         child: GestureDetector(
           onTap: () {
-            controller.selectMode(mode.title);
+            controller.selectMode(mode);
             Get.back();
           },
           child: Container(

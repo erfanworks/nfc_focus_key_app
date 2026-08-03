@@ -35,6 +35,16 @@ class AppApiUrl {
   String toggleModeActivation(String modeId) =>
       "/modes/$modeId/toggle-activation";
   final String lockStatus = "/modes/lock-status";
+  final String lock = "/modes/lock-status";
+  String updateLockUnlock(String modeId) =>
+      "/modes/$modeId/toggle-activation";
+
+  // ==================== Break ========================
+  final String breakCreateOrUpdateGlobally = "/breaks/config";
+  final String breakConfig = "/breaks/config";
+  final String breakStart = "/breaks/start";
+  final String breakStatus = "/breaks/status";
+  final String breakRemaining = "/breaks/remaining";
 
   // ==================== Profile ====================
   final String refreshToken = "/refreshToken";
