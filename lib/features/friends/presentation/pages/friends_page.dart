@@ -26,7 +26,7 @@ class FriendsPage extends StatelessWidget {
               SizedBox(height: 24.h),
               Expanded(
                 child: Obx(
-                  () => controller.addedFriends.isNotEmpty
+                      () => controller.addedFriends.isNotEmpty
                       ? _buildFriendsList()
                       : _buildEmptyState(),
                 ),
@@ -56,16 +56,18 @@ class FriendsPage extends StatelessWidget {
       children: [
         Expanded(
           child: Obx(
-            () => ListView(
+                () => ListView(
               physics: const BouncingScrollPhysics(),
               children: [
                 ...controller.addedFriends.map(
-                  (friend) => FriendListItem(
+                      (friend) => FriendListItem(
                     name: friend.name,
                     initials: friend.initials,
                     isDarkAvatar: friend.isDarkAvatar,
                     status: friend.status,
                     isFocusing: friend.isFocusing,
+                    isSelected: controller.isSelectedForNudge(friend.id),
+                    onSelectToggle: () => controller.toggleNudgeSelection(friend.id),
                     onTap: () {
                       if (!friend.isFocusing) {
                         Get.toNamed(Routes.friendDetails, arguments: friend);
@@ -74,7 +76,11 @@ class FriendsPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16.h),
-                _buildAddFriendsOutlineButton(),
+                Obx(
+                      () => controller.selectedForNudge.isEmpty
+                      ? _buildAddFriendsOutlineButton()
+                      : _buildSelectModeButton(),
+                ),
                 SizedBox(height: 24.h),
               ],
             ),
@@ -109,6 +115,37 @@ class FriendsPage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectModeButton() {
+    return InkWell(
+      onTap: () => Get.toNamed(
+        Routes.modes,
+        arguments: {
+          'isNudgeFlow': true,
+          'participantIds': controller.selectedForNudge.toList(),
+        },
+      ),
+      borderRadius: BorderRadius.circular(24.r),
+      child: Container(
+        width: double.infinity,
+        height: 48.h,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1814),
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Center(
+          child: Text(
+            'Select Mood',
+            style: GoogleFonts.dmSans(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFFF7F4EE),
+            ),
+          ),
         ),
       ),
     );

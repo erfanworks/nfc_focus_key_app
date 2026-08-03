@@ -46,6 +46,21 @@ class AppApiUrl {
   final String breakStatus = "/breaks/status";
   final String breakRemaining = "/breaks/remaining";
 
+  // ==================== Friends ========================
+  final String seeAppUsers = "/friends/users"; // GET METHOD
+  final String addFriend = "/friends/add-friend"; // POST METHOD
+  final String friendsList = "/friends/list"; // GET METHOD
+  String removeFriend(String friendId) =>
+      "/friends/remove-friend/$friendId";  // DELETE METHOD
+  final String createNudge = "/friends/create-nudge"; // POST METHOD
+  String joinNudge(String nudgeId) =>
+      "/friends/join-nudge/$nudgeId"; // POST METHOD
+  final String removeParticipant = "/friends/remove-participant"; // POST METHOD
+  final String friendsNudgeHistory = "/friends/nudge-history"; // GET METHOD
+  final String currentNudgeStatus = "/friends/current-nudge-status"; // GET METHOD
+  String takeNudgeBreak(String nudgeId) =>
+      "/friends/take-nudge-break/$nudgeId";
+
   // ==================== Profile ====================
   final String refreshToken = "/refreshToken";
   final String changePassword = "/auth/change-password";

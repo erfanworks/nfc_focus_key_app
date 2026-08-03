@@ -9,6 +9,8 @@ class FriendListItem extends StatelessWidget {
   final String status;
   final bool isFocusing;
   final VoidCallback? onTap;
+  final VoidCallback? onSelectToggle;
+  final bool isSelected;
 
   const FriendListItem({
     super.key,
@@ -18,6 +20,8 @@ class FriendListItem extends StatelessWidget {
     required this.status,
     required this.isFocusing,
     this.onTap,
+    this.onSelectToggle,
+    this.isSelected = false,
   });
 
   @override
@@ -98,7 +102,35 @@ class FriendListItem extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
+            onSelectToggle != null
+                ? GestureDetector(
+              onTap: onSelectToggle,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 22.w,
+                height: 22.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? const Color(0xFF1A1814)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF1A1814)
+                        : const Color(0xFFB5AFA5),
+                    width: 1.2,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                  Icons.check_rounded,
+                  size: 14.sp,
+                  color: const Color(0xFFF7F4EE),
+                )
+                    : null,
+              ),
+            )
+                : Icon(
               Icons.chevron_right_rounded,
               color: const Color(0xFFB5AFA5),
               size: 20.sp,
