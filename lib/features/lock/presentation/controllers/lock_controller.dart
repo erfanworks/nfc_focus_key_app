@@ -278,7 +278,7 @@ class LockController extends GetxController {
   Future<void> _activateMode(String modeId) async {
     try {
       isTogglingLock.value = true;
-      final response = await ApiServices.instance.postServices(
+      final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.toggleModeActivation(modeId),
       );
 
@@ -313,7 +313,7 @@ class LockController extends GetxController {
   Future<void> _deactivateMode(String modeId) async {
     try {
       isTogglingLock.value = true;
-      final response = await ApiServices.instance.postServices(
+      final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.toggleModeActivation(modeId),
       );
 

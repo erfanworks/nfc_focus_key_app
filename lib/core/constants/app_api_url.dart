@@ -36,8 +36,8 @@ class AppApiUrl {
       "/modes/$modeId/toggle-activation";
   final String lockStatus = "/modes/lock-status";
   final String lock = "/modes/lock-status";
-  String updateLockUnlock(String modeId) =>
-      "/modes/$modeId/toggle-activation";
+  // String updateLockUnlock(String modeId) =>
+  //     "/modes/$modeId/toggle-activation";
 
   // ==================== Break ========================
   final String breakCreateOrUpdateGlobally = "/breaks/config";

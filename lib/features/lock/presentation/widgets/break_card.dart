@@ -122,6 +122,11 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                 ],
               ),
               const Spacer(),
+              // Cancel button disabled — backend has no break-cancel/end-early
+              // endpoint yet. Breaks currently must run their full duration
+              // and end automatically. Uncomment this block if/when a
+              // cancel endpoint becomes available.
+              /*
               GestureDetector(
                 onTapDown: (_) {
                   widget.controller.isHoldingCancel.value = true;
@@ -183,6 +188,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+              */
             ],
           ),
         );
