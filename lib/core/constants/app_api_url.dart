@@ -60,6 +60,17 @@ class AppApiUrl {
   final String currentNudgeStatus = "/friends/current-nudge-status"; // GET METHOD
   String takeNudgeBreak(String nudgeId) =>
       "/friends/take-nudge-break/$nudgeId";
+  // final String initiateNudge = "/friends/current-nudge-status"; // POST METHOD
+  // String nudgePreviewByDetails(String previewId) =>  // GET METHOD
+  //     "/friends/nudge/preview/$previewId";
+  // String midgeConfirmById(String previewId) =>  // POST METHOD
+  //     "/friends/nudge/confirm/$previewId";
+  // String leaveNudgeBYID(String nudgeId) => // POST METHOD
+  //     "/friends/leave-nudge/$nudgeId";
+  final String initiateNudge = "/friends/current-nudge-status";
+  String nudgePreviewByDetails(String previewId) => "/friends/nudge/preview/$previewId";
+  String midgeConfirmById(String previewId) => "/friends/nudge/confirm/$previewId";
+  String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";
 
   // ==================== Profile ====================
   final String refreshToken = "/refreshToken";
