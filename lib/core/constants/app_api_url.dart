@@ -67,7 +67,7 @@ class AppApiUrl {
   //     "/friends/nudge/confirm/$previewId";
   // String leaveNudgeBYID(String nudgeId) => // POST METHOD
   //     "/friends/leave-nudge/$nudgeId";
-  final String initiateNudge = "/friends/current-nudge-status";
+  final String initiateNudge = "/friends/nudge/initiate";
   String nudgePreviewByDetails(String previewId) => "/friends/nudge/preview/$previewId";
   String midgeConfirmById(String previewId) => "/friends/nudge/confirm/$previewId";
   String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";

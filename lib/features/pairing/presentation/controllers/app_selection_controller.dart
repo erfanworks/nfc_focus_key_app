@@ -48,6 +48,7 @@ class AppSelectionController extends GetxController {
       final List<AppInfo> installed = await InstalledApps.getInstalledApps(
         excludeSystemApps: true,
         withIcon: true,
+
       );
 
       apps.value = installed
@@ -149,13 +150,7 @@ class AppSelectionController extends GetxController {
 
       try {
         final modesController = Get.find<ModesController>();
-        modesController.addMode(
-          ModeItem(
-            body["name"] as String,
-            body["description"] as String,
-            _args?['icon'] as FKIcon,
-          ),
-        );
+        await modesController.fetchModes();
       } catch (_) {}
 
       CustomSnackbar.show(

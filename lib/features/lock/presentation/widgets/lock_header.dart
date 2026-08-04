@@ -4,6 +4,7 @@ import 'package:focus_key/routes/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get/get.dart';
 import '../controllers/lock_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class LockHeader extends StatelessWidget {
   final LockController controller;
@@ -44,111 +45,136 @@ class LockHeader extends StatelessWidget {
             alignment: Alignment.center,
             child: controller.isOnBreak.value
                 ? Container(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0EBE2),
-                      borderRadius: BorderRadius.circular(20.r),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0EBE2),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6.w,
+                    height: 6.w,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF5722),
+                      shape: BoxShape.circle,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 6.w,
-                          height: 6.w,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFF5722),
-                            shape: BoxShape.circle,
+                  ),
+                  SizedBox(width: 8.w),
+                  Flexible(
+                    child: Text(
+                      'Ethan is also focusing',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF1A1814),
+                        height: 1.2,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : controller.isLocked.value
+                ? Builder(builder: (_) {
+              final friendsController = Get.find<FriendsController>();
+              return Obx(() {
+                final nudge = friendsController.currentNudge.value;
+                final isNudgeActive = nudge != null && nudge.isActive;
+
+                return Container(
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
+                  padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0EBE2),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.people_alt_outlined,
+                        color: const Color(0xFF8A8278),
+                        size: 14.sp,
+                      ),
+                      SizedBox(width: 8.w),
+                      Flexible(
+                        child: Text(
+                          isNudgeActive
+                              ? 'Focusing with ${nudge.participants.map((p) => p.name).join(", ")}'
+                              : 'You are focusing',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF1A1814),
+                            height: 1.2,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
+                      ),
+                      if (isNudgeActive && nudge.nudgeId != null) ...[
                         SizedBox(width: 8.w),
-                        Flexible(
+                        GestureDetector(
+                          onTap: () => friendsController.leaveNudge(nudge.nudgeId!),
                           child: Text(
-                            'Ethan is also focusing',
+                            'Leave',
                             style: GoogleFonts.dmSans(
                               fontSize: 12.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF1A1814),
-                              height: 1.2,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFC0392B),
+                              decoration: TextDecoration.underline,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
                           ),
                         ),
                       ],
-                    ),
-                  )
-                : controller.isLocked.value
-                    ? Container(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
-                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0EBE2),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.people_alt_outlined,
-                              color: const Color(0xFF8A8278),
-                              size: 14.sp,
-                            ),
-                            SizedBox(width: 8.w),
-                            Flexible(
-                              child: Text(
-                                'You are focusing with 3 friends',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF1A1814),
-                                  height: 1.2,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : GestureDetector(
-                        onTap: () => Get.toNamed(Routes.joinFocus),
-                        child: Container(
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
-                          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0EBE2),
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6.w,
-                                height: 6.w,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFFF5722),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Flexible(
-                                child: Text(
-                                  '3 friends are focusing. Join them?',
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w400,
-                                    color: const Color(0xFF1A1814),
-                                    height: 1.2,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                    ],
+                  ),
+                );
+              });
+            })
+                : GestureDetector(
+              onTap: () => Get.toNamed(Routes.joinFocus),
+              child: Container(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 40.w),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0EBE2),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6.w,
+                      height: 6.w,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF5722),
+                        shape: BoxShape.circle,
                       ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Flexible(
+                      child: Text(
+                        '3 friends are focusing. Join them?',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF1A1814),
+                          height: 1.2,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       );

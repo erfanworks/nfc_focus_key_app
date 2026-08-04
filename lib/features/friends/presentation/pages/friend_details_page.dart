@@ -17,59 +17,78 @@ class FriendDetailsPage extends StatefulWidget {
 class _FriendDetailsPageState extends State<FriendDetailsPage> {
   final FriendsController controller = Get.find<FriendsController>();
 
-  late List<FriendModel> _participants;
-  String? _modeId;
+  List<String> _participantIds = [];
+  String _modeId = '';
   int _breaksPerDay = 3;
   int _breakDurationMinutes = 10;
+
+  NudgePreview? _preview;
+  bool _isLoadingPreview = true;
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     final args = Get.arguments;
-
-    if (args is FriendModel) {
-      // Backward-compatible single-friend entry point.
-      _participants = [args];
-    } else if (args is Map<String, dynamic>) {
-      final ids = List<String>.from(args['selectedFriends'] ?? []);
-      _participants = controller.addedFriends.where((f) => ids.contains(f.id)).toList();
-      _modeId = args['modeId'] as String?;
+    if (args is Map<String, dynamic>) {
+      _participantIds = List<String>.from(args['selectedFriends'] ?? []);
+      _modeId = args['modeId'] ?? '';
       _breaksPerDay = args['breaksPerDay'] ?? 3;
       _breakDurationMinutes = args['breakDurationMinutes'] ?? 10;
-    } else {
-      _participants = [];
     }
+    _loadPreview();
   }
 
-  void _removeParticipant(FriendModel friend) {
-    setState(() => _participants.remove(friend));
+  String? _loadError;
+
+  Future<void> _loadPreview() async {
+    if (_participantIds.isEmpty || _modeId.isEmpty) {
+      setState(() => _isLoadingPreview = false);
+      return;
+    }
+    final preview = await controller.initiateNudge(
+      participantIds: _participantIds,
+      modeId: _modeId,
+      breaksPerDay: _breaksPerDay,
+      breakDurationMinutes: _breakDurationMinutes,
+    );
+    setState(() {
+      _preview = preview;
+      _loadError = preview == null ? controller.lastError.value : null;
+      _isLoadingPreview = false;
+    });
+  }
+
+  Future<void> _removeParticipant(PreviewParticipant participant) async {
+    if (_preview == null) return;
+    await controller.removeParticipant(
+      previewId: _preview!.previewId,
+      participantId: participant.id,
+    );
+    setState(() {
+      _preview!.participants.remove(participant);
+    });
   }
 
   Future<void> _sendNudge() async {
-    if (_isSending) return;
-    if (_participants.isEmpty || _modeId == null) {
+    if (_isSending || _preview == null) return;
+    if (_preview!.participants.isEmpty) {
       CustomSnackbar.show(
         title: "Can't send nudge",
-        message: "Select at least one friend and a mode first.",
+        message: "At least one friend must remain selected.",
         isError: true,
       );
       return;
     }
 
     setState(() => _isSending = true);
-    final success = await controller.createNudge(
-      participantIds: _participants.map((f) => f.id).toList(),
-      modeId: _modeId!,
-      breaksPerDay: _breaksPerDay,
-      breakDurationMinutes: _breakDurationMinutes,
-    );
+    final success = await controller.confirmNudge(_preview!.previewId);
     setState(() => _isSending = false);
 
     if (success) {
       CustomSnackbar.show(
         title: 'Request sent',
-        message: 'Your partner${_participants.length > 1 ? "s" : ""} will get a notification.',
+        message: 'Your partner${_preview!.participants.length > 1 ? "s" : ""} will get a notification.',
       );
       Get.offAllNamed(Routes.lock);
     }
@@ -82,14 +101,40 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: Column(
+          child: _isLoadingPreview
+              ? const Center(child: CircularProgressIndicator())
+              : _preview == null
+              ? Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _loadError ?? "Couldn't load nudge details.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.dmSans(color: const Color(0xFF8A8278)),
+                  ),
+                  SizedBox(height: 16.h),
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: const Text('Go back'),
+                  ),
+                ],
+              ),
+            ),
+          )
+              : Column(
             children: [
               _buildHeader(),
               SizedBox(height: 32.h),
               _buildParticipants(),
               SizedBox(height: 32.h),
-              _buildCards(),
-              SizedBox(height: 32.h),
+              if (_preview!.participants.length == 1) ...[
+                _buildCards(_preview!.participants.first.sharedStats),
+                SizedBox(height: 32.h),
+              ],
+              const Spacer(),
               _buildSendButton(),
             ],
           ),
@@ -126,11 +171,11 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
       spacing: 24.w,
       runSpacing: 16.h,
       alignment: WrapAlignment.center,
-      children: _participants.map((friend) => _buildParticipantCard(friend)).toList(),
+      children: _preview!.participants.map((p) => _buildParticipantCard(p)).toList(),
     );
   }
 
-  Widget _buildParticipantCard(FriendModel friend) {
+  Widget _buildParticipantCard(PreviewParticipant participant) {
     return Column(
       children: [
         Stack(
@@ -141,17 +186,17 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               height: 48.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: friend.isDarkAvatar
+                color: participant.isDarkAvatar
                     ? const Color(0xFF1A1814)
                     : const Color(0xFFE8E3DA),
               ),
               child: Center(
                 child: Text(
-                  friend.initials,
+                  participant.initials,
                   style: GoogleFonts.dmSans(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
-                    color: friend.isDarkAvatar
+                    color: participant.isDarkAvatar
                         ? const Color(0xFFF7F4EE)
                         : const Color(0xFF1A1814),
                   ),
@@ -162,14 +207,11 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               top: -4,
               right: -4,
               child: GestureDetector(
-                onTap: () => _removeParticipant(friend),
+                onTap: () => _removeParticipant(participant),
                 child: Container(
                   width: 18.w,
                   height: 18.w,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFF1A1814),
-                  ),
+                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1A1814)),
                   child: Icon(Icons.close_rounded, size: 12.sp, color: const Color(0xFFF7F4EE)),
                 ),
               ),
@@ -178,12 +220,8 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
         ),
         SizedBox(height: 8.h),
         Text(
-          friend.name,
-          style: GoogleFonts.dmSans(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF1A1814),
-          ),
+          participant.name,
+          style: GoogleFonts.dmSans(fontSize: 14.sp, fontWeight: FontWeight.w500, color: const Color(0xFF1A1814)),
         ),
         SizedBox(height: 2.h),
         Row(
@@ -194,24 +232,21 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               height: 6.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: friend.isFocusing ? const Color(0xFFE67124) : const Color(0xFF8A8278),
+                color: participant.isFocusing ? const Color(0xFFE67124) : const Color(0xFF8A8278),
               ),
             ),
             SizedBox(width: 6.w),
-            Text(
-              friend.status,
-              style: GoogleFonts.dmSans(fontSize: 11.sp, color: const Color(0xFF8A8278)),
-            ),
+            Text(participant.status, style: GoogleFonts.dmSans(fontSize: 11.sp, color: const Color(0xFF8A8278))),
           ],
         ),
       ],
     );
   }
 
-  // NOTE: "Together this week" hours and streak dots are static placeholders.
-  // Backend confirmed this comes from an auto-computed API — wire it in once
-  // that endpoint is shared.
-  Widget _buildCards() {
+  // Real shared-stats data — only shown for the 1:1 (single partner) case,
+  // matching the original design. Flag for confirmation if multi-partner
+  // needs an aggregate version of these two cards instead of hiding them.
+  Widget _buildCards(SharedStats stats) {
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -227,7 +262,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('—', style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
+                  Text(stats.togetherThisWeek, style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
                   SizedBox(height: 8.h),
                   Text(
                     'TOGETHER THIS WEEK',
@@ -249,12 +284,9 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('—', style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
+                  Text('${stats.streak}', style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
                   SizedBox(height: 14.h),
-                  Text(
-                    'STREAK',
-                    style: GoogleFonts.dmSans(fontSize: 9.sp, fontWeight: FontWeight.w500, color: const Color(0xFF8A8278)),
-                  ),
+                  Text('DAY STREAK', style: GoogleFonts.dmSans(fontSize: 9.sp, fontWeight: FontWeight.w500, color: const Color(0xFF8A8278))),
                 ],
               ),
             ),
@@ -271,10 +303,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
       child: Container(
         width: double.infinity,
         height: 48.h,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1814),
-          borderRadius: BorderRadius.circular(30.r),
-        ),
+        decoration: BoxDecoration(color: const Color(0xFF1A1814), borderRadius: BorderRadius.circular(30.r)),
         child: Center(
           child: _isSending
               ? SizedBox(
@@ -282,10 +311,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
             height: 18.w,
             child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE))),
           )
-              : Text(
-            'Send a nudge',
-            style: GoogleFonts.dmSans(fontSize: 14.sp, fontWeight: FontWeight.w400, color: const Color(0xFFF7F4EE)),
-          ),
+              : Text('Send a nudge', style: GoogleFonts.dmSans(fontSize: 14.sp, fontWeight: FontWeight.w400, color: const Color(0xFFF7F4EE))),
         ),
       ),
     );

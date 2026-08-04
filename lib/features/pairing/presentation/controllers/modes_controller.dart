@@ -4,6 +4,7 @@ import '../../../../routes/app_routes.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/utils/log_print.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 import '../../../../core/widgets/focus_icons.dart';
 
@@ -101,10 +102,11 @@ class ModesController extends GetxController {
 
       if (response == null || response["success"] != true) return;
 
-      final List<dynamic> data = response["data"] ?? [];
-      if (data.isEmpty) return;
+      final data = response["data"];
+      final List<dynamic> modesJson = data?["modes"] ?? [];
+      if (modesJson.isEmpty) return;
 
-      modes.value = data
+      modes.value = modesJson
           .map((e) => ModeItem.fromApi(e as Map<String, dynamic>))
           .toList();
       _saveModes();
@@ -136,9 +138,18 @@ class ModesController extends GetxController {
   void onStartMode() {
     final args = Get.arguments as Map<String, dynamic>?;
     final isNudgeFlow = args?['isNudgeFlow'] == true;
+    final selectedMode = modes[selectedIndex.value];
+
+    if (selectedMode.id == null || selectedMode.id!.isEmpty) {
+      CustomSnackbar.show(
+        title: 'Please wait',
+        message: 'Still loading your modes — try again in a moment.',
+        isError: true,
+      );
+      return;
+    }
 
     if (isNudgeFlow) {
-      final selectedMode = modes[selectedIndex.value];
       Get.toNamed(
         Routes.takeBreak,
         arguments: {

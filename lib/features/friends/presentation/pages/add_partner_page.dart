@@ -6,7 +6,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/friends_controller.dart';
 
 class AddPartnerPage extends StatelessWidget {
-  AddPartnerPage({super.key});
+  AddPartnerPage({super.key}) {
+    controller.fetchAppUsers();
+  }
 
   final FriendsController controller = Get.find<FriendsController>();
 
