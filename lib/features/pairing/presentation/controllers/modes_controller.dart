@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/utils/log_print.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
@@ -59,14 +59,11 @@ class ModeItem {
 }
 
 class ModesController extends GetxController {
-  // NOTE: still using raw GetStorage here (legacy) as an offline cache for
-  // the modes list. This is separate from the SharedPreferences-based
-  // StorageServices used elsewhere in the app — flagging this inconsistency;
-  // can migrate to StorageServices if you'd like it consolidated.
-  final _storage = GetStorage();
-  final String _storageKey = 'saved_modes';
-
-  final modes = <ModeItem>[].obs;
+  final modes = <ModeItem>[
+    ModeItem('Deep work.', 'Blocks social media, games, entertainment', FKIcon.deepwork),
+    ModeItem('Step away.', 'Blocks all social apps. Keeps utilities.', FKIcon.outdoors),
+    ModeItem('Nothing gets through.', 'Blocks everything except calls and messages.', FKIcon.dnd),
+  ].obs;
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
 
@@ -77,17 +74,10 @@ class ModesController extends GetxController {
     fetchModes();
   }
 
-  void _loadCachedModes() {
-    final storedData = _storage.read<List>(_storageKey);
-    if (storedData != null && storedData.isNotEmpty) {
-      modes.value = storedData.map((e) => ModeItem.fromJson(e)).toList();
-    } else {
-      // Default modes shown before the first successful server fetch.
-      modes.value = [
-        ModeItem('Deep work.', 'Blocks social media, games, entertainment', FKIcon.deepwork),
-        ModeItem('Step away.', 'Blocks all social apps. Keeps utilities.', FKIcon.outdoors),
-        ModeItem('Nothing gets through.', 'Blocks everything except calls and messages.', FKIcon.dnd),
-      ];
+  Future<void> _loadCachedModes() async {
+    final cached = await StorageServices.instance.getCachedModes();
+    if (cached.isNotEmpty) {
+      modes.assignAll(cached.map((e) => ModeItem.fromJson(e)).toList());
     }
   }
 
@@ -118,8 +108,10 @@ class ModesController extends GetxController {
     }
   }
 
-  void _saveModes() {
-    _storage.write(_storageKey, modes.map((e) => e.toJson()).toList());
+  Future<void> _saveModes() async {
+    await StorageServices.instance.cacheModes(
+      modes.map((e) => e.toJson()).toList(),
+    );
   }
 
   void addMode(ModeItem mode) {

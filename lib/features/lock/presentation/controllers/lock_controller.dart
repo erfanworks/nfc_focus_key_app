@@ -87,7 +87,7 @@ class LockController extends GetxController {
       }
 
       if (isLocked.value) {
-        _startTimer();
+        _resumeOrStartTimer(data["activeSession"]);
       } else {
         _stopTimer();
       }
@@ -107,6 +107,31 @@ class LockController extends GetxController {
     final m = minutes % 60;
     if (h > 0) return '${h}h ${m}m';
     return '${m}m';
+  }
+
+  // NOTE: activeSession's exact start-time field name isn't confirmed in the
+  // API docs (only ever seen as null so far). Tries common field names;
+  // falls back to a fresh timer at 0 if the shape doesn't match — confirm
+  // the real field name with backend dev once activeSession is populated.
+  void _resumeOrStartTimer(dynamic activeSession) {
+    if (activeSession is Map<String, dynamic>) {
+      final raw = activeSession['startTime'] ??
+          activeSession['startedAt'] ??
+          activeSession['createdAt'];
+      if (raw != null) {
+        try {
+          final start = DateTime.parse(raw as String);
+          final elapsed = DateTime.now().difference(start).inSeconds;
+          if (elapsed >= 0) {
+            sessionSeconds.value = elapsed;
+            _startTimer();
+            return;
+          }
+        } catch (_) {}
+      }
+    }
+    sessionSeconds.value = 0;
+    _startTimer();
   }
 
   void _startTimer() {

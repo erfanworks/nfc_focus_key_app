@@ -25,6 +25,9 @@ class StorageKey {
 
   // ==================== Onboarding (merged from previous dev's storage_service.dart) ====================
   final String completedOnboarding = "completedOnboarding";
+
+  // ==================== Modes cache (migrated off GetStorage) ====================
+  final String cachedModes = "cachedModes";
 }
 
 class StorageServices {
@@ -275,6 +278,48 @@ class StorageServices {
     } catch (e) {
       errorLog("hasCompletedOnboarding", e);
       return false;
+    }
+  }
+
+  // ==================== Modes Cache ====================
+  Future<void> cacheModes(List<Map<String, dynamic>> modes) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.cachedModes, jsonEncode(modes));
+    } catch (e) {
+      errorLog("cacheModes", e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCachedModes() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.cachedModes) ?? "";
+      if (raw.isEmpty) return [];
+      return List<Map<String, dynamic>>.from(jsonDecode(raw));
+    } catch (e) {
+      errorLog("getCachedModes", e);
+      return [];
+    }
+  }
+
+  // ==================== Generic Key-Value (for feature-level local caches) ====================
+  Future<void> setValue(String key, String value) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(key, value);
+    } catch (e) {
+      errorLog("setValue:$key", e);
+    }
+  }
+
+  Future<String?> getValue(String key) async {
+    try {
+      final pref = await _pref;
+      return pref.getString(key);
+    } catch (e) {
+      errorLog("getValue:$key", e);
+      return null;
     }
   }
 

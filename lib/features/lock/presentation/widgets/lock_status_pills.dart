@@ -37,6 +37,11 @@ class LockStatusPills extends StatelessWidget {
           // ),
           child: Obx(() {
             final modesController = Get.put<ModesController>(ModesController());
+
+            if (modesController.modes.isEmpty) {
+              return const SizedBox.shrink();
+            }
+
             final selectedItem = modesController.modes.firstWhere(
               (m) => m.title == mode,
               orElse: () => modesController.modes.first,

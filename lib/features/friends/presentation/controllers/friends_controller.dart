@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
@@ -33,11 +34,8 @@ class FriendModel {
 
   // Preserved for existing UI bindings that expect these.
   String get handle => '@$userName';
-
   String get status => lastFocusInfo;
-
   bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
-
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -153,9 +151,7 @@ class PreviewParticipant {
 
   // Preserved getters matching FriendModel's UI-facing shape.
   bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
-
   String get status => lastFocusInfo;
-
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -273,9 +269,6 @@ class FriendsController extends GetxController {
 
   bool isSelectedForNudge(String id) => selectedForNudge.contains(id);
 
-  final RxBool hasMoreUsers = true.obs;
-  int _currentPage = 1;
-
   void toggleNudgeSelection(String id) {
     if (selectedForNudge.contains(id)) {
       selectedForNudge.remove(id);
@@ -288,12 +281,25 @@ class FriendsController extends GetxController {
 
   List<FriendModel> get selectedFriendModels => addedFriends.where((f) => selectedForNudge.contains(f.id)).toList();
 
+  Timer? _nudgeStatusTimer;
+
   @override
   void onInit() {
     super.onInit();
     fetchFriendsList();
     fetchCurrentNudgeStatus();
+    _nudgeStatusTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => fetchCurrentNudgeStatus(),
+    );
   }
+
+  @override
+  void onClose() {
+    _nudgeStatusTimer?.cancel();
+    super.onClose();
+  }
+
   // ==================== Friends List ====================
   Future<void> fetchFriendsList() async {
     try {
@@ -313,26 +319,22 @@ class FriendsController extends GetxController {
   }
 
   // ==================== Browse / Search Users ====================
-  Future<void> fetchAppUsers({String? search, bool loadMore = false}) async {
-    if (loadMore && !hasMoreUsers.value) return;
-    _currentPage = loadMore ? _currentPage + 1 : 1;
+  // NOTE: `search` query param name is unconfirmed with backend — verify.
+  Future<void> fetchAppUsers({String? search, int page = 1}) async {
     try {
       isLoadingAppUsers.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.seeAppUsers,
         queryParameters: {
-          'page': _currentPage,
-          'limit': 10,
+          'page': page,
           if (search != null && search.isNotEmpty) 'searchTerm': search,
         },
       );
       if (response == null || response["success"] != true) return;
-      final List<dynamic> data = response["data"] ?? [];
-      final newUsers = data.map((e) => AppUserModel.fromJson(e)).toList();
-      appUsers.value = loadMore ? [...appUsers, ...newUsers] : newUsers;
-      hasMoreUsers.value = newUsers.length >= 10;
-    } catch (e) {
 
+      final List<dynamic> data = response["data"] ?? [];
+      appUsers.value = data.map((e) => AppUserModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
       CustomSnackbar.show(
         title: "Couldn't load users",
         message: "Please check your connection and try again.",

@@ -15,7 +15,11 @@ class BreakController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _fetchBreakConfig();
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isNudgeFlow = args?['isNudgeFlow'] == true;
+    if (!isNudgeFlow) {
+      _fetchBreakConfig();
+    }
   }
 
   Future<void> _fetchBreakConfig() async {

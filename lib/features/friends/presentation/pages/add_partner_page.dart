@@ -77,7 +77,7 @@ class AddPartnerPage extends StatelessWidget {
               ),
               if (controller.addedFriends.isNotEmpty)
                 Padding(
-                  padding: EdgeInsets.only(top: 12.h, bottom: 8.h),
+                  padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
                   child: Center(
                     child: TextButton(
                       onPressed: () => Get.back(),

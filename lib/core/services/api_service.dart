@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:focus_key/core/services/storage_services.dart';
 import '../utils/log_print.dart';
-import '../widgets/custom_snackbar.dart';
 import 'api.dart';
 
 class ApiServices {
@@ -117,22 +116,18 @@ class ApiServices {
 
       if (isSuccess) return response.data;
 
-      CustomSnackbar.show(title: 'Error', message: "Unexpected response: $code", isError: true);
-      return null;
+      return _errorResult("Unexpected response ($code). Please try again.");
     } on SocketException catch (e) {
       errorLog('SocketException', e);
-      CustomSnackbar.show(title: 'Error', message: "Check your internet connection", isError: true);
-      return null;
+      return _errorResult("Check your internet connection.");
     } on TimeoutException catch (e) {
       errorLog('TimeoutException', e);
-      CustomSnackbar.show(title: 'Error', message: "Request timed out. Please try again.", isError: true);
-      return null;
+      return _errorResult("Request timed out. Please try again.");
     } on DioException catch (e) {
       return _handleDioException(e);
     } catch (e) {
       errorLog('UnknownException', e);
-      CustomSnackbar.show(title: 'Error', message: "Something went wrong", isError: true);
-      return null;
+      return _errorResult("Something went wrong. Please try again.");
     }
   }
 
@@ -142,20 +137,22 @@ class ApiServices {
 
     if (e.response != null) {
       // 401 is already handled in AppApi interceptor (token refresh + redirect)
-      final message = e.response?.data?["message"];
-      CustomSnackbar.show(
-        title: 'Error',
-        message: message != null ? "$message" : "Error: ${e.response?.statusCode}",
-        isError: true,
-      );
-    } else {
-      CustomSnackbar.show(
-        title: 'Error',
-        message: "Network error. Please check your connection.",
-        isError: true,
-      );
+      final data = e.response?.data;
+      final message = (data is Map && data["message"] != null)
+          ? data["message"].toString()
+          : "Error ${e.response?.statusCode}. Please try again.";
+      return _errorResult(message);
     }
 
-    return null;
+    return _errorResult("Network error. Please check your connection.");
   }
+
+  // Every failure path returns this shape so callers can rely on a single,
+  // consistent check: `response == null || response["success"] != true`,
+  // and always get the REAL backend message via `response["message"]`
+  // instead of a generic fallback.
+  Map<String, dynamic> _errorResult(String message) => {
+    "success": false,
+    "message": message,
+  };
 }

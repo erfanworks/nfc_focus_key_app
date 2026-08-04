@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
 
@@ -48,7 +49,6 @@ class AppSelectionController extends GetxController {
       final List<AppInfo> installed = await InstalledApps.getInstalledApps(
         excludeSystemApps: true,
         withIcon: true,
-
       );
 
       apps.value = installed
@@ -148,17 +148,18 @@ class AppSelectionController extends GetxController {
         return;
       }
 
-      try {
-        final modesController = Get.find<ModesController>();
-        await modesController.fetchModes();
-      } catch (_) {}
-
       CustomSnackbar.show(
         title: isEditMode ? "Mode updated" : "Mode created",
         message: "\"${body['name']}\" is ready.",
       );
 
       Get.close(2);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          Get.find<ModesController>().fetchModes();
+        } catch (_) {}
+      });
     } catch (e) {
       CustomSnackbar.show(
         title: "Something went wrong",

@@ -17,29 +17,63 @@ class FriendDetailsPage extends StatefulWidget {
 class _FriendDetailsPageState extends State<FriendDetailsPage> {
   final FriendsController controller = Get.find<FriendsController>();
 
+  // ---- Mode A: single-friend accountability card (from Friends Hub tap) ----
+  FriendModel? _singleFriend;
+  bool _showRemoveConfirm = false;
+  bool _isRemoving = false;
+
+  // ---- Mode B: nudge preview/confirm (from Friends -> Mode -> Break flow) ----
   List<String> _participantIds = [];
   String _modeId = '';
   int _breaksPerDay = 3;
   int _breakDurationMinutes = 10;
-
   NudgePreview? _preview;
-  bool _isLoadingPreview = true;
+  bool _isLoadingPreview = false;
+  String? _loadError;
   bool _isSending = false;
 
   @override
   void initState() {
     super.initState();
     final args = Get.arguments;
+
+    if (args is FriendModel) {
+      _singleFriend = args;
+      return;
+    }
+
     if (args is Map<String, dynamic>) {
       _participantIds = List<String>.from(args['selectedFriends'] ?? []);
       _modeId = args['modeId'] ?? '';
       _breaksPerDay = args['breaksPerDay'] ?? 3;
       _breakDurationMinutes = args['breakDurationMinutes'] ?? 10;
+      _isLoadingPreview = true;
+      _loadPreview();
     }
-    _loadPreview();
   }
 
-  String? _loadError;
+  // ==================== Mode A actions ====================
+
+  void _sendNudgeToSingleFriend() {
+    if (_singleFriend == null) return;
+    Get.toNamed(
+      Routes.modes,
+      arguments: {
+        'isNudgeFlow': true,
+        'participantIds': [_singleFriend!.id],
+      },
+    );
+  }
+
+  Future<void> _confirmRemoveFriend() async {
+    if (_singleFriend == null || _isRemoving) return;
+    setState(() => _isRemoving = true);
+    await controller.removeFriend(_singleFriend!.id);
+    setState(() => _isRemoving = false);
+    Get.back();
+  }
+
+  // ==================== Mode B actions ====================
 
   Future<void> _loadPreview() async {
     if (_participantIds.isEmpty || _modeId.isEmpty) {
@@ -101,43 +135,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: _isLoadingPreview
-              ? const Center(child: CircularProgressIndicator())
-              : _preview == null
-              ? Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _loadError ?? "Couldn't load nudge details.",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.dmSans(color: const Color(0xFF8A8278)),
-                  ),
-                  SizedBox(height: 16.h),
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: const Text('Go back'),
-                  ),
-                ],
-              ),
-            ),
-          )
-              : Column(
-            children: [
-              _buildHeader(),
-              SizedBox(height: 32.h),
-              _buildParticipants(),
-              SizedBox(height: 32.h),
-              if (_preview!.participants.length == 1) ...[
-                _buildCards(_preview!.participants.first.sharedStats),
-                SizedBox(height: 32.h),
-              ],
-              const Spacer(),
-              _buildSendButton(),
-            ],
-          ),
+          child: _singleFriend != null ? _buildSingleFriendView() : _buildNudgeFlowView(),
         ),
       ),
     );
@@ -166,6 +164,186 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
     );
   }
 
+  // ==================== Mode A: single-friend accountability card ====================
+
+  Widget _buildSingleFriendView() {
+    final friend = _singleFriend!;
+    return Column(
+      children: [
+        _buildHeader(),
+        SizedBox(height: 32.h),
+        Container(
+          width: 56.w,
+          height: 56.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: friend.isDarkAvatar ? const Color(0xFF1A1814) : const Color(0xFFE8E3DA),
+          ),
+          child: Center(
+            child: Text(
+              friend.initials,
+              style: GoogleFonts.dmSans(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w500,
+                color: friend.isDarkAvatar ? const Color(0xFFF7F4EE) : const Color(0xFF1A1814),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Text(
+          friend.name,
+          style: GoogleFonts.cormorantGaramond(fontSize: 28.sp, fontWeight: FontWeight.w500, color: const Color(0xFF1A1814)),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 6.w,
+              height: 6.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: friend.isFocusing ? const Color(0xFFE67124) : const Color(0xFF8A8278),
+              ),
+            ),
+            SizedBox(width: 6.w),
+            Text(friend.status, style: GoogleFonts.dmSans(fontSize: 11.sp, color: const Color(0xFF8A8278))),
+          ],
+        ),
+        const Spacer(),
+        _showRemoveConfirm ? _buildRemoveConfirmCard() : _buildSingleFriendActions(),
+      ],
+    );
+  }
+
+  Widget _buildSingleFriendActions() {
+    return Column(
+      children: [
+        InkWell(
+          onTap: _sendNudgeToSingleFriend,
+          borderRadius: BorderRadius.circular(30.r),
+          child: Container(
+            width: double.infinity,
+            height: 48.h,
+            decoration: BoxDecoration(color: const Color(0xFF1A1814), borderRadius: BorderRadius.circular(30.r)),
+            child: Center(
+              child: Text('Send a nudge', style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFFF7F4EE))),
+            ),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        InkWell(
+          onTap: () => setState(() => _showRemoveConfirm = true),
+          borderRadius: BorderRadius.circular(30.r),
+          child: Container(
+            width: double.infinity,
+            height: 48.h,
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(30.r),
+              border: Border.all(color: const Color(0xFFE8E3DA)),
+            ),
+            child: Center(
+              child: Text('Remove friend', style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFFC0392B))),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Mirrors the existing unpair-confirmation pattern used on the Key Status
+  // page, so destructive actions look/behave consistently across the app.
+  Widget _buildRemoveConfirmCard() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(24.w),
+      decoration: BoxDecoration(color: const Color(0xFFF0EBE2), borderRadius: BorderRadius.circular(16.r)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Remove ${_singleFriend!.name}?',
+            style: GoogleFonts.cormorantGaramond(fontSize: 24.sp, fontWeight: FontWeight.w400, color: const Color(0xFF1A1814)),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "You'll need to add them again before you can nudge each other.",
+            style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFF8A8278), height: 20 / 14),
+          ),
+          SizedBox(height: 24.h),
+          GestureDetector(
+            onTap: _isRemoving ? null : _confirmRemoveFriend,
+            child: Container(
+              width: double.infinity,
+              height: 56.h,
+              decoration: BoxDecoration(color: const Color(0xFFC0392B), borderRadius: BorderRadius.circular(28.r)),
+              child: Center(
+                child: _isRemoving
+                    ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: const CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE))),
+                )
+                    : Text('Yes, remove', style: GoogleFonts.dmSans(fontSize: 16.sp, fontWeight: FontWeight.w500, color: const Color(0xFFF7F4EE))),
+              ),
+            ),
+          ),
+          SizedBox(height: 12.h),
+          GestureDetector(
+            onTap: () => setState(() => _showRemoveConfirm = false),
+            child: Container(
+              width: double.infinity,
+              height: 56.h,
+              decoration: BoxDecoration(color: const Color(0xFFCCC8C0), borderRadius: BorderRadius.circular(28.r)),
+              child: Center(
+                child: Text('Cancel', style: GoogleFonts.dmSans(fontSize: 16.sp, fontWeight: FontWeight.w500, color: const Color(0xFF1A1814))),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== Mode B: nudge preview/confirm ====================
+
+  Widget _buildNudgeFlowView() {
+    if (_isLoadingPreview) return const Center(child: CircularProgressIndicator());
+
+    if (_preview == null) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _loadError ?? "Couldn't load nudge details.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(color: const Color(0xFF8A8278)),
+              ),
+              SizedBox(height: 16.h),
+              TextButton(onPressed: () => Get.back(), child: const Text('Go back')),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _buildHeader(),
+        SizedBox(height: 32.h),
+        _buildParticipants(),
+        const Spacer(),
+        _buildSendButton(),
+      ],
+    );
+  }
+
   Widget _buildParticipants() {
     return Wrap(
       spacing: 24.w,
@@ -186,9 +364,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               height: 48.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: participant.isDarkAvatar
-                    ? const Color(0xFF1A1814)
-                    : const Color(0xFFE8E3DA),
+                color: participant.isDarkAvatar ? const Color(0xFF1A1814) : const Color(0xFFE8E3DA),
               ),
               child: Center(
                 child: Text(
@@ -196,9 +372,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
                   style: GoogleFonts.dmSans(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,
-                    color: participant.isDarkAvatar
-                        ? const Color(0xFFF7F4EE)
-                        : const Color(0xFF1A1814),
+                    color: participant.isDarkAvatar ? const Color(0xFFF7F4EE) : const Color(0xFF1A1814),
                   ),
                 ),
               ),
@@ -239,60 +413,14 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
             Text(participant.status, style: GoogleFonts.dmSans(fontSize: 11.sp, color: const Color(0xFF8A8278))),
           ],
         ),
+        // Per-participant stats — scales to any number of participants
+        // without needing an aggregate "together this week" card.
+        SizedBox(height: 2.h),
+        Text(
+          '${participant.sharedStats.togetherThisWeek} · ${participant.sharedStats.streak}🔥',
+          style: GoogleFonts.dmSans(fontSize: 10.sp, color: const Color(0xFFB5AFA5)),
+        ),
       ],
-    );
-  }
-
-  // Real shared-stats data — only shown for the 1:1 (single partner) case,
-  // matching the original design. Flag for confirmation if multi-partner
-  // needs an aggregate version of these two cards instead of hiding them.
-  Widget _buildCards(SharedStats stats) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0EBE2),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(stats.togetherThisWeek, style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
-                  SizedBox(height: 8.h),
-                  Text(
-                    'TOGETHER THIS WEEK',
-                    style: GoogleFonts.dmSans(fontSize: 9.sp, fontWeight: FontWeight.w500, color: const Color(0xFF8A8278), letterSpacing: 0.36),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0EBE2),
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('${stats.streak}', style: GoogleFonts.dmSans(fontSize: 24.sp, color: const Color(0xFF1A1814))),
-                  SizedBox(height: 14.h),
-                  Text('DAY STREAK', style: GoogleFonts.dmSans(fontSize: 9.sp, fontWeight: FontWeight.w500, color: const Color(0xFF8A8278))),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
