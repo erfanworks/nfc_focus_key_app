@@ -1,15 +1,28 @@
 import 'package:get/get.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
 
 class FocusSession {
   final String timeRange;
   final String duration;
   final String mode;
+  final bool isActive;
 
   const FocusSession({
     required this.timeRange,
     required this.duration,
     required this.mode,
+    this.isActive = false,
   });
+
+  factory FocusSession.fromJson(Map<String, dynamic> json) {
+    return FocusSession(
+      timeRange: json['timeRange'] ?? '',
+      duration: json['duration'] ?? '',
+      mode: json['modeName'] ?? '',
+      isActive: json['status'] == 'active',
+    );
+  }
 }
 
 class HistoryGroup {
@@ -17,59 +30,46 @@ class HistoryGroup {
   final List<FocusSession> sessions;
 
   const HistoryGroup({required this.date, required this.sessions});
+
+  factory HistoryGroup.fromJson(Map<String, dynamic> json) {
+    return HistoryGroup(
+      date: json['dateGroup'] ?? '',
+      sessions: (json['sessions'] as List<dynamic>? ?? [])
+          .map((e) => FocusSession.fromJson(e))
+          .toList(),
+    );
+  }
 }
 
 class HistoryController extends GetxController {
-  final totalFocusTime = '48h 32m'.obs;
-  final sinceDate = 'Since April 1, 2026'.obs;
-  final todayTime = '4m'.obs;
-  final thisWeekTime = '2h 14m'.obs;
+  final totalFocusTime = ''.obs;
+  final sinceDate = ''.obs;
+  final historyGroups = <HistoryGroup>[].obs;
+  final isLoading = false.obs;
 
-  final historyGroups = <HistoryGroup>[
-    const HistoryGroup(
-      date: 'TODAY',
-      sessions: [
-        FocusSession(
-          timeRange: '8:14 AM – 10:02 AM',
-          duration: '1h 48m',
-          mode: 'Study',
-        ),
-        FocusSession(
-          timeRange: '2:30 PM – 3:45 PM',
-          duration: '1h 15m',
-          mode: 'Study',
-        ),
-      ],
-    ),
-    const HistoryGroup(
-      date: 'YESTERDAY',
-      sessions: [
-        FocusSession(
-          timeRange: '9:00 AM – 11:30 AM',
-          duration: '2h 30m',
-          mode: 'Detox',
-        ),
-        FocusSession(
-          timeRange: '3:00 PM – 4:15 PM',
-          duration: '1h 15m',
-          mode: 'Study',
-        ),
-      ],
-    ),
-    const HistoryGroup(
-      date: 'APR 30',
-      sessions: [
-        FocusSession(
-          timeRange: '7:45 AM – 10:00 AM',
-          duration: '2h 15m',
-          mode: 'Study',
-        ),
-        FocusSession(
-          timeRange: '1:00 PM – 2:30 PM',
-          duration: '1h 30m',
-          mode: 'Study',
-        ),
-      ],
-    ),
-  ].obs;
+  @override
+  void onInit() {
+    super.onInit();
+    fetchHistory();
+  }
+
+  Future<void> fetchHistory() async {
+    isLoading.value = true;
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.history,
+      );
+
+      if (response != null && response["success"] == true) {
+        final data = response["data"];
+        totalFocusTime.value = data['totalFocusTime'] ?? '';
+        sinceDate.value = data['sinceDate'] ?? '';
+        historyGroups.value = (data['history'] as List<dynamic>? ?? [])
+            .map((e) => HistoryGroup.fromJson(e))
+            .toList();
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

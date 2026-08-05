@@ -78,15 +78,31 @@ class HistoryListSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text(
-                    session.duration,
-                    style: GoogleFonts.cormorantGaramond(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF1A1814),
-                      height: 1.5,
-                    ),
-                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (session.isActive) ...[
+                        Container(
+                          width: 6.w,
+                          height: 6.w,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF4CAF50),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: 6.w),
+                      ],
+                      Text(
+                        session.duration,
+                        style: GoogleFonts.cormorantGaramond(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF1A1814),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             );

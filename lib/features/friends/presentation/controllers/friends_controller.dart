@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../lock/presentation/controllers/lock_controller.dart';
 
 // ==================== Models ====================
 
@@ -262,6 +263,7 @@ class FriendsController extends GetxController {
 
   final Rxn<CurrentNudgeStatus> currentNudge = Rxn<CurrentNudgeStatus>();
   final isLoadingNudgeStatus = false.obs;
+  final _isFetchingNudgeStatus = false.obs;
 
   // Multi-select state for picking friends to start a new nudge with.
   final RxSet<String> selectedForNudge = <String>{}.obs;
@@ -289,8 +291,8 @@ class FriendsController extends GetxController {
     fetchFriendsList();
     fetchCurrentNudgeStatus();
     _nudgeStatusTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => fetchCurrentNudgeStatus(),
+      const Duration(seconds: 40),
+      (_) => fetchCurrentNudgeStatus(silent: true),
     );
   }
 
@@ -555,9 +557,11 @@ class FriendsController extends GetxController {
     }
   }
 
-  Future<void> fetchCurrentNudgeStatus() async {
+  Future<void> fetchCurrentNudgeStatus({bool silent = false}) async {
+    if (_isFetchingNudgeStatus.value) return;
     try {
-      isLoadingNudgeStatus.value = true;
+      _isFetchingNudgeStatus.value = true;
+      if (!silent) isLoadingNudgeStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.currentNudgeStatus,
       );
@@ -568,7 +572,8 @@ class FriendsController extends GetxController {
     } catch (e) {
       // Silent background refresh — keep last known status if offline.
     } finally {
-      isLoadingNudgeStatus.value = false;
+      _isFetchingNudgeStatus.value = false;
+      if (!silent) isLoadingNudgeStatus.value = false;
     }
   }
 
@@ -603,6 +608,11 @@ class FriendsController extends GetxController {
         return;
       }
       await fetchCurrentNudgeStatus();
+
+      // Notify LockController to refresh its state so the Lock screen UI stays in sync.
+      if (Get.isRegistered<LockController>()) {
+        Get.find<LockController>().fetchLockStatus();
+      }
     } catch (e) {
       CustomSnackbar.show(
         title: "Something went wrong",

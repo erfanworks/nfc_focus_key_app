@@ -160,7 +160,7 @@ class AppPages {
       name: Routes.personalReminder,
       page: () => const PersonalReminderPage(),
     ),
-    GetPage(name: Routes.focusHistory, page: () => const FocusHistoryPage()),
+    GetPage(name: Routes.focusHistory, page: () =>  FocusHistoryPage()),
     GetPage(name: Routes.exportData, page: () => const ExportDataPage()),
     GetPage(name: Routes.keyStatus, page: () => KeyStatusPage()),
     GetPage(name: Routes.addPartner, page: () => AddPartnerPage()),

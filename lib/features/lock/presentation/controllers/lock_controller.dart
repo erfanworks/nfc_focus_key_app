@@ -28,26 +28,42 @@ class LockController extends GetxController {
 
   // Break State Variables (kept local — break API payload not yet provided)
   final isOnBreak = false.obs;
-  final breakSeconds = 150.obs;
+  final breakSeconds = 0.obs;
   final isBreakPaused = false.obs;
-  final breaksLeft = 1.obs;
+  final breaksLeft = 0.obs;
+  final breakDurationMinutes = 0.obs;
   final isHoldingCancel = false.obs;
 
   final isLoadingStatus = false.obs;
+  final _isFetchingStatus = false.obs;
 
   Timer? _timer;
   Timer? _breakTimer;
+  Timer? _statusPollTimer;
 
   @override
   void onInit() {
     super.onInit();
     fetchLockStatus();
+    _startStatusPolling();
+  }
+
+  void _startStatusPolling() {
+    _statusPollTimer?.cancel();
+    _statusPollTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
+      // Only poll in background if locked or on the lock screen to reduce terminal noise
+      if (isLocked.value || Get.currentRoute == '/lock') {
+        fetchLockStatus(silent: true);
+      }
+    });
   }
 
   // ==================== Lock Status ====================
-  Future<void> fetchLockStatus() async {
+  Future<void> fetchLockStatus({bool silent = false}) async {
+    if (_isFetchingStatus.value) return;
     try {
-      isLoadingStatus.value = true;
+      _isFetchingStatus.value = true;
+      if (!silent) isLoadingStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.lockStatus,
       );
@@ -71,6 +87,7 @@ class LockController extends GetxController {
       todayTime.value = _formatMinutes(focusStats["todayMinutes"] ?? 0);
       thisWeekTime.value = _formatMinutes(focusStats["weekMinutes"] ?? 0);
       breaksLeft.value = breakStats["remainingToday"] ?? 0;
+      breakDurationMinutes.value = breakStats["durationMinutes"] ?? 0;
       totalBlockedApps.value = data["totalBlockedApps"] ?? 0;
 
       final activeBreak = breakStats["activeBreak"];
@@ -79,11 +96,23 @@ class LockController extends GetxController {
           final end = DateTime.parse(activeBreak["endTime"]);
           final remaining = end.difference(DateTime.now()).inSeconds;
           if (remaining > 0) {
-            isOnBreak.value = true;
-            breakSeconds.value = remaining;
-            _startBreakTimer();
+            if (!isOnBreak.value) {
+              isOnBreak.value = true;
+              breakSeconds.value = remaining;
+              _startBreakTimer();
+            } else {
+              // Just sync the time if already on break to avoid jittering
+              // but keep it somewhat in sync with server
+              if ((breakSeconds.value - remaining).abs() > 5) {
+                breakSeconds.value = remaining;
+              }
+            }
+          } else {
+            if (isOnBreak.value) endBreak();
           }
         } catch (_) {}
+      } else {
+        if (isOnBreak.value) endBreak();
       }
 
       if (isLocked.value) {
@@ -92,13 +121,16 @@ class LockController extends GetxController {
         _stopTimer();
       }
     } catch (e) {
-      CustomSnackbar.show(
-        title: "Couldn't load status",
-        message: "Failed to fetch your current focus status.",
-        isError: true,
-      );
+      if (!silent) {
+        CustomSnackbar.show(
+          title: "Couldn't load status",
+          message: "Failed to fetch your current focus status.",
+          isError: true,
+        );
+      }
     } finally {
-      isLoadingStatus.value = false;
+      _isFetchingStatus.value = false;
+      if (!silent) isLoadingStatus.value = false;
     }
   }
 
@@ -187,6 +219,9 @@ class LockController extends GetxController {
       breakSeconds.value = seconds;
       _stopTimer();
       _startBreakTimer();
+
+      // Refresh status to update remaining breaks and other stats
+      await fetchLockStatus();
     } catch (e) {
       CustomSnackbar.show(
         title: "Something went wrong",
@@ -426,6 +461,7 @@ class LockController extends GetxController {
   void onClose() {
     _stopTimer();
     _breakTimer?.cancel();
+    _statusPollTimer?.cancel();
     _nfcService.stopScanning();
     super.onClose();
   }

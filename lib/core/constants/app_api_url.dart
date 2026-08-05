@@ -72,7 +72,7 @@ class AppApiUrl {
   String midgeConfirmById(String previewId) => "/friends/nudge/confirm/$previewId";
   String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";
 
-  // ==================== Profile ====================
+  // ==================== Settings ====================
   final String refreshToken = "/refreshToken";
   final String changePassword = "/auth/change-password";
   final String userProfile = "/users/profile";
@@ -83,6 +83,10 @@ class AppApiUrl {
   final String about = "/rules/about";
   final String privacy = "/rules/privacy";
   final String terms = "/rules/terms";
+  final String history = "/dashboard/history-v2"; // GET METHOD
+  final String focusHistory = "/focus-sessions/history-v2"; // GET METHOD
+  final String sessionsStatus = "/focus-sessions/stats"; // GET METHOD
+  final String exportCsv = "/focus-sessions/export-csv"; // GET METHOD
 
   // ==================== Banner ====================
   final String banner = "/banners";

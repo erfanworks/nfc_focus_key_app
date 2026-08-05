@@ -261,7 +261,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                           ),
                           SizedBox(height: 2.h),
                           Text(
-                            '5 min • 2 left today',
+                            '${widget.controller.breakDurationMinutes.value} min • ${widget.controller.breaksLeft.value} left today',
                             style: GoogleFonts.dmSans(
                               fontSize: 10.sp,
                               fontWeight: FontWeight.w400,

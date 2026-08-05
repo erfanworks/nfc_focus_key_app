@@ -12,6 +12,7 @@ class FriendListItem extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onSelectToggle;
   final bool isSelected;
+  final String? disabledMessage;
 
   const FriendListItem({
     super.key,
@@ -23,6 +24,7 @@ class FriendListItem extends StatelessWidget {
     this.onTap,
     this.onSelectToggle,
     this.isSelected = false,
+    this.disabledMessage,
   });
 
   @override
@@ -105,55 +107,64 @@ class FriendListItem extends StatelessWidget {
             ),
             onSelectToggle != null
                 ? GestureDetector(
-              onTap: () {
-                if (isFocusing) {
-                  CustomSnackbar.show(
-                    title: 'Busy right now',
-                    message: '$name is in a focus session and can\'t be nudged yet.',
-                    isError: true,
-                  );
-                  return;
-                }
-                onSelectToggle!();
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 22.w,
-                height: 22.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? const Color(0xFF1A1814)
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: isFocusing
-                        ? const Color(0xFFE8E3DA)
-                        : isSelected
-                        ? const Color(0xFF1A1814)
-                        : const Color(0xFFB5AFA5),
-                    width: 1.2,
-                  ),
-                ),
-                child: isSelected
-                    ? Icon(
-                  Icons.check_rounded,
-                  size: 14.sp,
-                  color: const Color(0xFFF7F4EE),
-                )
-                    : isFocusing
-                    ? Icon(
-                  Icons.lock_outline_rounded,
-                  size: 12.sp,
-                  color: const Color(0xFFB5AFA5),
-                )
-                    : null,
-              ),
-            )
+                    onTap: () {
+                      if (disabledMessage != null) {
+                        CustomSnackbar.show(
+                          title: 'Focus session active',
+                          message: disabledMessage!,
+                          isError: true,
+                        );
+                        return;
+                      }
+                      if (isFocusing) {
+                        CustomSnackbar.show(
+                          title: 'Busy right now',
+                          message:
+                              '$name is in a focus session and can\'t be nudged yet.',
+                          isError: true,
+                        );
+                        return;
+                      }
+                      onSelectToggle!();
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 22.w,
+                      height: 22.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected
+                            ? const Color(0xFF1A1814)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: (isFocusing || disabledMessage != null)
+                              ? const Color(0xFFE8E3DA)
+                              : isSelected
+                                  ? const Color(0xFF1A1814)
+                                  : const Color(0xFFB5AFA5),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check_rounded,
+                              size: 14.sp,
+                              color: const Color(0xFFF7F4EE),
+                            )
+                          : (isFocusing || disabledMessage != null)
+                              ? Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 12.sp,
+                                  color: const Color(0xFFB5AFA5),
+                                )
+                              : null,
+                    ),
+                  )
                 : Icon(
-              Icons.chevron_right_rounded,
-              color: const Color(0xFFB5AFA5),
-              size: 20.sp,
-            ),
+                    Icons.chevron_right_rounded,
+                    color: const Color(0xFFB5AFA5),
+                    size: 20.sp,
+                  ),
           ],
         ),
       ),
