@@ -334,6 +334,7 @@ class StorageServices {
         pref.remove(StorageKey.instance.loginDataStore),
         pref.remove(StorageKey.instance.appUserRollData),
         pref.remove(StorageKey.instance.selectedRole),
+        pref.remove(StorageKey.instance.cachedModes),
       ]);
     } catch (e) {
       errorLog("logout", e);

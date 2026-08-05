@@ -8,6 +8,7 @@ import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class LockController extends GetxController {
   final isLocked = false.obs;
@@ -26,44 +27,43 @@ class LockController extends GetxController {
   // before toggleLock() can activate it.
   String? selectedModeId;
 
-  // Break State Variables (kept local — break API payload not yet provided)
+  // Break State Variables — kept local; startBreak() branches between the
+  // personal (per-mode) and nudge break endpoints depending on session type.
   final isOnBreak = false.obs;
-  final breakSeconds = 0.obs;
+  final breakSeconds = 150.obs;
   final isBreakPaused = false.obs;
-  final breaksLeft = 0.obs;
-  final breakDurationMinutes = 0.obs;
+  final breaksLeft = 1.obs;
+  final personalBreakLengthMinutes = 5.obs;
   final isHoldingCancel = false.obs;
 
   final isLoadingStatus = false.obs;
-  final _isFetchingStatus = false.obs;
 
   Timer? _timer;
   Timer? _breakTimer;
-  Timer? _statusPollTimer;
 
   @override
   void onInit() {
     super.onInit();
     fetchLockStatus();
-    _startStatusPolling();
+    _fetchPersonalBreakLength();
   }
 
-  void _startStatusPolling() {
-    _statusPollTimer?.cancel();
-    _statusPollTimer = Timer.periodic(const Duration(seconds: 20), (timer) {
-      // Only poll in background if locked or on the lock screen to reduce terminal noise
-      if (isLocked.value || Get.currentRoute == '/lock') {
-        fetchLockStatus(silent: true);
-      }
-    });
+  Future<void> _fetchPersonalBreakLength() async {
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.breakConfig,
+      );
+      if (response == null || response["success"] != true) return;
+      personalBreakLengthMinutes.value = response["data"]?["breakDurationMinutes"] ?? 5;
+    } catch (_) {
+      // Non-critical for display — keep default.
+    }
   }
 
   // ==================== Lock Status ====================
-  Future<void> fetchLockStatus({bool silent = false}) async {
-    if (_isFetchingStatus.value) return;
+  Future<void> fetchLockStatus() async {
     try {
-      _isFetchingStatus.value = true;
-      if (!silent) isLoadingStatus.value = true;
+      isLoadingStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.lockStatus,
       );
@@ -87,7 +87,6 @@ class LockController extends GetxController {
       todayTime.value = _formatMinutes(focusStats["todayMinutes"] ?? 0);
       thisWeekTime.value = _formatMinutes(focusStats["weekMinutes"] ?? 0);
       breaksLeft.value = breakStats["remainingToday"] ?? 0;
-      breakDurationMinutes.value = breakStats["durationMinutes"] ?? 0;
       totalBlockedApps.value = data["totalBlockedApps"] ?? 0;
 
       final activeBreak = breakStats["activeBreak"];
@@ -96,23 +95,11 @@ class LockController extends GetxController {
           final end = DateTime.parse(activeBreak["endTime"]);
           final remaining = end.difference(DateTime.now()).inSeconds;
           if (remaining > 0) {
-            if (!isOnBreak.value) {
-              isOnBreak.value = true;
-              breakSeconds.value = remaining;
-              _startBreakTimer();
-            } else {
-              // Just sync the time if already on break to avoid jittering
-              // but keep it somewhat in sync with server
-              if ((breakSeconds.value - remaining).abs() > 5) {
-                breakSeconds.value = remaining;
-              }
-            }
-          } else {
-            if (isOnBreak.value) endBreak();
+            isOnBreak.value = true;
+            breakSeconds.value = remaining;
+            _startBreakTimer();
           }
         } catch (_) {}
-      } else {
-        if (isOnBreak.value) endBreak();
       }
 
       if (isLocked.value) {
@@ -121,16 +108,13 @@ class LockController extends GetxController {
         _stopTimer();
       }
     } catch (e) {
-      if (!silent) {
-        CustomSnackbar.show(
-          title: "Couldn't load status",
-          message: "Failed to fetch your current focus status.",
-          isError: true,
-        );
-      }
+      CustomSnackbar.show(
+        title: "Couldn't load status",
+        message: "Failed to fetch your current focus status.",
+        isError: true,
+      );
     } finally {
-      _isFetchingStatus.value = false;
-      if (!silent) isLoadingStatus.value = false;
+      isLoadingStatus.value = false;
     }
   }
 
@@ -190,7 +174,21 @@ class LockController extends GetxController {
 
   // ==================== Break Actions ====================
   Future<void> startBreak() async {
-    if (!isLocked.value || activeModeId == null) return;
+    if (!isLocked.value) return;
+
+    final friendsController = Get.find<FriendsController>();
+    final nudge = friendsController.currentNudge.value;
+    final isNudgeSession = nudge != null && nudge.isActive && nudge.nudgeId != null;
+
+    if (isNudgeSession) {
+      await _startNudgeBreak(friendsController, nudge!.nudgeId!);
+    } else {
+      await _startPersonalBreak();
+    }
+  }
+
+  Future<void> _startPersonalBreak() async {
+    if (activeModeId == null) return;
     try {
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.breakStart,
@@ -207,21 +205,8 @@ class LockController extends GetxController {
       }
 
       final data = response["data"];
-      int seconds = 150;
-      try {
-        final start = DateTime.parse(data["startTime"]);
-        final end = DateTime.parse(data["endTime"]);
-        seconds = end.difference(start).inSeconds;
-      } catch (_) {}
-
-      isOnBreak.value = true;
-      isBreakPaused.value = false;
-      breakSeconds.value = seconds;
-      _stopTimer();
-      _startBreakTimer();
-
-      // Refresh status to update remaining breaks and other stats
-      await fetchLockStatus();
+      _applyBreakDuration(data["startTime"], data["endTime"]);
+      if (breaksLeft.value > 0) breaksLeft.value -= 1;
     } catch (e) {
       CustomSnackbar.show(
         title: "Something went wrong",
@@ -229,6 +214,56 @@ class LockController extends GetxController {
         isError: true,
       );
     }
+  }
+
+  Future<void> _startNudgeBreak(FriendsController friendsController, String nudgeId) async {
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
+      );
+
+      if (response == null || response["success"] != true) {
+        CustomSnackbar.show(
+          title: "Couldn't start break",
+          message: response?["message"] ?? "Please try again.",
+          isError: true,
+        );
+        return;
+      }
+
+      final data = response["data"];
+      final breakInfo = data["break"] ?? {};
+      _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
+      // Refresh from server rather than guessing locally — keeps
+      // breaksRemaining/streak/participants all consistent in one place.
+      await friendsController.fetchCurrentNudgeStatus();
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Something went wrong",
+        message: "Please check your connection and try again.",
+        isError: true,
+      );
+    }
+  }
+
+  // Shared by both break paths — computes actual duration from the real
+  // start/end timestamps rather than the (previously observed buggy)
+  // durationMinutes field, then starts the countdown.
+  void _applyBreakDuration(String? startTime, String? endTime) {
+    int seconds = 150;
+    try {
+      if (startTime != null && endTime != null) {
+        final start = DateTime.parse(startTime);
+        final end = DateTime.parse(endTime);
+        seconds = end.difference(start).inSeconds;
+      }
+    } catch (_) {}
+
+    isOnBreak.value = true;
+    isBreakPaused.value = false;
+    breakSeconds.value = seconds;
+    _stopTimer();
+    _startBreakTimer();
   }
 
   void toggleBreakPause() {
@@ -461,7 +496,6 @@ class LockController extends GetxController {
   void onClose() {
     _stopTimer();
     _breakTimer?.cancel();
-    _statusPollTimer?.cancel();
     _nfcService.stopScanning();
     super.onClose();
   }

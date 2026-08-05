@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/lock_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class BreakCard extends StatefulWidget {
   final LockController controller;
@@ -260,16 +261,27 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(height: 2.h),
-                          Text(
-                            '${widget.controller.breakDurationMinutes.value} min • ${widget.controller.breaksLeft.value} left today',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF8A8278),
-                              height: 1.0,
-                              letterSpacing: 0.55,
-                            ),
-                          ),
+                          Obx(() {
+                            final friendsController = Get.find<FriendsController>();
+                            final nudge = friendsController.currentNudge.value;
+                            final isNudge = nudge != null && nudge.isActive;
+                            final minutes = isNudge
+                                ? nudge!.breakDurationMinutes
+                                : widget.controller.personalBreakLengthMinutes.value;
+                            final left = isNudge
+                                ? nudge!.breaksRemaining
+                                : widget.controller.breaksLeft.value;
+                            return Text(
+                              '$minutes min • $left left today',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF8A8278),
+                                height: 1.0,
+                                letterSpacing: 0.55,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                       const Spacer(),
