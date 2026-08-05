@@ -40,6 +40,7 @@ import '../features/pairing/presentation/pages/break_page.dart';
 import '../features/pairing/presentation/bindings/dashboard_binding.dart';
 import '../features/pairing/presentation/pages/dashboard_page.dart';
 
+import 'package:focus_key/features/settings/presentation/bindings/export_data_dinding.dart';
 import 'package:focus_key/features/settings/presentation/pages/personal_reminder_page.dart';
 import 'package:focus_key/features/settings/presentation/pages/focus_history_page.dart';
 import 'package:focus_key/features/settings/presentation/pages/export_data_page.dart';
@@ -161,7 +162,11 @@ class AppPages {
       page: () => const PersonalReminderPage(),
     ),
     GetPage(name: Routes.focusHistory, page: () =>  FocusHistoryPage()),
-    GetPage(name: Routes.exportData, page: () => const ExportDataPage()),
+    GetPage(
+      name: Routes.exportData,
+      page: () => const ExportDataPage(),
+      binding: ExportDataBinding(),
+    ),
     GetPage(name: Routes.keyStatus, page: () => KeyStatusPage()),
     GetPage(name: Routes.addPartner, page: () => AddPartnerPage()),
     GetPage(name: Routes.friendDetails, page: () => const FriendDetailsPage()),
