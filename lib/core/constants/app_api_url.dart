@@ -87,6 +87,9 @@ class AppApiUrl {
   final String focusHistory = "/focus-sessions/history-v2"; // GET METHOD
   final String sessionsStatus = "/focus-sessions/stats"; // GET METHOD
   final String exportCsv = "/focus-sessions/export-csv"; // GET METHOD
+  final String clearAllData = "/focus-sessions/clear-all"; // DELETE METHOD
+  final String createPersonalReminder = "/personal-reminders"; // POST METHOD
+  final String getPersonalReminders = "/personal-reminders"; // GET METHOD
 
   // ==================== Banner ====================
   final String banner = "/banners";

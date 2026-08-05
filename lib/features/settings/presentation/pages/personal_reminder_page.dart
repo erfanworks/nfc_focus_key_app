@@ -16,6 +16,7 @@ class PersonalReminderPage extends StatefulWidget {
 class _PersonalReminderPageState extends State<PersonalReminderPage> {
   late final TextEditingController _controller;
   final RxInt _charCount = 0.obs;
+  final RxBool _isSaving = false.obs;
   late final SettingsController _settingsController;
 
   @override
@@ -29,12 +30,39 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
     _controller.addListener(() {
       _charCount.value = _controller.text.length;
     });
+
+    _settingsController.fetchPersonalReminder().then((_) {
+      if (mounted) {
+        _controller.text = _settingsController.personalReminder.value;
+        _charCount.value = _controller.text.length;
+      }
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    _isSaving.value = true;
+    final success = await _settingsController.savePersonalReminder(_controller.text);
+    _isSaving.value = false;
+
+    if (success) {
+      Get.back();
+      CustomSnackbar.show(
+        title: 'Success',
+        message: 'Reminder message saved successfully.',
+      );
+    } else {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'Failed to save reminder message.',
+        isError: true,
+      );
+    }
   }
 
   @override
@@ -134,7 +162,7 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
                     ),
                   ),
                   Obx(
-                    () => Text(
+                        () => Text(
                       '${_charCount.value}/120',
                       style: GoogleFonts.dmSans(
                         fontSize: 12.sp,
@@ -146,28 +174,32 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
                 ],
               ),
               const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  _settingsController.personalReminder.value = _controller.text;
-                  Get.back();
-                  CustomSnackbar.show(
-                    title: 'Success',
-                    message: 'Reminder message saved successfully.',
-                  );
-                },
-                child: Container(
-                  height: 56.h,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1814),
-                    borderRadius: BorderRadius.circular(28.r),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Save Message',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFF7F4EE),
+              Obx(
+                    () => GestureDetector(
+                  onTap: _isSaving.value ? null : _handleSave,
+                  child: Container(
+                    height: 56.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1814),
+                      borderRadius: BorderRadius.circular(28.r),
+                    ),
+                    child: Center(
+                      child: _isSaving.value
+                          ? SizedBox(
+                        width: 22.w,
+                        height: 22.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFF7F4EE),
+                        ),
+                      )
+                          : Text(
+                        'Save Message',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF7F4EE),
+                        ),
                       ),
                     ),
                   ),

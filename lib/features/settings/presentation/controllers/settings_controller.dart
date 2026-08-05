@@ -61,8 +61,8 @@ class SettingsController extends GetxController {
   final userName = 'Jhon Lura'.obs;
   final userContact = '+88 9999 9999'.obs;
   final userEmail = 'jhon@mail.com'.obs;
-
   final isProfileLoading = false.obs;
+  final isClearingData = false.obs;
 
   void updateBlockedApps(String modeName, List<String> newBlockedApps) {
     final mode = modes.firstWhereOrNull((m) => m.name == modeName);
@@ -108,6 +108,49 @@ class SettingsController extends GetxController {
       return false;
     } finally {
       isProfileLoading.value = false;
+    }
+  }
+
+
+
+  Future<bool> clearAllData() async {
+    isClearingData.value = true;
+    try {
+      final response = await ApiServices.instance.deleteServices(
+        url: AppApiUrl.instance.clearAllData,
+      );
+      return response != null && response["success"] == true;
+    } finally {
+      isClearingData.value = false;
+    }
+  }
+
+  Future<void> fetchPersonalReminder() async {
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.getPersonalReminders,
+      );
+
+      if (response != null && response["success"] == true) {
+        personalReminder.value = response["data"]?["message"] ?? personalReminder.value;
+      }
+    } catch (_) {}
+  }
+
+  Future<bool> savePersonalReminder(String message) async {
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.createPersonalReminder,
+        body: {"message": message},
+      );
+
+      if (response != null && response["success"] == true) {
+        personalReminder.value = response["data"]?["message"] ?? message;
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
     }
   }
 }

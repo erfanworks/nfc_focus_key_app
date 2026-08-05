@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_row_item.dart';
@@ -334,9 +335,21 @@ class SettingsPage extends GetView<SettingsController> {
                 ),
                 SizedBox(height: 22.h),
                 InkWell(
-                  onTap: () {
-                    // Implement clear data logic here
+                  onTap: () async {
+                    final success = await controller.clearAllData();
                     Get.back();
+                    if (success) {
+                      CustomSnackbar.show(
+                        title: 'Success',
+                        message: 'All data has been cleared',
+                      );
+                    } else {
+                      CustomSnackbar.show(
+                        title: 'Error',
+                        message: 'Failed to clear data',
+                        isError: true,
+                      );
+                    }
                   },
                   borderRadius: BorderRadius.circular(90.r),
                   child: Container(
@@ -346,13 +359,24 @@ class SettingsPage extends GetView<SettingsController> {
                       color: const Color(0xFFC0392B),
                       borderRadius: BorderRadius.circular(90.r),
                     ),
-                    child: Center(
-                      child: Text(
-                        'Clear Everything',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
+                    child: Obx(
+                          () => Center(
+                        child: controller.isClearingData.value
+                            ? SizedBox(
+                          width: 20.w,
+                          height: 20.w,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : Text(
+                          'Clear Everything',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
