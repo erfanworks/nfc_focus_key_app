@@ -14,6 +14,7 @@ class ModeItem {
   final String description;
   final FKIcon icon;
   final bool isActive;
+  final int totalLockedApps;
 
   ModeItem(
       this.title,
@@ -21,6 +22,7 @@ class ModeItem {
       this.icon, {
         this.id,
         this.isActive = false,
+        this.totalLockedApps = 0,
       });
 
   Map<String, dynamic> toJson() => {
@@ -29,6 +31,7 @@ class ModeItem {
     'description': description,
     'icon': icon.name,
     'isActive': isActive,
+    'totalLockedApps': totalLockedApps,
   };
 
   factory ModeItem.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,7 @@ class ModeItem {
       ),
       id: json['id'],
       isActive: json['isActive'] ?? false,
+      totalLockedApps: json['totalLockedApps'] ?? 0,
     );
   }
 
@@ -54,16 +58,13 @@ class ModeItem {
       ),
       id: json['_id'],
       isActive: json['isActive'] ?? false,
+      totalLockedApps: json['totalLockedApps'] ?? 0,
     );
   }
 }
 
 class ModesController extends GetxController {
-  final modes = <ModeItem>[
-    ModeItem('Deep work.', 'Blocks social media, games, entertainment', FKIcon.deepwork),
-    ModeItem('Step away.', 'Blocks all social apps. Keeps utilities.', FKIcon.outdoors),
-    ModeItem('Nothing gets through.', 'Blocks everything except calls and messages.', FKIcon.dnd),
-  ].obs;
+  final modes = <ModeItem>[].obs;
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
 
@@ -77,8 +78,15 @@ class ModesController extends GetxController {
   Future<void> _loadCachedModes() async {
     final cached = await StorageServices.instance.getCachedModes();
     if (cached.isNotEmpty) {
-      modes.assignAll(cached.map((e) => ModeItem.fromJson(e)).toList());
+      modes.value = cached.map((e) => ModeItem.fromJson(e)).toList();
+      return;
     }
+    // Default modes shown before the first successful server fetch.
+    modes.value = [
+      ModeItem('Deep work.', 'Blocks social media, games, entertainment', FKIcon.deepwork),
+      ModeItem('Step away.', 'Blocks all social apps. Keeps utilities.', FKIcon.outdoors),
+      ModeItem('Nothing gets through.', 'Blocks everything except calls and messages.', FKIcon.dnd),
+    ];
   }
 
   // Fetch real modes from backend so mode selection carries a real

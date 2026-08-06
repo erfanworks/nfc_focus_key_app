@@ -90,9 +90,26 @@ class AppApiUrl {
   final String clearAllData = "/focus-sessions/clear-all"; // DELETE METHOD
   final String createPersonalReminder = "/personal-reminders"; // POST METHOD
   final String getPersonalReminders = "/personal-reminders"; // GET METHOD
+  final String totalFocusApps = "/modes/total-focus-apps"; // GET METHOD
+
+  // ==================== Notification ====================
+  final String notifications = "/notifications"; // GET METHOD
+  String getNotificationById(String id) => // GET METHOD
+      "/notifications/$id";
+  String markNotificationAsRead(String id) =>  // PATCH METHOD
+      "/notifications/$id/read";
+  final String readNotifications = "/notifications"; // PATCH METHOD
+  final String saveFcmToken = "/fcmTokens/save-token"; // POST METHOD
+
 
   // ==================== Banner ====================
   final String banner = "/banners";
+
+
+
+
+
+
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty || path.toLowerCase().contains("null")) {

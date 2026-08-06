@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_row_item.dart';
 
@@ -66,30 +67,52 @@ class SettingsPage extends GetView<SettingsController> {
                   ),
                   SizedBox(height: 24.h),
                   _buildSectionHeader('MODES'),
-                  Obx(() {
-                    return SettingsGroupCard(
-                      children: [
-                        ...controller.modes.map((mode) {
-                          return SettingsRowItem(
-                            title: mode.name,
-                            trailingText: '${mode.appCount.value} apps',
-                            onTap: () => Get.toNamed(
-                              Routes.newMode,
-                              arguments: {
-                                'modeName': mode.name,
-                                'isEditMode': true,
-                              },
-                            ),
-                          );
-                        }),
-                        SettingsRowItem(
-                          title: 'Add new mode',
-                          titleColor: const Color(0xFFC4A97D),
-                          showChevron: false,
-                          onTap: () => Get.toNamed(Routes.newMode),
-                        ),
-                      ],
-                    );
+                  Builder(builder: (_) {
+                    final modesController = Get.put<ModesController>(ModesController());
+                    const defaultTitles = ['Deep work.', 'Step away.', 'Nothing gets through.'];
+
+                    return Obx(() {
+                      final defaultModes = modesController.modes
+                          .where((m) => defaultTitles.contains(m.title))
+                          .toList();
+
+                      return SettingsGroupCard(
+                        children: [
+                          ...defaultModes.map((mode) {
+                            return SettingsRowItem(
+                              title: mode.title,
+                              trailingText: '${mode.totalLockedApps} apps',
+                              onTap: () => Get.toNamed(
+                                Routes.newMode,
+                                arguments: {
+                                  'modeId': mode.id,
+                                  'modeName': mode.title,
+                                  'isEditMode': true,
+                                },
+                              ),
+                            );
+                          }),
+                          SettingsRowItem(
+                            title: 'All modes',
+                            onTap: () => Get.toNamed(Routes.modes),
+                          ),
+                          SettingsRowItem(
+                            title: 'Total Focus',
+                            onTap: () {
+                              // settingsController.fetchTotalFocusApps();
+                              // TODO: navigate to the Total Focus apps list screen once its
+                              // route/UI file is available.
+                            },
+                          ),
+                          SettingsRowItem(
+                            title: 'Add new mode',
+                            titleColor: const Color(0xFFC4A97D),
+                            showChevron: false,
+                            onTap: () => Get.toNamed(Routes.newMode),
+                          ),
+                        ],
+                      );
+                    });
                   }),
                   SizedBox(height: 24.h),
                   _buildSectionHeader('FOCUS'),

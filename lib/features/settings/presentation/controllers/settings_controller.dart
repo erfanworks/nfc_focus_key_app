@@ -2,60 +2,7 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
 
-class ModeSetting {
-  final String name;
-  final RxInt appCount;
-  final RxList<String> blockedApps;
-
-  ModeSetting({
-    required this.name,
-    required int initialAppCount,
-    required List<String> initialBlockedApps,
-  }) : appCount = initialAppCount.obs,
-        blockedApps = initialBlockedApps.obs;
-}
-
 class SettingsController extends GetxController {
-  final modes = <ModeSetting>[
-    ModeSetting(
-      name: 'Study',
-      initialAppCount: 3,
-      initialBlockedApps: ['TikTok', 'Instagram', 'Youtube'],
-    ),
-    ModeSetting(
-      name: 'Detox',
-      initialAppCount: 8,
-      initialBlockedApps: [
-        'TikTok',
-        'Instagram',
-        'Youtube',
-        'Twitter',
-        'Reddit',
-        'Snapchat',
-        'Telegram',
-        'Safari',
-      ],
-    ),
-    ModeSetting(
-      name: 'Total Focus',
-      initialAppCount: 12,
-      initialBlockedApps: [
-        'TikTok',
-        'Instagram',
-        'Youtube',
-        'Twitter',
-        'Reddit',
-        'Snapchat',
-        'Telegram',
-        'Safari',
-        'Facebook',
-        'Netflix',
-        'WhatsApp',
-        'Messenger',
-      ],
-    ),
-  ].obs;
-
   final personalReminder = 'I want to stay focused for..'.obs;
 
   final userName = 'Jhon Lura'.obs;
@@ -64,13 +11,9 @@ class SettingsController extends GetxController {
   final isProfileLoading = false.obs;
   final isClearingData = false.obs;
 
-  void updateBlockedApps(String modeName, List<String> newBlockedApps) {
-    final mode = modes.firstWhereOrNull((m) => m.name == modeName);
-    if (mode != null) {
-      mode.blockedApps.assignAll(newBlockedApps);
-      mode.appCount.value = newBlockedApps.length;
-    }
-  }
+  // Total Focus apps — real list, fetched on demand.
+  final totalFocusApps = <Map<String, dynamic>>[].obs;
+  final isLoadingTotalFocusApps = false.obs;
 
   Future<void> fetchProfile() async {
     isProfileLoading.value = true;
@@ -111,8 +54,6 @@ class SettingsController extends GetxController {
     }
   }
 
-
-
   Future<bool> clearAllData() async {
     isClearingData.value = true;
     try {
@@ -151,6 +92,24 @@ class SettingsController extends GetxController {
       return false;
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<void> fetchTotalFocusApps() async {
+    try {
+      isLoadingTotalFocusApps.value = true;
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.totalFocusApps,
+      );
+
+      if (response != null && response["success"] == true) {
+        final List<dynamic> data = response["data"] ?? [];
+        totalFocusApps.value = data.cast<Map<String, dynamic>>();
+      }
+    } catch (_) {
+      // Silent — list stays empty/cached; not critical enough to alarm the user.
+    } finally {
+      isLoadingTotalFocusApps.value = false;
     }
   }
 }
