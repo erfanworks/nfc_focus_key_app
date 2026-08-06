@@ -5,9 +5,10 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../controller/notification_controller.dart';
 import '../widgets/notification_item.dart';
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends GetView<NotificationController> {
   const NotificationPage({super.key});
 
   @override
@@ -21,63 +22,55 @@ class NotificationPage extends StatelessWidget {
             _buildHeader(),
             SizedBox(height: 32.h),
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('TODAY'),
-                    SizedBox(height: 12.h),
-                    _buildNotificationGroup(
-                      backgroundColor: const Color(0xFFF0EBE2),
-                      items: [
-                        NotificationItemModel(
-                          avatarInitials: 'E',
-                          title: 'Ethan started a focus session',
-                          subtitle: '10 minutes ago • Tap to join him',
-                          hasUnreadDot: true,
-                          trailingWidget: _buildJoinButton(),
-                        ),
-                        NotificationItemModel(
-                          avatarInitials: 'J',
-                          title: 'Jake sent you a nudge',
-                          subtitle: '2 hours ago',
-                          hasUnreadDot: false,
-                          trailingText: '14:20',
-                        ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final groups = controller.groupedNotifications;
+
+                if (groups.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No notifications yet',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13.sp,
+                        color: const Color(0xFF8A8278),
+                      ),
+                    ),
+                  );
+                }
+
+                return NotificationListener<ScrollNotification>(
+                  onNotification: (scrollInfo) {
+                    if (scrollInfo.metrics.pixels >=
+                        scrollInfo.metrics.maxScrollExtent - 100) {
+                      controller.loadMore();
+                    }
+                    return false;
+                  },
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final group in groups) ...[
+                          _buildSectionHeader(group.label),
+                          SizedBox(height: 12.h),
+                          _buildNotificationGroup(group: group),
+                          SizedBox(height: 32.h),
+                        ],
+                        if (controller.isLoadingMore.value)
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            child: const Center(child: CircularProgressIndicator()),
+                          ),
                       ],
                     ),
-                    SizedBox(height: 32.h),
-                    _buildSectionHeader('YESTERDAY'),
-                    SizedBox(height: 12.h),
-                    _buildNotificationGroup(
-                      backgroundColor: const Color(
-                        0xFFFDF8F7,
-                      ), // slightly tinted white
-                      items: [
-                        NotificationItemModel(
-                          avatarInitials: 'S',
-                          title: 'Sara accepted your partner request',
-                          subtitle: 'Yesterday, 18:45',
-                          hasUnreadDot: false,
-                          trailingText: 'View',
-                          trailingTextColor: const Color(0xFF8A8278),
-                        ),
-                        NotificationItemModel(
-                          avatarInitials: 'T',
-                          title: 'Tim started a session',
-                          subtitle: 'Yesterday, 09:12 • Session expired',
-                          hasUnreadDot: false,
-                          trailingText: 'Expired',
-                          isExpired: true,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 32.h),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              }),
             ),
           ],
         ),
@@ -128,34 +121,56 @@ class NotificationPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationGroup({
-    required Color backgroundColor,
-    required List<NotificationItemModel> items,
-  }) {
+  Widget _buildNotificationGroup({required NotificationGroup group}) {
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: const Color(0xFFF0EBE2),
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
+        itemCount: group.items.length,
         separatorBuilder: (context, index) => const Divider(
           color: Color(0xFFE8E3DA),
           height: 1.0,
           thickness: 1.0,
         ),
         itemBuilder: (context, index) {
-          return NotificationItem(data: items[index]);
+          final n = group.items[index];
+          return NotificationItem(
+            data: NotificationItemModel(
+              avatarInitials: n.title.isNotEmpty ? n.title[0] : '?',
+              title: n.title,
+              subtitle: n.text,
+              hasUnreadDot: !n.read,
+              trailingWidget: n.isJoinableNudge ? _buildJoinButton(n) : null,
+              trailingText: n.isJoinableNudge
+                  ? null
+                  : n.isExpiredNudge
+                  ? 'Expired'
+                  : null,
+              isExpired: n.isExpiredNudge,
+            ),
+            onTap: () => controller.markAsRead(n.id),
+          );
         },
       ),
     );
   }
 
-  Widget _buildJoinButton() {
+  Widget _buildJoinButton(NotificationModel n) {
     return GestureDetector(
-      onTap: () => Get.toNamed(Routes.joinFocus),
+      onTap: () {
+        controller.markAsRead(n.id);
+        Get.toNamed(
+          Routes.joinFocus,
+          arguments: {
+            'nudgeId': n.referenceId?['_id'],
+            'modeId': n.referenceId?['modeId'],
+          },
+        );
+      },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(

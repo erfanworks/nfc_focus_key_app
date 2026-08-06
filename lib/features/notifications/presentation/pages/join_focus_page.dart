@@ -3,14 +3,26 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:focus_key/routes/app_routes.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
+import '../controller/notification_controller.dart';
 
-class JoinFocusPage extends StatelessWidget {
+class JoinFocusPage extends StatefulWidget {
   const JoinFocusPage({super.key});
 
   @override
+  State<JoinFocusPage> createState() => _JoinFocusPageState();
+}
+
+class _JoinFocusPageState extends State<JoinFocusPage> {
+  bool _isJoining = false;
+
+  @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>? ?? {};
+    final nudgeId = args['nudgeId'] as String?;
+    final modeId = args['modeId'] as String?;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -56,18 +68,39 @@ class JoinFocusPage extends StatelessWidget {
               ),
               SizedBox(height: 48.h),
               _buildPrimaryButton(
-                text: 'Tap to join',
-                onTap: () {
+                text: _isJoining ? 'Joining...' : 'Tap to join',
+                onTap: _isJoining
+                    ? null
+                    : () async {
+                  if (nudgeId == null || modeId == null) {
+                    CustomSnackbar.show(
+                      title: 'Error',
+                      message: 'Invalid nudge invitation',
+                      isError: true,
+                    );
+                    return;
+                  }
 
-                 Get.toNamed(Routes.modes);
+                  setState(() => _isJoining = true);
+                  final success = await Get.find<NotificationController>()
+                      .joinNudge(nudgeId: nudgeId, modeId: modeId);
+                  setState(() => _isJoining = false);
+
+                  if (success) {
+                    Get.toNamed(Routes.modes);
+                  } else {
+                    CustomSnackbar.show(
+                      title: 'Error',
+                      message: 'Failed to join focus session',
+                      isError: true,
+                    );
+                  }
                 },
               ),
               SizedBox(height: 16.h),
               _buildSecondaryButton(
                 text: 'Not now',
-                onTap: () {
-                  Get.back();
-                },
+                onTap: () => Get.back(),
               ),
             ],
           ),
@@ -120,7 +153,7 @@ class JoinFocusPage extends StatelessWidget {
 
   Widget _buildPrimaryButton({
     required String text,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,

@@ -39,7 +39,7 @@ import '../features/pairing/presentation/bindings/break_binding.dart';
 import '../features/pairing/presentation/pages/break_page.dart';
 import '../features/pairing/presentation/bindings/dashboard_binding.dart';
 import '../features/pairing/presentation/pages/dashboard_page.dart';
-
+import 'package:focus_key/features/notifications/presentation/binding/notification_binding.dart';
 import 'package:focus_key/features/settings/presentation/bindings/export_data_dinding.dart';
 import 'package:focus_key/features/settings/presentation/pages/personal_reminder_page.dart';
 import 'package:focus_key/features/settings/presentation/pages/focus_history_page.dart';
@@ -170,8 +170,16 @@ class AppPages {
     GetPage(name: Routes.keyStatus, page: () => KeyStatusPage()),
     GetPage(name: Routes.addPartner, page: () => AddPartnerPage()),
     GetPage(name: Routes.friendDetails, page: () => const FriendDetailsPage()),
-    GetPage(name: Routes.notification, page: () => const NotificationPage()),
-    GetPage(name: Routes.joinFocus, page: () => const JoinFocusPage()),
+    GetPage(
+      name: Routes.notification,
+      page: () => const NotificationPage(),
+      binding: NotificationBinding(),
+    ),
+    GetPage(
+      name: Routes.joinFocus,
+      page: () => const JoinFocusPage(),
+      binding: NotificationBinding(),
+    ),
     GetPage(
       name: Routes.changePassword,
       page: () => const ChangePasswordPage(),

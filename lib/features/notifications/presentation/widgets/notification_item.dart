@@ -26,14 +26,17 @@ class NotificationItemModel {
 
 class NotificationItem extends StatelessWidget {
   final NotificationItemModel data;
+  final VoidCallback? onTap;
 
-  const NotificationItem({super.key, required this.data});
+  const NotificationItem({super.key, required this.data, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: data.isExpired ? 0.4 : 1.0,
-      child: Padding(
+    return InkWell(
+        onTap: onTap,
+        child: Opacity(
+          opacity: data.isExpired ? 0.4 : 1.0,
+          child: Padding(
         padding: EdgeInsets.only(
           top: 12.h,
           right: 16.w,
@@ -130,6 +133,6 @@ class NotificationItem extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }
