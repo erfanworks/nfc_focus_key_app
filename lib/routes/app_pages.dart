@@ -2,6 +2,7 @@ import 'package:focus_key/features/pairing/presentation/bindings/new_mode_bindin
 import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
+import '../features/settings/presentation/pages/total_focus_apps_page.dart';
 import 'app_routes.dart';
 import '../features/auth/presentation/bindings/auth_binding.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -161,7 +162,7 @@ class AppPages {
       name: Routes.personalReminder,
       page: () => const PersonalReminderPage(),
     ),
-    GetPage(name: Routes.focusHistory, page: () =>  FocusHistoryPage()),
+    GetPage(name: Routes.focusHistory, page: () => FocusHistoryPage()),
     GetPage(
       name: Routes.exportData,
       page: () => const ExportDataPage(),
@@ -192,21 +193,19 @@ class AppPages {
       name: Routes.editInformation,
       page: () => const EditInformationPage(),
     ),
-    GetPage(
-      name: Routes.deleteAccount,
-      page: () => const DeleteAccountPage(),
-    ),
+    GetPage(name: Routes.deleteAccount, page: () => const DeleteAccountPage()),
     GetPage(
       name: Routes.legalInformation,
       page: () => const LegalInformationPage(),
     ),
 
-
-
-
     GetPage(
-      name: Routes.nfcUidDebugPage,
-      page: () => const NfcUidDebugPage(),
+      name: Routes.totalFocusApps,
+      page: () => const TotalFocusAppsPage(),
     ),
+
+
+
+    GetPage(name: Routes.nfcUidDebugPage, page: () => const NfcUidDebugPage()),
   ];
 }

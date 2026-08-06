@@ -68,7 +68,9 @@ class SettingsPage extends GetView<SettingsController> {
                   SizedBox(height: 24.h),
                   _buildSectionHeader('MODES'),
                   Builder(builder: (_) {
-                    final modesController = Get.put<ModesController>(ModesController());
+                    final modesController = Get.isRegistered<ModesController>()
+                        ? Get.find<ModesController>()
+                        : Get.put<ModesController>(ModesController());
                     const defaultTitles = ['Deep work.', 'Step away.', 'Nothing gets through.'];
 
                     return Obx(() {
@@ -94,15 +96,11 @@ class SettingsPage extends GetView<SettingsController> {
                           }),
                           SettingsRowItem(
                             title: 'All modes',
-                            onTap: () => Get.toNamed(Routes.modes),
+                            onTap: () => Get.toNamed(Routes.modes, arguments: {'isManageMode': true}),
                           ),
                           SettingsRowItem(
                             title: 'Total Focus',
-                            onTap: () {
-                              // settingsController.fetchTotalFocusApps();
-                              // TODO: navigate to the Total Focus apps list screen once its
-                              // route/UI file is available.
-                            },
+                            onTap: () => Get.toNamed(Routes.totalFocusApps),
                           ),
                           SettingsRowItem(
                             title: 'Add new mode',

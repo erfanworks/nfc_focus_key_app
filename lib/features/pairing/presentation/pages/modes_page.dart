@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/widgets/focus_icons.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../routes/app_routes.dart';
 import '../controllers/modes_controller.dart';
 
 class ModesPage extends GetView<ModesController> {
@@ -13,6 +14,9 @@ class ModesPage extends GetView<ModesController> {
 
   @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>?;
+    final isManageMode = args?['isManageMode'] == true;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -85,9 +89,22 @@ class ModesPage extends GetView<ModesController> {
                 itemBuilder: (context, index) {
                   final mode = controller.modes[index];
                   return Obx(() {
-                    final isSelected = controller.selectedIndex.value == index;
+                    final isSelected = !isManageMode && controller.selectedIndex.value == index;
                     return GestureDetector(
-                      onTap: () => controller.selectMode(index),
+                      onTap: () {
+                        if (isManageMode) {
+                          Get.toNamed(
+                            Routes.newMode,
+                            arguments: {
+                              'modeId': mode.id,
+                              'modeName': mode.title,
+                              'isEditMode': true,
+                            },
+                          );
+                        } else {
+                          controller.selectMode(index);
+                        }
+                      },
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 20.w,
@@ -102,8 +119,8 @@ class ModesPage extends GetView<ModesController> {
                             color: isSelected
                                 ? const Color(0xFFC4A97D)
                                 : const Color(
-                                    0xFFC4A97D,
-                                  ).withValues(alpha: 0.20),
+                              0xFFC4A97D,
+                            ).withValues(alpha: 0.20),
                             width: 1.5,
                           ),
                         ),
@@ -142,10 +159,10 @@ class ModesPage extends GetView<ModesController> {
                                 mode.icon,
                                 size: 24.w,
                                 color: isSelected
-                                      ? const Color(0xFFC4A97D)
-                                      : const Color(
-                                          0xFFC4A97D,
-                                        ).withValues(alpha: 0.20),
+                                    ? const Color(0xFFC4A97D)
+                                    : const Color(
+                                  0xFFC4A97D,
+                                ).withValues(alpha: 0.20),
                               ),
                             ),
                           ],
@@ -156,10 +173,11 @@ class ModesPage extends GetView<ModesController> {
                 },
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
-              child: _buildStartButton(),
-            ),
+            if (!isManageMode)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+                child: _buildStartButton(),
+              ),
           ],
         ),
       ),

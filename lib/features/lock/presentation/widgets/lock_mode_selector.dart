@@ -14,16 +14,13 @@ class LockModeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final modesController = Get.put<ModesController>(ModesController());
-
-      if (modesController.modes.isEmpty) {
-        return const SizedBox.shrink();
-      }
-
+      final modesController = Get.isRegistered<ModesController>()
+          ? Get.find<ModesController>()
+          : Get.put<ModesController>(ModesController());
       final modeTitle = controller.selectedMode.value;
 
       final selectedItem = modesController.modes.firstWhere(
-        (m) => m.title == modeTitle,
+            (m) => m.title == modeTitle,
         orElse: () => modesController.modes.first,
       );
 
