@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../controller/notification_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class JoinFocusPage extends StatefulWidget {
   const JoinFocusPage({super.key});
@@ -22,6 +23,22 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
     final args = Get.arguments as Map<String, dynamic>? ?? {};
     final nudgeId = args['nudgeId'] as String?;
     final modeId = args['modeId'] as String?;
+    final creatorId = args['creatorId'] as String?;
+    final breaksPerDay = args['breaksPerDay'] as int? ?? 3;
+    final breakDurationMinutes = args['breakDurationMinutes'] as int? ?? 10;
+    final participantIds = (args['participantIds'] as List?)?.cast<String>() ?? [];
+
+    String hostName = 'A friend';
+    String hostInitials = '?';
+    if (creatorId != null && Get.isRegistered<FriendsController>()) {
+      final friend = Get.find<FriendsController>()
+          .addedFriends
+          .firstWhereOrNull((f) => f.id == creatorId);
+      if (friend != null) {
+        hostName = friend.name;
+        hostInitials = friend.initials;
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -31,10 +48,10 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildAvatar(),
+              _buildAvatar(hostInitials),
               SizedBox(height: 24.h),
               Text(
-                'Ethan is focusing.',
+                '$hostName is focusing.',
                 style: GoogleFonts.cormorantGaramond(
                   fontSize: 22.sp,
                   fontStyle: FontStyle.italic,
@@ -57,7 +74,7 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
               ),
               SizedBox(height: 16.h),
               Text(
-                'Available for the next 8 minutes.',
+                'This focus session is active now.',
                 style: GoogleFonts.dmSans(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w300,
@@ -82,8 +99,13 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
                   }
 
                   setState(() => _isJoining = true);
-                  final success = await Get.find<NotificationController>()
-                      .joinNudge(nudgeId: nudgeId, modeId: modeId);
+                  final success = await Get.find<NotificationController>().joinNudge(
+                    nudgeId: nudgeId,
+                    modeId: modeId,
+                    breaksPerDay: breaksPerDay,
+                    breakDurationMinutes: breakDurationMinutes,
+                    participantIds: participantIds,
+                  );
                   setState(() => _isJoining = false);
 
                   if (success) {
@@ -109,7 +131,7 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(String initials) {
     return SizedBox(
       width: 48.w,
       height: 48.w,
@@ -124,7 +146,7 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
             ),
             child: Center(
               child: Text(
-                'JK',
+                initials,
                 style: GoogleFonts.dmSans(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w500,

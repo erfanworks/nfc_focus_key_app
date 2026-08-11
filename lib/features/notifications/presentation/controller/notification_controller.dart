@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
-import '../../../../core/services/storage_services.dart';
 
 class NotificationModel {
   final String id;
@@ -37,15 +36,40 @@ class NotificationModel {
   }
 
   bool get isJoinableNudge =>
-      referenceModel == 'Nudge' && referenceId != null && referenceId!['status'] == 'active';
+      referenceModel == 'Nudge' &&
+          referenceId != null &&
+          referenceId!['status'] == 'active';
 
   bool get isExpiredNudge =>
-      referenceModel == 'Nudge' && referenceId != null && referenceId!['status'] == 'completed';
+      referenceModel == 'Nudge' &&
+          referenceId != null &&
+          referenceId!['status'] == 'completed';
+
+  // Convenience accessors for the nudge document embedded in referenceId.
+  String? get nudgeCreatorId => referenceModel == 'Nudge'
+      ? (referenceId?['creatorId'] as String?)
+      : null;
+
+  int get nudgeBreaksPerDay =>
+      (referenceId?['breakConfig']?['breaksPerDay'] as int?) ?? 3;
+
+  int get nudgeBreakDurationMinutes =>
+      (referenceId?['breakConfig']?['breakDurationMinutes'] as int?) ?? 10;
+
+  List<String> get nudgeParticipantIds {
+    final list = referenceId?['participants'] as List<dynamic>?;
+    if (list == null) return [];
+    return list
+        .map((p) => (p as Map<String, dynamic>)['userId'] as String?)
+        .whereType<String>()
+        .toList();
+  }
 }
 
 class NotificationGroup {
   final String label;
   final List<NotificationModel> items;
+
   NotificationGroup({required this.label, required this.items});
 }
 
@@ -64,6 +88,22 @@ class NotificationController extends GetxController {
     super.onInit();
     fetchNotifications();
   }
+  @override
+  void onClose() {
+    _markAllAsReadSilently();
+    super.onClose();
+  }
+
+  Future<void> _markAllAsReadSilently() async {
+    try {
+      final response = await ApiServices.instance.patchServices(
+        url: AppApiUrl.instance.readNotifications,
+      );
+      if (response != null && response["success"] == true) {
+        unreadCount.value = 0;
+      }
+    } catch (_) {}
+  }
 
   bool get hasMore => _page < _totalPage;
 
@@ -73,23 +113,41 @@ class NotificationController extends GetxController {
 
     for (final n in notifications) {
       final diffDays = DateTime(now.year, now.month, now.day)
-          .difference(DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day))
+          .difference(
+        DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day),
+      )
           .inDays;
 
       final label = diffDays == 0
           ? 'TODAY'
           : diffDays == 1
           ? 'YESTERDAY'
-          : '${_monthShort(n.createdAt.month)} ${n.createdAt.day}'.toUpperCase();
+          : '${_monthShort(n.createdAt.month)} ${n.createdAt.day}'
+          .toUpperCase();
 
       groups.putIfAbsent(label, () => []).add(n);
     }
 
-    return groups.entries.map((e) => NotificationGroup(label: e.key, items: e.value)).toList();
+    return groups.entries
+        .map((e) => NotificationGroup(label: e.key, items: e.value))
+        .toList();
   }
 
   String _monthShort(int month) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[month - 1];
   }
 
@@ -159,15 +217,20 @@ class NotificationController extends GetxController {
   Future<bool> joinNudge({
     required String nudgeId,
     required String modeId,
+    required int breaksPerDay,
+    required int breakDurationMinutes,
+    required List<String> participantIds,
   }) async {
     try {
-      final userId = (await StorageServices.instance.getLogDedData())['_id'] ?? '';
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.joinNudge(nudgeId),
         body: {
-          "participants": [userId],
+          "participants": participantIds,
           "modeId": modeId,
-          "breakConfig": {"breaksPerDay": 3, "breakDurationMinutes": 10},
+          "breakConfig": {
+            "breaksPerDay": breaksPerDay,
+            "breakDurationMinutes": breakDurationMinutes,
+          },
         },
       );
       return response != null && response["success"] == true;

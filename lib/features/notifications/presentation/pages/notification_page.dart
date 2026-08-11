@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 import '../controller/notification_controller.dart';
 import '../widgets/notification_item.dart';
 
@@ -162,12 +163,28 @@ class NotificationPage extends GetView<NotificationController> {
   Widget _buildJoinButton(NotificationModel n) {
     return GestureDetector(
       onTap: () {
+        final nudgeId = n.referenceId?['_id'] as String?;
+        final modeId = n.referenceId?['modeId'] as String?;
+
+        if (nudgeId == null || modeId == null) {
+          CustomSnackbar.show(
+            title: 'Error',
+            message: 'This invitation is no longer valid',
+            isError: true,
+          );
+          return;
+        }
+
         controller.markAsRead(n.id);
         Get.toNamed(
           Routes.joinFocus,
           arguments: {
-            'nudgeId': n.referenceId?['_id'],
-            'modeId': n.referenceId?['modeId'],
+            'nudgeId': nudgeId,
+            'modeId': modeId,
+            'creatorId': n.nudgeCreatorId,
+            'breaksPerDay': n.nudgeBreaksPerDay,
+            'breakDurationMinutes': n.nudgeBreakDurationMinutes,
+            'participantIds': n.nudgeParticipantIds,
           },
         );
       },

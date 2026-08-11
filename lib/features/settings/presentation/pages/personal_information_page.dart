@@ -20,6 +20,7 @@ class _PersonalInformationPageState extends State<PersonalInformationPage> {
   late final TextEditingController _emailController;
 
   @override
+  @override
   void initState() {
     super.initState();
     _settingsController = Get.find<SettingsController>();

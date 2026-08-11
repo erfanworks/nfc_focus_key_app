@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
-import '../../../lock/presentation/controllers/lock_controller.dart';
 
 // ==================== Models ====================
 
@@ -35,8 +34,12 @@ class FriendModel {
 
   // Preserved for existing UI bindings that expect these.
   String get handle => '@$userName';
+
   String get status => lastFocusInfo;
-  bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
+
+  bool get isFocusing =>
+      isLocked || lastFocusInfo.toLowerCase().contains('now');
+
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -152,7 +155,9 @@ class PreviewParticipant {
 
   // Preserved getters matching FriendModel's UI-facing shape.
   bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
+
   String get status => lastFocusInfo;
+
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -202,9 +207,11 @@ class CurrentNudgeStatus {
   final bool isActive;
   final String? nudgeId;
   final bool isLocked;
+  final String? modeId;
   final String? modeName;
   final List<NudgeParticipant> participants;
   final int breaksRemaining;
+  final int breaksPerDayTotal;
   final int breakDurationMinutes;
   final String todayFormatted;
   final String weekFormatted;
@@ -213,9 +220,11 @@ class CurrentNudgeStatus {
     required this.isActive,
     this.nudgeId,
     required this.isLocked,
+    this.modeId,
     this.modeName,
     required this.participants,
     required this.breaksRemaining,
+    required this.breaksPerDayTotal,
     required this.breakDurationMinutes,
     required this.todayFormatted,
     required this.weekFormatted,
@@ -226,6 +235,7 @@ class CurrentNudgeStatus {
         isLocked: false,
         participants: [],
         breaksRemaining: 0,
+        breaksPerDayTotal: 0,
         breakDurationMinutes: 0,
         todayFormatted: '0h 0m',
         weekFormatted: '0h 0m',
@@ -241,9 +251,11 @@ class CurrentNudgeStatus {
       isActive: json['isActive'] ?? false,
       nudgeId: json['nudgeId'],
       isLocked: json['isLocked'] ?? false,
+      modeId: currentMode != null ? currentMode['_id'] : null,
       modeName: currentMode != null ? currentMode['name'] : null,
       participants: joined.map((e) => NudgeParticipant.fromJson(e as Map<String, dynamic>)).toList(),
       breaksRemaining: breakStats['remaining'] ?? 0,
+      breaksPerDayTotal: breakStats['totalAllowed'] ?? 0,
       breakDurationMinutes: breakStats['durationMinutes'] ?? 0,
       todayFormatted: focusStats['todayFormatted'] ?? '0h 0m',
       weekFormatted: focusStats['weekFormatted'] ?? '0h 0m',
@@ -263,7 +275,6 @@ class FriendsController extends GetxController {
 
   final Rxn<CurrentNudgeStatus> currentNudge = Rxn<CurrentNudgeStatus>();
   final isLoadingNudgeStatus = false.obs;
-  final _isFetchingNudgeStatus = false.obs;
 
   // Multi-select state for picking friends to start a new nudge with.
   final RxSet<String> selectedForNudge = <String>{}.obs;
@@ -291,8 +302,8 @@ class FriendsController extends GetxController {
     fetchFriendsList();
     fetchCurrentNudgeStatus();
     _nudgeStatusTimer = Timer.periodic(
-      const Duration(seconds: 40),
-      (_) => fetchCurrentNudgeStatus(silent: true),
+      const Duration(seconds: 30),
+      (_) => fetchCurrentNudgeStatus(),
     );
   }
 
@@ -511,6 +522,31 @@ class FriendsController extends GetxController {
   // final RxList<dynamic> notifications = <dynamic>[].obs;
   // Future<void> fetchNotifications() async { ... }
 
+  // NOTE: body shape here (participants/modeId/breakConfig) is the LAST
+  // CONFIRMED-WORKING shape from real Postman testing — the backend dev's
+  // more recent answer on whether join can be simplified to just modeId
+  // was not a firm confirmation. Verify with a real Postman test before
+  // trusting this is minimal/correct.
+  Future<bool> joinCurrentNudge() async {
+    final nudge = currentNudge.value;
+    if (nudge == null || nudge.nudgeId == null || nudge.modeId == null) {
+      CustomSnackbar.show(
+        title: "Can't join",
+        message: "Missing nudge details. Please try again.",
+        isError: true,
+      );
+      return false;
+    }
+
+    return joinNudge(
+      nudgeId: nudge.nudgeId!,
+      participantIds: nudge.participants.map((p) => p.id).toList(),
+      modeId: nudge.modeId!,
+      breaksPerDay: nudge.breaksPerDayTotal,
+      breakDurationMinutes: nudge.breakDurationMinutes,
+    );
+  }
+
   // NOTE: body mirrors createNudge's per backend's given sample — confirm
   // with backend dev whether join really needs participants/modeId/breakConfig
   // again, since the nudge already defines these.
@@ -557,11 +593,9 @@ class FriendsController extends GetxController {
     }
   }
 
-  Future<void> fetchCurrentNudgeStatus({bool silent = false}) async {
-    if (_isFetchingNudgeStatus.value) return;
+  Future<void> fetchCurrentNudgeStatus() async {
     try {
-      _isFetchingNudgeStatus.value = true;
-      if (!silent) isLoadingNudgeStatus.value = true;
+      isLoadingNudgeStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.currentNudgeStatus,
       );
@@ -572,8 +606,7 @@ class FriendsController extends GetxController {
     } catch (e) {
       // Silent background refresh — keep last known status if offline.
     } finally {
-      _isFetchingNudgeStatus.value = false;
-      if (!silent) isLoadingNudgeStatus.value = false;
+      isLoadingNudgeStatus.value = false;
     }
   }
 
@@ -608,11 +641,6 @@ class FriendsController extends GetxController {
         return;
       }
       await fetchCurrentNudgeStatus();
-
-      // Notify LockController to refresh its state so the Lock screen UI stays in sync.
-      if (Get.isRegistered<LockController>()) {
-        Get.find<LockController>().fetchLockStatus();
-      }
     } catch (e) {
       CustomSnackbar.show(
         title: "Something went wrong",
