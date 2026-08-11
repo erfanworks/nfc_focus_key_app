@@ -37,7 +37,8 @@ class LockPage extends GetView<LockController> {
                       const Spacer(flex: 4),
                       HoldToLockCircle(
                         isLocked: controller.isOnBreak.value ? false : isLocked,
-                        isDisabled: !isLocked && controller.selectedModeId == null,
+                        isDisabled:
+                            !isLocked && controller.selectedModeId == null,
                         onDisabledTap: () => CustomSnackbar.show(
                           title: 'Select a mode',
                           message: 'Pick a mode before locking.',
@@ -59,23 +60,23 @@ class LockPage extends GetView<LockController> {
                           alignment: Alignment.topCenter,
                           child: isLocked
                               ? Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              LockStatusPills(
-                                controller: controller,
-                                mode: mode,
-                              ),
-                              SizedBox(height: 16.h),
-                              BreakCard(controller: controller),
-                            ],
-                          )
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    LockStatusPills(
+                                      controller: controller,
+                                      mode: mode,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    BreakCard(controller: controller),
+                                  ],
+                                )
                               : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(height: 8.h),
-                              LockModeSelector(controller: controller),
-                            ],
-                          ),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(height: 8.h),
+                                    LockModeSelector(controller: controller),
+                                  ],
+                                ),
                         ),
                       ),
                       const Spacer(flex: 2),

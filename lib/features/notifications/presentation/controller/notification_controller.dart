@@ -37,15 +37,20 @@ class NotificationModel {
   }
 
   bool get isJoinableNudge =>
-      referenceModel == 'Nudge' && referenceId != null && referenceId!['status'] == 'active';
+      referenceModel == 'Nudge' &&
+      referenceId != null &&
+      referenceId!['status'] == 'active';
 
   bool get isExpiredNudge =>
-      referenceModel == 'Nudge' && referenceId != null && referenceId!['status'] == 'completed';
+      referenceModel == 'Nudge' &&
+      referenceId != null &&
+      referenceId!['status'] == 'completed';
 }
 
 class NotificationGroup {
   final String label;
   final List<NotificationModel> items;
+
   NotificationGroup({required this.label, required this.items});
 }
 
@@ -73,23 +78,41 @@ class NotificationController extends GetxController {
 
     for (final n in notifications) {
       final diffDays = DateTime(now.year, now.month, now.day)
-          .difference(DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day))
+          .difference(
+            DateTime(n.createdAt.year, n.createdAt.month, n.createdAt.day),
+          )
           .inDays;
 
       final label = diffDays == 0
           ? 'TODAY'
           : diffDays == 1
           ? 'YESTERDAY'
-          : '${_monthShort(n.createdAt.month)} ${n.createdAt.day}'.toUpperCase();
+          : '${_monthShort(n.createdAt.month)} ${n.createdAt.day}'
+                .toUpperCase();
 
       groups.putIfAbsent(label, () => []).add(n);
     }
 
-    return groups.entries.map((e) => NotificationGroup(label: e.key, items: e.value)).toList();
+    return groups.entries
+        .map((e) => NotificationGroup(label: e.key, items: e.value))
+        .toList();
   }
 
   String _monthShort(int month) {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return months[month - 1];
   }
 
@@ -162,12 +185,24 @@ class NotificationController extends GetxController {
   }) async {
     try {
       final userId = (await StorageServices.instance.getLogDedData())['_id'] ?? '';
+
+      final configResponse = await ApiServices.instance.getServices(
+        AppApiUrl.instance.breakConfig,
+      );
+
+      final configData = configResponse?['data'];
+      final breaksPerDay = configData?['breaksPerDay'] ?? 3;
+      final breakDurationMinutes = configData?['breakDurationMinutes'] ?? 10;
+
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.joinNudge(nudgeId),
         body: {
           "participants": [userId],
           "modeId": modeId,
-          "breakConfig": {"breaksPerDay": 3, "breakDurationMinutes": 10},
+          "breakConfig": {
+            "breaksPerDay": breaksPerDay,
+            "breakDurationMinutes": breakDurationMinutes,
+          },
         },
       );
       return response != null && response["success"] == true;

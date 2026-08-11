@@ -1,13 +1,14 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class SettingsController extends GetxController {
   final personalReminder = 'I want to stay focused for..'.obs;
 
-  final userName = 'Jhon Lura'.obs;
-  final userContact = '+88 9999 9999'.obs;
-  final userEmail = 'jhon@mail.com'.obs;
+  final userName = ''.obs;
+  final userContact = ''.obs;
+  final userEmail = ''.obs;
   final isProfileLoading = false.obs;
   final isClearingData = false.obs;
 
@@ -29,6 +30,12 @@ class SettingsController extends GetxController {
         if (data["phone"] != null) {
           userContact.value = "${data["countryCode"] ?? ''} ${data["phone"]}".trim();
         }
+      } else {
+        CustomSnackbar.show(
+          title: 'Error',
+          message: 'Failed to load profile',
+          isError: true,
+        );
       }
     } finally {
       isProfileLoading.value = false;

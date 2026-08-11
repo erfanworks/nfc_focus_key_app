@@ -82,22 +82,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       label: 'Current Password',
                       controller: _currentPasswordController,
                     ),
-
-                    _buildDivider(),
                     SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
+                    SizedBox(height: 20.h),
                     _buildPasswordField(
                       label: 'New Password',
                       controller: _newPasswordController,
                     ),
-                    _buildDivider(),
-
                     SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
+                    SizedBox(height: 20.h),
                     _buildPasswordField(
                       label: 'Confirm Password',
                       controller: _confirmPasswordController,
                     ),
-
-                    _buildDivider(),
+                    SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
                   ],
                 ),
               ),
