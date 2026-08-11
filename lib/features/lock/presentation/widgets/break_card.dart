@@ -265,6 +265,20 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                             final friendsController = Get.find<FriendsController>();
                             final nudge = friendsController.currentNudge.value;
                             final isNudge = nudge != null && nudge.isActive;
+
+                            if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
+                              return Text(
+                                '— min • — left today',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFFB5AFA5),
+                                  height: 1.0,
+                                  letterSpacing: 0.55,
+                                ),
+                              );
+                            }
+
                             final minutes = isNudge
                                 ? nudge!.breakDurationMinutes
                                 : widget.controller.personalBreakLengthMinutes.value;

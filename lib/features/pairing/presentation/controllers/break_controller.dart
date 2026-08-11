@@ -3,6 +3,7 @@ import '../../../../routes/app_routes.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../lock/presentation/controllers/lock_controller.dart';
 
 class BreakController extends GetxController {
   final breaksPerDay = RxnInt(2); // null = "None"
@@ -88,6 +89,10 @@ class BreakController extends GetxController {
           isError: true,
         );
         return;
+      }
+
+      if (Get.isRegistered<LockController>()) {
+        Get.find<LockController>().refreshPersonalBreakSettings();
       }
 
       if (Get.previousRoute == Routes.customizeModes) {

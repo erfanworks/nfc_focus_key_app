@@ -19,6 +19,10 @@ class LockModeSelector extends StatelessWidget {
           : Get.put<ModesController>(ModesController());
       final modeTitle = controller.selectedMode.value;
 
+      if (modesController.modes.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
       final selectedItem = modesController.modes.firstWhere(
             (m) => m.title == modeTitle,
         orElse: () => modesController.modes.first,

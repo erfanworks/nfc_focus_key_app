@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../../../core/services/nfc_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/services/api_service.dart';
@@ -25,7 +27,8 @@ class LockController extends GetxController {
   // Mode the user picks to START a session with. Must be set with a real
   // backend mode id (from ModesController once it fetches real /modes data)
   // before toggleLock() can activate it.
-  String? selectedModeId;
+  final Rxn<String> selectedModeIdRx = Rxn<String>();
+  String? get selectedModeId => selectedModeIdRx.value;
 
   // Break State Variables — kept local; startBreak() branches between the
   // personal (per-mode) and nudge break endpoints depending on session type.
@@ -34,6 +37,7 @@ class LockController extends GetxController {
   final isBreakPaused = false.obs;
   final breaksLeft = 1.obs;
   final personalBreakLengthMinutes = 5.obs;
+  final isLoadingBreakSettings = true.obs;
   final isHoldingCancel = false.obs;
 
   final isLoadingStatus = false.obs;
@@ -48,8 +52,19 @@ class LockController extends GetxController {
     _fetchPersonalBreakLength();
   }
 
+  // Public so other controllers (e.g. Settings' BreakController after a
+  // config save) can force this to re-sync — otherwise the Lock screen's
+  // break card silently goes stale.
+  Future<void> refreshPersonalBreakSettings() async {
+    print('🔄 [BREAK REFRESH] Called — before: minutes=${personalBreakLengthMinutes.value}, breaksLeft=${breaksLeft.value}');
+    await _fetchPersonalBreakLength();
+    await fetchLockStatus();
+    print('✅ [BREAK REFRESH] Done — after: minutes=${personalBreakLengthMinutes.value}, breaksLeft=${breaksLeft.value}');
+  }
+
   Future<void> _fetchPersonalBreakLength() async {
     try {
+      isLoadingBreakSettings.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.breakConfig,
       );
@@ -57,6 +72,8 @@ class LockController extends GetxController {
       personalBreakLengthMinutes.value = response["data"]?["breakDurationMinutes"] ?? 5;
     } catch (_) {
       // Non-critical for display — keep default.
+    } finally {
+      isLoadingBreakSettings.value = false;
     }
   }
 
@@ -131,6 +148,16 @@ class LockController extends GetxController {
   // the real field name with backend dev once activeSession is populated.
   void _resumeOrStartTimer(dynamic activeSession) {
     if (activeSession is Map<String, dynamic>) {
+      // Backend provides this directly — confirmed reliable, prefer it
+      // over calculating from startTime.
+      final elapsedMinutes = activeSession['elapsedMinutes'];
+      if (elapsedMinutes is int) {
+        sessionSeconds.value = elapsedMinutes * 60;
+        _startTimer();
+        return;
+      }
+
+      // Fallback if elapsedMinutes isn't present for some reason.
       final raw = activeSession['startTime'] ??
           activeSession['startedAt'] ??
           activeSession['createdAt'];
@@ -340,26 +367,47 @@ class LockController extends GetxController {
 
         final pairedId = await StorageServices.instance.getPairedKeyId();
 
-        if (tagId != pairedId) {
-          HapticFeedback.heavyImpact();
-          CustomSnackbar.show(
-            title: 'Access Denied',
-            message: 'This NFC card is not paired with this device.',
-            isError: true,
-          );
+        // Normal, fully-offline path — matches locally, no backend call.
+        if (tagId == pairedId) {
+          await HapticFeedback.vibrate();
+          if (activeModeId == null || activeModeId!.isEmpty) {
+            CustomSnackbar.show(
+              title: "Couldn't unlock",
+              message: 'No active mode found on the server.',
+              isError: true,
+            );
+            return;
+          }
+          await _deactivateMode(activeModeId!);
           return;
         }
 
-        await HapticFeedback.vibrate();
-        if (activeModeId == null || activeModeId!.isEmpty) {
-          CustomSnackbar.show(
-            title: "Couldn't unlock",
-            message: 'No active mode found on the server.',
-            isError: true,
-          );
-          return;
+        // Local pairing data missing (cleared storage / new device) —
+        // fall back to backend verification instead of an immediate
+        // Access Denied, so a legitimate key still works.
+        if (pairedId == null || pairedId.isEmpty) {
+          final verified = await _verifyKeyWithBackend(tagId);
+          if (verified) {
+            await HapticFeedback.vibrate();
+            if (activeModeId == null || activeModeId!.isEmpty) {
+              CustomSnackbar.show(
+                title: "Couldn't unlock",
+                message: 'No active mode found on the server.',
+                isError: true,
+              );
+              return;
+            }
+            await _deactivateMode(activeModeId!);
+            return;
+          }
         }
-        await _deactivateMode(activeModeId!);
+
+        HapticFeedback.heavyImpact();
+        CustomSnackbar.show(
+          title: 'Access Denied',
+          message: 'This NFC card is not paired with this device.',
+          isError: true,
+        );
       },
       onError: (error) {
         isScanningNfc.value = false;
@@ -368,6 +416,42 @@ class LockController extends GetxController {
         CustomSnackbar.show(title: 'Scanning Failed', message: error, isError: true);
       },
     );
+  }
+
+  Future<bool> _verifyKeyWithBackend(String tagId) async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceModel = '';
+      String deviceFingerprint = '';
+
+      if (Platform.isAndroid) {
+        final info = await deviceInfo.androidInfo;
+        deviceModel = info.model;
+        deviceFingerprint = info.id;
+      } else if (Platform.isIOS) {
+        final info = await deviceInfo.iosInfo;
+        deviceModel = info.utsname.machine;
+        deviceFingerprint = info.identifierForVendor ?? '';
+      }
+
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.pairing,
+        body: {
+          "uid": tagId,
+          "device_model": deviceModel,
+          "platform": Platform.isIOS ? "ios" : "android",
+          "deviceFingerprint": deviceFingerprint,
+        },
+      );
+
+      if (response == null || response["success"] != true) return false;
+
+      // Restore local pairing so future taps go back to fully-offline.
+      await StorageServices.instance.savePairedKeyId(tagId);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _activateMode(String modeId) async {
@@ -489,7 +573,7 @@ class LockController extends GetxController {
 
   void selectMode(ModeItem mode) {
     selectedMode.value = mode.title;
-    selectedModeId = mode.id;
+    selectedModeIdRx.value = mode.id;
   }
 
   @override

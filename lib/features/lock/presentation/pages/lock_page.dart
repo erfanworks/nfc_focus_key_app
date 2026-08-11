@@ -9,6 +9,7 @@ import '../widgets/lock_header.dart';
 import '../widgets/lock_status_section.dart';
 import '../widgets/lock_status_pills.dart';
 import '../widgets/break_card.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class LockPage extends GetView<LockController> {
   const LockPage({super.key});
@@ -36,6 +37,12 @@ class LockPage extends GetView<LockController> {
                       const Spacer(flex: 4),
                       HoldToLockCircle(
                         isLocked: controller.isOnBreak.value ? false : isLocked,
+                        isDisabled: !isLocked && controller.selectedModeId == null,
+                        onDisabledTap: () => CustomSnackbar.show(
+                          title: 'Select a mode',
+                          message: 'Pick a mode before locking.',
+                          isError: true,
+                        ),
                         onTrigger: controller.isOnBreak.value
                             ? controller.endBreak
                             : controller.toggleLock,
@@ -52,23 +59,23 @@ class LockPage extends GetView<LockController> {
                           alignment: Alignment.topCenter,
                           child: isLocked
                               ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    LockStatusPills(
-                                      controller: controller,
-                                      mode: mode,
-                                    ),
-                                    SizedBox(height: 16.h),
-                                    BreakCard(controller: controller),
-                                  ],
-                                )
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              LockStatusPills(
+                                controller: controller,
+                                mode: mode,
+                              ),
+                              SizedBox(height: 16.h),
+                              BreakCard(controller: controller),
+                            ],
+                          )
                               : Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(height: 8.h),
-                                    LockModeSelector(controller: controller),
-                                  ],
-                                ),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(height: 8.h),
+                              LockModeSelector(controller: controller),
+                            ],
+                          ),
                         ),
                       ),
                       const Spacer(flex: 2),

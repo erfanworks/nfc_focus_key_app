@@ -67,6 +67,8 @@ class ModesController extends GetxController {
   final modes = <ModeItem>[].obs;
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
+  final hasError = false.obs;
+  bool _hadCache = false;
 
   @override
   void onInit() {
@@ -79,6 +81,7 @@ class ModesController extends GetxController {
     final cached = await StorageServices.instance.getCachedModes();
     if (cached.isNotEmpty) {
       modes.value = cached.map((e) => ModeItem.fromJson(e)).toList();
+      _hadCache = true;
       return;
     }
     // Default modes shown before the first successful server fetch.
@@ -98,7 +101,10 @@ class ModesController extends GetxController {
         AppApiUrl.instance.getAllMood,
       );
 
-      if (response == null || response["success"] != true) return;
+      if (response == null || response["success"] != true) {
+        hasError.value = !_hadCache;
+        return;
+      }
 
       final data = response["data"];
       final List<dynamic> modesJson = data?["modes"] ?? [];
@@ -107,9 +113,12 @@ class ModesController extends GetxController {
       modes.value = modesJson
           .map((e) => ModeItem.fromApi(e as Map<String, dynamic>))
           .toList();
+      _hadCache = true;
+      hasError.value = false;
       _saveModes();
     } catch (e) {
-      // Silent — offline is an expected state, cached/default modes stay shown.
+      // Only a real problem if we also have nothing cached to fall back on.
+      hasError.value = !_hadCache;
       errorLog("fetchModes", e);
     } finally {
       isLoading.value = false;
@@ -121,6 +130,8 @@ class ModesController extends GetxController {
       modes.map((e) => e.toJson()).toList(),
     );
   }
+
+  Future<void> retryFetchModes() => fetchModes();
 
   void addMode(ModeItem mode) {
     modes.add(mode);
