@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../core/services/storage_services.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
@@ -19,8 +17,6 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    // emailController.dispose();
-    // passwordController.dispose();
     super.onClose();
   }
 
@@ -28,39 +24,46 @@ class AuthController extends GetxController {
     if (!formKey.currentState!.validate()) return;
 
     isLoading.value = true;
+    try {
+      final result = await loginUseCase(
+        LoginParams(
+          email: emailController.text.trim(),
+          password: passwordController.text,
+        ),
+      );
 
-    final result = await loginUseCase(
-      LoginParams(
-        email: emailController.text.trim(),
-        password: passwordController.text,
-      ),
-    );
-
-    isLoading.value = false;
-
-    result.fold(
-      (failure) {
-        CustomSnackbar.show(
-          title: 'Error',
-          message: failure.message,
-          isError: true,
-        );
-        // If account is not verified, navigate to verification screen
-        if (failure.message.toLowerCase().contains('verify') || 
-            failure.message.toLowerCase().contains('unverified')) {
-          Get.toNamed(Routes.userVerify, arguments: emailController.text.trim());
-        }
-      },
-      (user) async {
-        CustomSnackbar.show(title: 'Success', message: 'Welcome ${user.name}');
-        
-        // // --- TEMPORARY BYPASS FOR TESTING ---
-        // await StorageServices.instance.savePairedKeyId("TEST_DEBUG_UID");
-        // Get.offAllNamed(Routes.lock);
-        // // ------------------------------------
-        
-        Get.offAllNamed(Routes.pairing); // Original flow
-      },
-    );
+      result.fold(
+        (failure) {
+          CustomSnackbar.show(
+            title: 'Login Error',
+            message: failure.message,
+            isError: true,
+          );
+          // If account is not verified, navigate to verification screen
+          if (failure.message.toLowerCase().contains('verify') || 
+              failure.message.toLowerCase().contains('unverified')) {
+            Get.toNamed(Routes.userVerify, arguments: emailController.text.trim());
+          }
+        },
+        (user) async {
+          CustomSnackbar.show(
+            title: 'Welcome Back', 
+            message: 'Successfully signed in as ${user.name}',
+          );
+          
+          // World-class experience: delay before transition
+          await Future.delayed(const Duration(milliseconds: 1500));
+          Get.offAllNamed(Routes.pairing); 
+        },
+      );
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Authentication Failed',
+        message: 'Something went wrong during sign in. Please try again.',
+        isError: true,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

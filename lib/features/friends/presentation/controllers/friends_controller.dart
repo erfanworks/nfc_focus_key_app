@@ -32,14 +32,9 @@ class FriendModel {
         lastFocusInfo: json['lastFocusInfo'] ?? '',
       );
 
-  // Preserved for existing UI bindings that expect these.
   String get handle => '@$userName';
-
   String get status => lastFocusInfo;
-
-  bool get isFocusing =>
-      isLocked || lastFocusInfo.toLowerCase().contains('now');
-
+  bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -48,7 +43,6 @@ class FriendModel {
     return (first + second).toUpperCase();
   }
 
-  // Deterministic (not random) cosmetic avatar variant — purely decorative.
   bool get isDarkAvatar => id.hashCode.isEven;
 }
 
@@ -153,11 +147,8 @@ class PreviewParticipant {
         sharedStats: SharedStats.fromJson(json['sharedStats'] ?? {}),
       );
 
-  // Preserved getters matching FriendModel's UI-facing shape.
   bool get isFocusing => isLocked || lastFocusInfo.toLowerCase().contains('now');
-
   String get status => lastFocusInfo;
-
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
@@ -276,7 +267,6 @@ class FriendsController extends GetxController {
   final Rxn<CurrentNudgeStatus> currentNudge = Rxn<CurrentNudgeStatus>();
   final isLoadingNudgeStatus = false.obs;
 
-  // Multi-select state for picking friends to start a new nudge with.
   final RxSet<String> selectedForNudge = <String>{}.obs;
   final RxString lastError = ''.obs;
 
@@ -320,19 +310,23 @@ class FriendsController extends GetxController {
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.friendsList,
       );
-      if (response == null || response["success"] != true) return;
+      if (response == null || response["success"] != true) {
+         if (response != null && response["success"] == false) {
+           CustomSnackbar.show(title: "Update Failed", message: response["message"] ?? "Could not load friends.", isError: true);
+         }
+         return;
+      }
 
       final List<dynamic> data = response["data"] ?? [];
       addedFriends.value = data.map((e) => FriendModel.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
-      // Silent — cached list stays shown if offline.
+      CustomSnackbar.show(title: "Network Error", message: "Failed to sync friends list.", isError: true);
     } finally {
       isLoadingFriends.value = false;
     }
   }
 
   // ==================== Browse / Search Users ====================
-  // NOTE: `search` query param name is unconfirmed with backend — verify.
   Future<void> fetchAppUsers({String? search, int page = 1}) async {
     try {
       isLoadingAppUsers.value = true;
@@ -349,8 +343,8 @@ class FriendsController extends GetxController {
       appUsers.value = data.map((e) => AppUserModel.fromJson(e as Map<String, dynamic>)).toList();
     } catch (e) {
       CustomSnackbar.show(
-        title: "Couldn't load users",
-        message: "Please check your connection and try again.",
+        title: "Search Error",
+        message: "Could not find users. Check your connection.",
         isError: true,
       );
     } finally {
@@ -372,19 +366,20 @@ class FriendsController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't add friend",
-          message: response?["message"] ?? "Please try again.",
+          title: "Request Failed",
+          message: response?["message"] ?? "Could not add partner.",
           isError: true,
         );
         return;
       }
 
+      CustomSnackbar.show(title: "Partner Added", message: "Successfully added to your list.");
+      await Future.delayed(const Duration(milliseconds: 800));
       await fetchFriendsList();
-      CustomSnackbar.show(title: "Friend added", message: "");
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Error",
+        message: "Failed to send partner request.",
         isError: true,
       );
     } finally {
@@ -402,18 +397,19 @@ class FriendsController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't remove friend",
-          message: response?["message"] ?? "Please try again.",
+          title: "Action Failed",
+          message: response?["message"] ?? "Could not remove partner.",
           isError: true,
         );
         return;
       }
 
+      CustomSnackbar.show(title: "Partner Removed", message: "Successfully removed from your list.");
       addedFriends.removeWhere((f) => f.id == friendId);
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Network Error",
+        message: "Failed to remove partner. Try again.",
         isError: true,
       );
     } finally {
@@ -422,7 +418,6 @@ class FriendsController extends GetxController {
   }
 
   // ==================== Nudge (Accountability Tap) ====================
-  // New flow: initiate -> shows a preview (with real shared stats) -> confirm.
   Future<NudgePreview?> initiateNudge({
     required List<String> participantIds,
     required String modeId,
@@ -431,7 +426,7 @@ class FriendsController extends GetxController {
   }) async {
     try {
       isSubmitting.value = true;
-      final response = await ApiServices.instance.postServices(
+      final initResponse = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.initiateNudge,
         body: {
           "participants": participantIds,
@@ -443,20 +438,38 @@ class FriendsController extends GetxController {
         },
       );
 
-      if (response == null || response["success"] != true) {
-        lastError.value = response?["message"] ?? "Please try again.";
+      if (initResponse == null || initResponse["success"] != true) {
+        lastError.value = initResponse?["message"] ?? "Please try again.";
         CustomSnackbar.show(
-          title: "Couldn't start nudge",
+          title: "Nudge Failed",
           message: lastError.value,
           isError: true,
         );
         return null;
       }
-      return NudgePreview.fromJson(response["data"] as Map<String, dynamic>);
+
+      final previewId = initResponse["data"]?["previewId"] as String?;
+      if (previewId == null || previewId.isEmpty) {
+        lastError.value = "Missing session info from server.";
+        CustomSnackbar.show(title: "Data Error", message: lastError.value, isError: true);
+        return null;
+      }
+
+      final detailsResponse = await ApiServices.instance.getServices(
+        AppApiUrl.instance.nudgePreviewByDetails(previewId),
+      );
+
+      if (detailsResponse == null || detailsResponse["success"] != true) {
+        lastError.value = detailsResponse?["message"] ?? "Please try again.";
+        CustomSnackbar.show(title: "Load Error", message: lastError.value, isError: true);
+        return null;
+      }
+
+      return NudgePreview.fromJson(detailsResponse["data"] as Map<String, dynamic>);
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Error",
+        message: "Failed to initiate nudge session.",
         isError: true,
       );
       return null;
@@ -474,17 +487,20 @@ class FriendsController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't send nudge",
-          message: response?["message"] ?? "Please try again.",
+          title: "Confirmation Failed",
+          message: response?["message"] ?? "Could not send nudge invitation.",
           isError: true,
         );
         return false;
       }
+      
+      CustomSnackbar.show(title: "Nudge Sent", message: "Your partners have been notified.");
+      await Future.delayed(const Duration(milliseconds: 1200));
       return true;
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Error",
+        message: "Failed to confirm nudge. Check your internet.",
         isError: true,
       );
       return false;
@@ -500,39 +516,29 @@ class FriendsController extends GetxController {
       );
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't leave",
-          message: response?["message"] ?? "Please try again.",
+          title: "Action Failed",
+          message: response?["message"] ?? "Could not leave session.",
           isError: true,
         );
         return;
       }
+      CustomSnackbar.show(title: "Session Left", message: "You are no longer in the nudge.");
       await fetchCurrentNudgeStatus();
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Network Error",
+        message: "Failed to leave nudge session.",
         isError: true,
       );
     }
   }
 
-  // Future notification-flow use — accepting an invite to an already-created nudge.
-
-  // TODO: Notifications list — backend endpoint not ready yet.
-  // final RxList<dynamic> notifications = <dynamic>[].obs;
-  // Future<void> fetchNotifications() async { ... }
-
-  // NOTE: body shape here (participants/modeId/breakConfig) is the LAST
-  // CONFIRMED-WORKING shape from real Postman testing — the backend dev's
-  // more recent answer on whether join can be simplified to just modeId
-  // was not a firm confirmation. Verify with a real Postman test before
-  // trusting this is minimal/correct.
   Future<bool> joinCurrentNudge() async {
     final nudge = currentNudge.value;
     if (nudge == null || nudge.nudgeId == null || nudge.modeId == null) {
       CustomSnackbar.show(
-        title: "Can't join",
-        message: "Missing nudge details. Please try again.",
+        title: "Join Error",
+        message: "Nudge session data is missing.",
         isError: true,
       );
       return false;
@@ -547,9 +553,6 @@ class FriendsController extends GetxController {
     );
   }
 
-  // NOTE: body mirrors createNudge's per backend's given sample — confirm
-  // with backend dev whether join really needs participants/modeId/breakConfig
-  // again, since the nudge already defines these.
   Future<bool> joinNudge({
     required String nudgeId,
     required List<String> participantIds,
@@ -573,18 +576,21 @@ class FriendsController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't join",
-          message: response?["message"] ?? "Please try again.",
+          title: "Join Failed",
+          message: response?["message"] ?? "Could not join nudge.",
           isError: true,
         );
         return false;
       }
+      
+      CustomSnackbar.show(title: "Joined!", message: "Successfully joined the nudge session.");
+      await Future.delayed(const Duration(milliseconds: 1000));
       await fetchCurrentNudgeStatus();
       return true;
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Error",
+        message: "Failed to join. Please try again.",
         isError: true,
       );
       return false;
@@ -604,7 +610,6 @@ class FriendsController extends GetxController {
       final data = response["data"];
       currentNudge.value = data != null ? CurrentNudgeStatus.fromJson(data as Map<String, dynamic>) : CurrentNudgeStatus.empty();
     } catch (e) {
-      // Silent background refresh — keep last known status if offline.
     } finally {
       isLoadingNudgeStatus.value = false;
     }
@@ -617,11 +622,8 @@ class FriendsController extends GetxController {
         queryParameters: {'page': page},
       );
       if (response == null || response["success"] != true) return;
-      // Expose raw list — build a typed model here if a dedicated
-      // history screen needs richer parsing than currentNudge's shape.
       nudgeHistoryRaw.value = List<Map<String, dynamic>>.from(response["data"] ?? []);
     } catch (e) {
-      // Silent — history is non-critical, cached view stays.
     }
   }
 
@@ -634,24 +636,23 @@ class FriendsController extends GetxController {
       );
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't start break",
-          message: response?["message"] ?? "Please try again.",
+          title: "Break Error",
+          message: response?["message"] ?? "Could not start nudge break.",
           isError: true,
         );
         return;
       }
+      CustomSnackbar.show(title: "Break Started", message: "Enjoy your team break.");
       await fetchCurrentNudgeStatus();
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Error",
+        message: "Failed to start break. Check your connection.",
         isError: true,
       );
     }
   }
 
-  // Confirmed against real Postman sample — removes a participant from a
-  // pending nudge preview (before it's confirmed).
   Future<void> removeParticipant({
     required String previewId,
     required String participantId,
@@ -663,16 +664,17 @@ class FriendsController extends GetxController {
       );
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't remove",
-          message: response?["message"] ?? "Please try again.",
+          title: "Action Failed",
+          message: response?["message"] ?? "Could not remove participant.",
           isError: true,
         );
         return;
       }
+      CustomSnackbar.show(title: "Removed", message: "Participant removed from preview.");
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Error",
+        message: "Connection failed. Please try again.",
         isError: true,
       );
     }

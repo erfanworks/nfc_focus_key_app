@@ -28,8 +28,8 @@ class EmailVerifyController extends GetxController {
   Future<void> verify() async {
     if (otpController.text.length != 6) {
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Please enter the 6-digit code',
+        title: 'Incomplete Code',
+        message: 'Please enter the 6-digit verification code.',
         isError: true,
       );
       return;
@@ -47,8 +47,8 @@ class EmailVerifyController extends GetxController {
 
       if (response != null && response["success"] == true) {
         CustomSnackbar.show(
-          title: 'Success',
-          message: response["message"] ?? 'Email verified successfully',
+          title: 'Success!',
+          message: response["message"] ?? 'Code verified successfully.',
         );
 
         final resetToken = response["data"];
@@ -56,15 +56,28 @@ class EmailVerifyController extends GetxController {
           await StorageServices.instance.setResetToken(resetToken);
         }
 
+        // Premium feel transition delay
+        await Future.delayed(const Duration(milliseconds: 1500));
         Get.offAllNamed(Routes.resetPassword);
+      } else {
+        CustomSnackbar.show(
+          title: 'Error',
+          message: response?["message"] ?? 'Invalid verification code. Try again.',
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Connection Error',
+        message: 'Failed to verify. Please check your internet connection.',
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> resendCode() async {
-    debugPrint("Resend email value: '$email'");
     isResending.value = true;
     try {
       final response = await ApiServices.instance.postServices(
@@ -74,10 +87,22 @@ class EmailVerifyController extends GetxController {
 
       if (response != null && response["success"] == true) {
         CustomSnackbar.show(
-          title: 'Sent',
-          message: response["message"] ?? 'A new code has been sent to your email',
+          title: 'Code Sent',
+          message: response["message"] ?? 'A new verification code has been sent.',
+        );
+      } else {
+        CustomSnackbar.show(
+          title: 'Failed',
+          message: response?["message"] ?? 'Could not resend code. Please try again.',
+          isError: true,
         );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Network Error',
+        message: 'Please check your connection and try again.',
+        isError: true,
+      );
     } finally {
       isResending.value = false;
     }

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class FocusSession {
   final String timeRange;
@@ -67,7 +68,19 @@ class HistoryController extends GetxController {
         historyGroups.value = (data['history'] as List<dynamic>? ?? [])
             .map((e) => HistoryGroup.fromJson(e))
             .toList();
+      } else if (response != null) {
+        CustomSnackbar.show(
+          title: "Update Failed",
+          message: response["message"] ?? "Could not sync history data.",
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Connection Error",
+        message: "Failed to load history. Please check your internet.",
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }

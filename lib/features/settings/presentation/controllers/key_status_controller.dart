@@ -17,9 +17,13 @@ class KeyStatusController extends GetxController {
   }
 
   Future<void> _loadPairedStatus() async {
-    isLoading.value = true;
-    isPaired.value = await StorageServices.instance.hasPairedKey();
-    isLoading.value = false;
+    try {
+      isLoading.value = true;
+      isPaired.value = await StorageServices.instance.hasPairedKey();
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void requestUnpairConfirmation() {
@@ -44,7 +48,7 @@ class KeyStatusController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Unpair failed",
+          title: "Unpair Failed",
           message: response?["message"] ?? "Could not unpair the key. Try again.",
           isError: true,
         );
@@ -53,10 +57,14 @@ class KeyStatusController extends GetxController {
 
       await StorageServices.instance.clearPairedKeyId();
       isPaired.value = false;
+      CustomSnackbar.show(
+        title: 'Successfully Unpaired',
+        message: 'Your Focus Key has been removed.',
+      );
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Error",
+        message: "Failed to communicate with server. Check your internet.",
         isError: true,
       );
     } finally {

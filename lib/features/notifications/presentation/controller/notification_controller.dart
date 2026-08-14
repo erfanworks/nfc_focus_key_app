@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class NotificationModel {
   final String id;
@@ -45,7 +46,6 @@ class NotificationModel {
           referenceId != null &&
           referenceId!['status'] == 'completed';
 
-  // Convenience accessors for the nudge document embedded in referenceId.
   String? get nudgeCreatorId => referenceModel == 'Nudge'
       ? (referenceId?['creatorId'] as String?)
       : null;
@@ -135,18 +135,8 @@ class NotificationController extends GetxController {
 
   String _monthShort(int month) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return months[month - 1];
   }
@@ -181,6 +171,20 @@ class NotificationController extends GetxController {
         final meta = response["meta"];
         _totalPage = meta?['totalPage'] ?? 1;
         unreadCount.value = meta?['unreadCount'] ?? 0;
+      } else if (response != null && refresh) {
+        CustomSnackbar.show(
+          title: "Inbox Error",
+          message: response["message"] ?? "Could not sync notifications.",
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (refresh) {
+        CustomSnackbar.show(
+          title: "Network Error",
+          message: "Failed to connect to notification service.",
+          isError: true,
+        );
       }
     } finally {
       isLoading.value = false;
@@ -222,6 +226,7 @@ class NotificationController extends GetxController {
     required List<String> participantIds,
   }) async {
     try {
+      isLoading.value = true;
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.joinNudge(nudgeId),
         body: {
@@ -233,9 +238,28 @@ class NotificationController extends GetxController {
           },
         },
       );
-      return response != null && response["success"] == true;
-    } catch (_) {
+      
+      if (response != null && response["success"] == true) {
+        CustomSnackbar.show(title: "Joined!", message: "Successfully joined the nudge session.");
+        await Future.delayed(const Duration(milliseconds: 1200));
+        return true;
+      } else {
+        CustomSnackbar.show(
+          title: "Join Failed",
+          message: response?["message"] ?? "Could not join nudge. It may be expired.",
+          isError: true,
+        );
+        return false;
+      }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Connection Issue",
+        message: "Failed to reach server. Please try again.",
+        isError: true,
+      );
       return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 }

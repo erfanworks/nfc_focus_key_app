@@ -84,7 +84,6 @@ class ModesController extends GetxController {
       _hadCache = true;
       return;
     }
-    // Default modes shown before the first successful server fetch.
     modes.value = [
       ModeItem('Deep work.', 'Blocks social media, games, entertainment', FKIcon.deepwork),
       ModeItem('Step away.', 'Blocks all social apps. Keeps utilities.', FKIcon.outdoors),
@@ -92,8 +91,6 @@ class ModesController extends GetxController {
     ];
   }
 
-  // Fetch real modes from backend so mode selection carries a real
-  // backend id (required to lock/unlock via toggle-activation).
   Future<void> fetchModes() async {
     try {
       isLoading.value = true;
@@ -103,6 +100,9 @@ class ModesController extends GetxController {
 
       if (response == null || response["success"] != true) {
         hasError.value = !_hadCache;
+        if (response != null && response["success"] == false) {
+           CustomSnackbar.show(title: "Sync Failed", message: response["message"] ?? "Could not load focus modes.", isError: true);
+        }
         return;
       }
 
@@ -117,9 +117,9 @@ class ModesController extends GetxController {
       hasError.value = false;
       _saveModes();
     } catch (e) {
-      // Only a real problem if we also have nothing cached to fall back on.
       hasError.value = !_hadCache;
       errorLog("fetchModes", e);
+      CustomSnackbar.show(title: "Network Error", message: "Failed to sync your focus modes.", isError: true);
     } finally {
       isLoading.value = false;
     }

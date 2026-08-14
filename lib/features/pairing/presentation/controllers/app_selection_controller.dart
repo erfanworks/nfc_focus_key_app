@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/installed_apps.dart';
@@ -25,8 +24,6 @@ class AppSelectionController extends GetxController {
   final isLoading = true.obs;
   final isSubmitting = false.obs;
 
-  // Independent selections per tab — Block tab picks apps to block,
-  // Allow-only tab picks apps to keep allowed (everything else gets blocked).
   final selectedForBlock = <String>{}.obs;
   final selectedForAllowOnly = <String>{}.obs;
 
@@ -61,7 +58,7 @@ class AppSelectionController extends GetxController {
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } catch (e) {
       CustomSnackbar.show(
-        title: "Couldn't load apps",
+        title: "App Load Error",
         message: "Failed to fetch installed apps from this device.",
         isError: true,
       );
@@ -99,7 +96,6 @@ class AppSelectionController extends GetxController {
           .map((a) => {"packageName": a.packageName, "appName": a.name})
           .toList();
     }
-    // Allow-only mode: everything NOT selected gets locked.
     return apps
         .where((a) => !selectedForAllowOnly.contains(a.packageName))
         .map((a) => {"packageName": a.packageName, "appName": a.name})
@@ -112,8 +108,8 @@ class AppSelectionController extends GetxController {
     final isEditMode = _args?['isEditMode'] == true;
     if (isEditMode && (_modeId == null || _modeId!.isEmpty)) {
       CustomSnackbar.show(
-        title: "Cannot update mode",
-        message: "Missing mode ID for this edit session.",
+        title: "Update Error",
+        message: "Missing mode identifier. Please try again.",
         isError: true,
       );
       return;
@@ -141,18 +137,20 @@ class AppSelectionController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Failed",
-          message: response?["message"] ?? "Could not save this mode.",
+          title: "Save Failed",
+          message: response?["message"] ?? "Could not save focus mode details.",
           isError: true,
         );
         return;
       }
 
       CustomSnackbar.show(
-        title: isEditMode ? "Mode updated" : "Mode created",
-        message: "\"${body['name']}\" is ready.",
+        title: isEditMode ? "Mode Updated" : "Mode Created",
+        message: "\"${body['name']}\" is ready to use.",
       );
 
+      // World-class experience: delay before closing
+      await Future.delayed(const Duration(milliseconds: 1200));
       Get.close(2);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -162,8 +160,8 @@ class AppSelectionController extends GetxController {
       });
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Issue",
+        message: "Failed to save mode. Please check your internet.",
         isError: true,
       );
     } finally {

@@ -48,11 +48,26 @@ class SignUpController extends GetxController {
 
       if (response != null && response["success"] == true) {
         CustomSnackbar.show(
-          title: 'Success',
-          message: response["message"] ?? 'Account created successfully',
+          title: 'Account Created',
+          message: response["message"] ?? 'Please verify your email to continue.',
         );
+        
+        // World-class delay for success feedback
+        await Future.delayed(const Duration(milliseconds: 1500));
         Get.toNamed(Routes.userVerify, arguments: emailController.text.trim());
+      } else {
+        CustomSnackbar.show(
+          title: 'Error',
+          message: response?["message"] ?? 'Something went wrong. Please try again.',
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Connection Error',
+        message: 'Failed to connect to server. Please check your internet.',
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }

@@ -14,6 +14,9 @@ import 'routes/app_routes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  //// Test
+  // await StorageServices.instance.savePairedKeyId("TEST_DEBUG_UID");
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

@@ -12,8 +12,7 @@ import '../../../../routes/app_routes.dart';
 
 class PairingScannerController extends GetxController {
   final isPairing = false.obs;
-  final statusMessage =
-      'Hold your key against the front camera of your phone'.obs;
+  final statusMessage = 'Hold your key against the back of your phone'.obs;
 
   final NfcService _nfcService = NfcService();
 
@@ -27,8 +26,7 @@ class PairingScannerController extends GetxController {
     if (isPairing.value) return;
 
     isPairing.value = true;
-    statusMessage.value =
-    'Hold your key against the front camera of your phone';
+    statusMessage.value = 'Hold your key against the back of your phone';
 
     _nfcService.startScanning(
       onTagScanned: _onTagScanned,
@@ -62,7 +60,7 @@ class PairingScannerController extends GetxController {
 
       if (response == null || response["success"] != true) {
         _resetAfterFailure(
-          response?["message"] ?? "Pairing failed. Please try again.",
+          response?["message"] ?? "Pairing failed. This key might already be in use.",
         );
         return;
       }
@@ -73,9 +71,12 @@ class PairingScannerController extends GetxController {
         title: "Paired",
         message: "Your key has been paired successfully.",
       );
+      
+      // Professional transition delay
+      await Future.delayed(const Duration(milliseconds: 1500));
       Get.offNamed(Routes.paired);
     } catch (e) {
-      _resetAfterFailure("Something went wrong while pairing.");
+      _resetAfterFailure("Connection error. Could not verify key with server.");
     } finally {
       isPairing.value = false;
     }
@@ -83,13 +84,21 @@ class PairingScannerController extends GetxController {
 
   void _onScanError(String error) {
     isPairing.value = false;
-    statusMessage.value = 'Hold your key against the front camera of your phone';
-    CustomSnackbar.show(title: "Scan failed", message: error, isError: true);
+    statusMessage.value = 'Ready to scan';
+    CustomSnackbar.show(
+      title: "Scanning Failed", 
+      message: error, 
+      isError: true,
+    );
   }
 
   void _resetAfterFailure(String message) {
-    statusMessage.value = 'Hold your key against the front camera of your phone';
-    CustomSnackbar.show(title: "Pairing failed", message: message, isError: true);
+    statusMessage.value = 'Ready to scan';
+    CustomSnackbar.show(
+      title: "Pairing Error", 
+      message: message, 
+      isError: true,
+    );
   }
 
   Future<String> _getDeviceModel() async {
@@ -101,7 +110,7 @@ class PairingScannerController extends GetxController {
         return (await deviceInfo.iosInfo).utsname.machine;
       }
     } catch (_) {}
-    return "";
+    return "Unknown Device";
   }
 
   Future<String> _getDeviceFingerprint() async {

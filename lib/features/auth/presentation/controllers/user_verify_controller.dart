@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
-
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
 
@@ -40,20 +39,33 @@ class UserVerifyController extends GetxController {
 
         if (response != null && response["success"] == true) {
           CustomSnackbar.show(
-            title: 'Success',
-            message: response["message"] ?? 'Account verified successfully!',
+            title: 'Verified!',
+            message: response["message"] ?? 'Your email has been successfully verified.',
           );
 
-          // Navigate to login screen
+          // Pro-level feedback delay
+          await Future.delayed(const Duration(milliseconds: 1500));
           Get.offAllNamed(Routes.login);
+        } else {
+          CustomSnackbar.show(
+            title: 'Verification Failed',
+            message: response?["message"] ?? 'Invalid code. Please try again.',
+            isError: true,
+          );
         }
+      } catch (e) {
+        CustomSnackbar.show(
+          title: 'Network Error',
+          message: 'Could not connect to server. Please check your internet.',
+          isError: true,
+        );
       } finally {
         isLoading.value = false;
       }
     } else {
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Please enter the 6-digit code',
+        title: 'Incomplete Code',
+        message: 'Please enter the 6-digit verification code.',
         isError: true,
       );
     }
@@ -71,10 +83,22 @@ class UserVerifyController extends GetxController {
 
       if (response != null && response["success"] == true) {
         CustomSnackbar.show(
-          title: 'Sent',
-          message: response["message"] ?? 'A new verification code has been sent to your email',
+          title: 'Code Sent',
+          message: response["message"] ?? 'A new verification code has been sent to your email.',
+        );
+      } else {
+        CustomSnackbar.show(
+          title: 'Resend Failed',
+          message: response?["message"] ?? 'Could not resend code. Try again later.',
+          isError: true,
         );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'Network issue detected. Please try again.',
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }

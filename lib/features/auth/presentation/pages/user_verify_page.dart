@@ -55,7 +55,8 @@ class UserVerifyPage extends GetView<UserVerifyController> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,6 +129,7 @@ class UserVerifyPage extends GetView<UserVerifyController> {
                   ),
                 ),
               ),
+              SizedBox(height: 24.h),
             ],
           ),
         ),

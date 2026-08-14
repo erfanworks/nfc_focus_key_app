@@ -25,8 +25,8 @@ class ResetPasswordController extends GetxController {
 
     if (passwordController.text != confirmPasswordController.text) {
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Passwords do not match',
+        title: 'Validation Error',
+        message: 'Passwords do not match. Please re-enter.',
         isError: true,
       );
       return;
@@ -48,11 +48,26 @@ class ResetPasswordController extends GetxController {
       if (response != null && response["success"] == true) {
         await StorageServices.instance.clearResetToken();
         CustomSnackbar.show(
-          title: 'Success',
-          message: response["message"] ?? 'Password reset successfully',
+          title: 'All Done!',
+          message: response["message"] ?? 'Password has been reset successfully.',
         );
+        
+        // Premium transition delay
+        await Future.delayed(const Duration(milliseconds: 1500));
         Get.offAllNamed(Routes.login);
+      } else {
+        CustomSnackbar.show(
+          title: 'Error',
+          message: response?["message"] ?? 'Failed to reset password. Link may be expired.',
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Connection Error',
+        message: 'Could not connect to server. Please try again.',
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }

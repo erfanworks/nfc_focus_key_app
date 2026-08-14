@@ -20,18 +20,10 @@ class LockController extends GetxController {
   final sessionSeconds = 0.obs;
   final totalBlockedApps = 0.obs;
 
-  // Currently active mode's backend id — sourced from lock-status response.
-  // Needed to call toggle-activation on unlock. Populated on load / after lock.
   String? activeModeId;
-
-  // Mode the user picks to START a session with. Must be set with a real
-  // backend mode id (from ModesController once it fetches real /modes data)
-  // before toggleLock() can activate it.
   final Rxn<String> selectedModeIdRx = Rxn<String>();
   String? get selectedModeId => selectedModeIdRx.value;
 
-  // Break State Variables — kept local; startBreak() branches between the
-  // personal (per-mode) and nudge break endpoints depending on session type.
   final isOnBreak = false.obs;
   final breakSeconds = 150.obs;
   final isBreakPaused = false.obs;
@@ -52,14 +44,9 @@ class LockController extends GetxController {
     _fetchPersonalBreakLength();
   }
 
-  // Public so other controllers (e.g. Settings' BreakController after a
-  // config save) can force this to re-sync — otherwise the Lock screen's
-  // break card silently goes stale.
   Future<void> refreshPersonalBreakSettings() async {
-    print('🔄 [BREAK REFRESH] Called — before: minutes=${personalBreakLengthMinutes.value}, breaksLeft=${breaksLeft.value}');
     await _fetchPersonalBreakLength();
     await fetchLockStatus();
-    print('✅ [BREAK REFRESH] Done — after: minutes=${personalBreakLengthMinutes.value}, breaksLeft=${breaksLeft.value}');
   }
 
   Future<void> _fetchPersonalBreakLength() async {
@@ -71,13 +58,11 @@ class LockController extends GetxController {
       if (response == null || response["success"] != true) return;
       personalBreakLengthMinutes.value = response["data"]?["breakDurationMinutes"] ?? 5;
     } catch (_) {
-      // Non-critical for display — keep default.
     } finally {
       isLoadingBreakSettings.value = false;
     }
   }
 
-  // ==================== Lock Status ====================
   Future<void> fetchLockStatus() async {
     try {
       isLoadingStatus.value = true;
@@ -85,7 +70,16 @@ class LockController extends GetxController {
         AppApiUrl.instance.lockStatus,
       );
 
-      if (response == null || response["success"] != true) return;
+      if (response == null || response["success"] != true) {
+         if (response != null) {
+            CustomSnackbar.show(
+              title: "Sync Failed",
+              message: response["message"] ?? "Could not update focus status.",
+              isError: true,
+            );
+         }
+         return;
+      }
 
       final data = response["data"];
       if (data == null) return;
@@ -126,8 +120,8 @@ class LockController extends GetxController {
       }
     } catch (e) {
       CustomSnackbar.show(
-        title: "Couldn't load status",
-        message: "Failed to fetch your current focus status.",
+        title: "Connection Issue",
+        message: "Failed to fetch focus status. Check your internet.",
         isError: true,
       );
     } finally {
@@ -142,22 +136,14 @@ class LockController extends GetxController {
     return '${m}m';
   }
 
-  // NOTE: activeSession's exact start-time field name isn't confirmed in the
-  // API docs (only ever seen as null so far). Tries common field names;
-  // falls back to a fresh timer at 0 if the shape doesn't match — confirm
-  // the real field name with backend dev once activeSession is populated.
   void _resumeOrStartTimer(dynamic activeSession) {
     if (activeSession is Map<String, dynamic>) {
-      // Backend provides this directly — confirmed reliable, prefer it
-      // over calculating from startTime.
       final elapsedMinutes = activeSession['elapsedMinutes'];
       if (elapsedMinutes is int) {
         sessionSeconds.value = elapsedMinutes * 60;
         _startTimer();
         return;
       }
-
-      // Fallback if elapsedMinutes isn't present for some reason.
       final raw = activeSession['startTime'] ??
           activeSession['startedAt'] ??
           activeSession['createdAt'];
@@ -199,7 +185,6 @@ class LockController extends GetxController {
     return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
-  // ==================== Break Actions ====================
   Future<void> startBreak() async {
     if (!isLocked.value) return;
 
@@ -224,8 +209,8 @@ class LockController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't start break",
-          message: response?["message"] ?? "Please try again.",
+          title: "Break Error",
+          message: response?["message"] ?? "Could not start your break.",
           isError: true,
         );
         return;
@@ -234,10 +219,15 @@ class LockController extends GetxController {
       final data = response["data"];
       _applyBreakDuration(data["startTime"], data["endTime"]);
       if (breaksLeft.value > 0) breaksLeft.value -= 1;
+      
+      CustomSnackbar.show(
+        title: "Break Started",
+        message: "Your apps are now available.",
+      );
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Error",
+        message: "A network error occurred. Please try again.",
         isError: true,
       );
     }
@@ -251,8 +241,8 @@ class LockController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't start break",
-          message: response?["message"] ?? "Please try again.",
+          title: "Break Error",
+          message: response?["message"] ?? "Could not start nudge break.",
           isError: true,
         );
         return;
@@ -261,21 +251,21 @@ class LockController extends GetxController {
       final data = response["data"];
       final breakInfo = data["break"] ?? {};
       _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
-      // Refresh from server rather than guessing locally — keeps
-      // breaksRemaining/streak/participants all consistent in one place.
       await friendsController.fetchCurrentNudgeStatus();
+
+      CustomSnackbar.show(
+        title: "Shared Break",
+        message: "Focus session paused for the team.",
+      );
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Error",
+        message: "Failed to sync shared break. Check your connection.",
         isError: true,
       );
     }
   }
 
-  // Shared by both break paths — computes actual duration from the real
-  // start/end timestamps rather than the (previously observed buggy)
-  // durationMinutes field, then starts the countdown.
   void _applyBreakDuration(String? startTime, String? endTime) {
     int seconds = 150;
     try {
@@ -313,10 +303,6 @@ class LockController extends GetxController {
     });
   }
 
-  // NOTE: no "cancel/end break early" endpoint provided yet — this stays
-  // local-only for now. Backend won't know the break ended early until it
-  // naturally expires at its endTime. Ask backend dev for a break-cancel
-  // endpoint to keep this in sync.
   void endBreak() {
     _breakTimer?.cancel();
     _breakTimer = null;
@@ -333,7 +319,6 @@ class LockController extends GetxController {
     return '${minutes.toString().padLeft(2, '0')} : ${seconds.toString().padLeft(2, '0')}';
   }
 
-  // ==================== Lock / Unlock ====================
   final NfcService _nfcService = NfcService();
   final isScanningNfc = false.obs;
   final isTogglingLock = false.obs;
@@ -341,12 +326,11 @@ class LockController extends GetxController {
   void toggleLock() async {
     if (isTogglingLock.value) return;
 
-    // Currently unlocked -> start a session with the selected mode.
     if (!isLocked.value) {
       if (selectedModeId == null || selectedModeId!.isEmpty) {
         CustomSnackbar.show(
-          title: 'Select a mode',
-          message: 'Pick a mode before locking.',
+          title: 'Pick a Mode',
+          message: 'Select a focus mode before starting your session.',
           isError: true,
         );
         return;
@@ -355,7 +339,6 @@ class LockController extends GetxController {
       return;
     }
 
-    // Currently locked -> require NFC key match to unlock.
     if (isScanningNfc.value) return;
     isScanningNfc.value = true;
     _showAndroidNfcScanner();
@@ -367,13 +350,12 @@ class LockController extends GetxController {
 
         final pairedId = await StorageServices.instance.getPairedKeyId();
 
-        // Normal, fully-offline path — matches locally, no backend call.
         if (tagId == pairedId) {
           await HapticFeedback.vibrate();
           if (activeModeId == null || activeModeId!.isEmpty) {
             CustomSnackbar.show(
-              title: "Couldn't unlock",
-              message: 'No active mode found on the server.',
+              title: "Unlock Error",
+              message: 'No active mode session found.',
               isError: true,
             );
             return;
@@ -382,17 +364,14 @@ class LockController extends GetxController {
           return;
         }
 
-        // Local pairing data missing (cleared storage / new device) —
-        // fall back to backend verification instead of an immediate
-        // Access Denied, so a legitimate key still works.
         if (pairedId == null || pairedId.isEmpty) {
           final verified = await _verifyKeyWithBackend(tagId);
           if (verified) {
             await HapticFeedback.vibrate();
             if (activeModeId == null || activeModeId!.isEmpty) {
               CustomSnackbar.show(
-                title: "Couldn't unlock",
-                message: 'No active mode found on the server.',
+                title: "Unlock Error",
+                message: 'Session data not available on server.',
                 isError: true,
               );
               return;
@@ -405,7 +384,7 @@ class LockController extends GetxController {
         HapticFeedback.heavyImpact();
         CustomSnackbar.show(
           title: 'Access Denied',
-          message: 'This NFC card is not paired with this device.',
+          message: 'This key is not paired with your device.',
           isError: true,
         );
       },
@@ -413,7 +392,7 @@ class LockController extends GetxController {
         isScanningNfc.value = false;
         _dismissAndroidNfcScanner();
         HapticFeedback.heavyImpact();
-        CustomSnackbar.show(title: 'Scanning Failed', message: error, isError: true);
+        CustomSnackbar.show(title: 'Scan Failed', message: error, isError: true);
       },
     );
   }
@@ -445,8 +424,6 @@ class LockController extends GetxController {
       );
 
       if (response == null || response["success"] != true) return false;
-
-      // Restore local pairing so future taps go back to fully-offline.
       await StorageServices.instance.savePairedKeyId(tagId);
       return true;
     } catch (_) {
@@ -463,8 +440,8 @@ class LockController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: 'Could not lock',
-          message: response?["message"] ?? 'Please try again.',
+          title: 'Session Failed',
+          message: response?["message"] ?? 'Could not start focus session.',
           isError: true,
         );
         return;
@@ -478,10 +455,12 @@ class LockController extends GetxController {
         title: 'Locked',
         message: 'Your device is now locked. Scan your NFC key to unlock.',
       );
+      
+      await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       CustomSnackbar.show(
-        title: 'Something went wrong',
-        message: 'Please check your connection and try again.',
+        title: 'Network Error',
+        message: 'Failed to activate focus. Check your connection.',
         isError: true,
       );
     } finally {
@@ -498,8 +477,8 @@ class LockController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: 'Could not unlock',
-          message: response?["message"] ?? 'Please try again.',
+          title: 'Unlock Failed',
+          message: response?["message"] ?? 'Could not end focus session.',
           isError: true,
         );
         return;
@@ -509,11 +488,17 @@ class LockController extends GetxController {
       activeModeId = null;
       _stopTimer();
       endBreak();
-      CustomSnackbar.show(title: 'Unlocked', message: 'Welcome back.');
+      
+      CustomSnackbar.show(
+        title: 'Session Ended', 
+        message: 'Welcome back! You made great progress.',
+      );
+      
+      await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       CustomSnackbar.show(
-        title: 'Something went wrong',
-        message: 'Please check your connection and try again.',
+        title: 'Error',
+        message: 'Connection issue. Failed to end session on server.',
         isError: true,
       );
     } finally {
@@ -529,8 +514,8 @@ class LockController extends GetxController {
           decoration: const BoxDecoration(
             color: Color(0xFFF7F4EE),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
             ),
           ),
           child: Column(
@@ -539,6 +524,7 @@ class LockController extends GetxController {
               const SizedBox(height: 16),
               const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D6A4F)),
+                strokeWidth: 3,
               ),
               const SizedBox(height: 24),
               const Text(
@@ -555,7 +541,7 @@ class LockController extends GetxController {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A8278)),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
             ],
           ),
         ),

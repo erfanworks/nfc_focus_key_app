@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
@@ -46,11 +45,17 @@ class ExportDataController extends GetxController {
         if (start != null && end != null) {
           dateRangeText.value = '${_formatDate(start)} – ${_formatDate(end)}';
         }
+      } else {
+        CustomSnackbar.show(
+          title: 'Load Failed',
+          message: 'Could not sync focus summary from server.',
+          isError: true,
+        );
       }
     } catch (e) {
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Failed to load export summary',
+        title: 'Connection Error',
+        message: 'Failed to load stats. Check your internet.',
         isError: true,
       );
     } finally {
@@ -59,6 +64,7 @@ class ExportDataController extends GetxController {
   }
 
   Future<void> exportCsv() async {
+    if (isExporting.value) return;
     isExporting.value = true;
     try {
       final response = await AppApi.instance.sendRequest.get(
@@ -73,23 +79,24 @@ class ExportDataController extends GetxController {
         );
         await file.writeAsString(response.data as String);
 
-        await Share.shareXFiles([XFile(file.path)], text: 'My focus history export');
-
         CustomSnackbar.show(
-          title: 'Export',
-          message: 'CSV file exported successfully.',
+          title: 'Export Ready',
+          message: 'Your focus history is being prepared for sharing.',
         );
+        
+        await Future.delayed(const Duration(milliseconds: 1000));
+        await Share.shareXFiles([XFile(file.path)], text: 'My focus history export');
       } else {
         CustomSnackbar.show(
-          title: 'Error',
-          message: 'Failed to export CSV',
+          title: 'Export Error',
+          message: 'Failed to generate CSV data. Try again.',
           isError: true,
         );
       }
     } catch (e) {
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Something went wrong while exporting',
+        title: 'Network Error',
+        message: 'Something went wrong while exporting data.',
         isError: true,
       );
     } finally {

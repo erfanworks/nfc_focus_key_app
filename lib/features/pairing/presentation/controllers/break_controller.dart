@@ -39,7 +39,6 @@ class BreakController extends GetxController {
       breaksPerDay.value = (perDay == null || perDay == 0) ? null : perDay;
       breakLengthMinutes.value = data["breakDurationMinutes"] ?? 5;
     } catch (e) {
-      // Silent — fall back to defaults if offline; not a user-facing error.
     } finally {
       isLoading.value = false;
     }
@@ -84,17 +83,21 @@ class BreakController extends GetxController {
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
-          title: "Couldn't save",
-          message: response?["message"] ?? "Please try again.",
+          title: "Save Failed",
+          message: response?["message"] ?? "Could not update break settings.",
           isError: true,
         );
         return;
       }
 
+      CustomSnackbar.show(title: "Settings Saved", message: "Your break limits have been updated.");
+      
       if (Get.isRegistered<LockController>()) {
         Get.find<LockController>().refreshPersonalBreakSettings();
       }
 
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
       if (Get.previousRoute == Routes.customizeModes) {
         Get.toNamed(Routes.modes);
       } else {
@@ -102,8 +105,8 @@ class BreakController extends GetxController {
       }
     } catch (e) {
       CustomSnackbar.show(
-        title: "Something went wrong",
-        message: "Please check your connection and try again.",
+        title: "Connection Error",
+        message: "Failed to reach server. Please try again.",
         isError: true,
       );
     } finally {

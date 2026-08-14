@@ -18,7 +18,8 @@ class LoginPage extends GetView<AuthController> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Form(
             key: controller.formKey,
@@ -68,9 +69,7 @@ class LoginPage extends GetView<AuthController> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      Get.toNamed(
-                        '/forgot-password',
-                      ); // Using string fallback or import Routes
+                      Get.toNamed('/forgot-password');
                     },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
@@ -80,13 +79,13 @@ class LoginPage extends GetView<AuthController> {
                     child: Text(
                       AppStrings.forgotPassword,
                       style: AppTextStyles.helperText.copyWith(
-                        color: Color(0xFF8A8278),
+                        color: const Color(0xFF8A8278),
                       ),
                     ),
                   ),
                 ),
 
-                SizedBox(height: 60),
+                SizedBox(height: 60.h),
 
                 // Sign In Button
                 Obx(

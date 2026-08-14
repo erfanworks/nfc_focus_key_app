@@ -28,11 +28,26 @@ class ForgotPasswordController extends GetxController {
 
       if (response != null && response["success"] == true) {
         CustomSnackbar.show(
-          title: 'Success',
-          message: response["message"] ?? 'Reset code sent to your email',
+          title: 'Success!',
+          message: response["message"] ?? 'Reset code sent to your email.',
         );
+        
+        // Brief delay for feedback
+        await Future.delayed(const Duration(milliseconds: 1500));
         Get.toNamed(Routes.emailVerify, arguments: emailController.text.trim());
+      } else {
+        CustomSnackbar.show(
+          title: 'Error',
+          message: response?["message"] ?? 'Account not found or server error.',
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Connection Issue',
+        message: 'Could not reach server. Please check your connection.',
+        isError: true,
+      );
     } finally {
       isLoading.value = false;
     }
