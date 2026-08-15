@@ -218,17 +218,36 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
   }
 
   Widget _buildSingleFriendActions() {
+    final bool isBusy = _singleFriend!.isFocusing;
+
     return Column(
       children: [
         InkWell(
-          onTap: _sendNudgeToSingleFriend,
+          onTap: isBusy
+              ? () {
+                  CustomSnackbar.show(
+                    title: 'Partner Busy',
+                    message: '${_singleFriend!.name} is currently focusing. You can nudge them once they finish.',
+                    isError: true,
+                  );
+                }
+              : _sendNudgeToSingleFriend,
           borderRadius: BorderRadius.circular(30.r),
           child: Container(
             width: double.infinity,
             height: 48.h,
-            decoration: BoxDecoration(color: const Color(0xFF1A1814), borderRadius: BorderRadius.circular(30.r)),
+            decoration: BoxDecoration(
+              color: isBusy ? const Color(0xFFCCC8C0) : const Color(0xFF1A1814),
+              borderRadius: BorderRadius.circular(30.r),
+            ),
             child: Center(
-              child: Text('Send a nudge', style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFFF7F4EE))),
+              child: Text(
+                isBusy ? 'Partner is focusing' : 'Send a nudge',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14.sp,
+                  color: isBusy ? const Color(0xFF8A8278) : const Color(0xFFF7F4EE),
+                ),
+              ),
             ),
           ),
         ),
@@ -245,7 +264,10 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
               border: Border.all(color: const Color(0xFFE8E3DA)),
             ),
             child: Center(
-              child: Text('Remove friend', style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFFC0392B))),
+              child: Text(
+                'Remove friend',
+                style: GoogleFonts.dmSans(fontSize: 14.sp, color: const Color(0xFFC0392B)),
+              ),
             ),
           ),
         ),
