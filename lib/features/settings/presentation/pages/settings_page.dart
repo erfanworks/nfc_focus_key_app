@@ -23,21 +23,24 @@ class SettingsPage extends GetView<SettingsController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: 20.w,
-                right: 20.w,
-                top: 24.h,
-                bottom: 16.h,
-              ),
-              child: Text(
-                'Settings',
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.w300,
-                  color: const Color(0xFF1A1814),
-                  height: 1.0,
-                  letterSpacing: 0.4.w,
+            _AnimatedEntrance(
+              delay: 100,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 20.w,
+                  right: 20.w,
+                  top: 24.h,
+                  bottom: 16.h,
+                ),
+                child: Text(
+                  'Settings',
+                  style: GoogleFonts.cormorantGaramond(
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.w300,
+                    color: const Color(0xFF1A1814),
+                    height: 1.0,
+                    letterSpacing: 0.4.w,
+                  ),
                 ),
               ),
             ),
@@ -47,27 +50,30 @@ class SettingsPage extends GetView<SettingsController> {
               child: ListView(
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 children: [
-                  _buildSectionHeader('ACCOUNT'),
-                  SettingsGroupCard(
-                    children: [
-                      SettingsRowItem(
-                        title: 'Account Details',
-                        onTap: () => Get.toNamed(Routes.personalInformation),
-                      ),
-                      SettingsRowItem(
-                        title: 'Change Password',
-                        onTap: () => Get.toNamed(Routes.changePassword),
-                      ),
-                      SettingsRowItem(
-                        title: 'Delete account',
-                        titleColor: const Color(0xFFC0392B),
-                        showChevron: false,
-                        onTap: () => Get.toNamed(Routes.deleteAccount),
-                      ),
-                    ],
+                  _AnimatedEntrance(delay: 200, child: _buildSectionHeader('ACCOUNT')),
+                  _AnimatedEntrance(
+                    delay: 250,
+                    child: SettingsGroupCard(
+                      children: [
+                        SettingsRowItem(
+                          title: 'Account Details',
+                          onTap: () => Get.toNamed(Routes.personalInformation),
+                        ),
+                        SettingsRowItem(
+                          title: 'Change Password',
+                          onTap: () => Get.toNamed(Routes.changePassword),
+                        ),
+                        SettingsRowItem(
+                          title: 'Delete account',
+                          titleColor: const Color(0xFFC0392B),
+                          showChevron: false,
+                          onTap: () => Get.toNamed(Routes.deleteAccount),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: 24.h),
-                  _buildSectionHeader('MODES'),
+                  _AnimatedEntrance(delay: 350, child: _buildSectionHeader('MODES')),
                   Builder(builder: (_) {
                     final modesController = Get.isRegistered<ModesController>()
                         ? Get.find<ModesController>()
@@ -79,134 +85,149 @@ class SettingsPage extends GetView<SettingsController> {
                           .where((m) => defaultTitles.contains(m.title))
                           .toList();
 
-                      return SettingsGroupCard(
-                        children: [
-                          ...defaultModes.map((mode) {
-                            return SettingsRowItem(
-                              title: mode.title,
-                              trailingText: '${mode.totalLockedApps} apps',
-                              onTap: () => Get.toNamed(
-                                Routes.newMode,
-                                arguments: {
-                                  'modeId': mode.id,
-                                  'modeName': mode.title,
-                                  'isEditMode': true,
-                                },
-                              ),
-                            );
-                          }),
-                          SettingsRowItem(
-                            title: 'All modes',
-                            onTap: () => Get.toNamed(Routes.modes, arguments: {'isManageMode': true}),
-                          ),
-                          SettingsRowItem(
-                            title: 'Total Focus',
-                            onTap: () => Get.toNamed(Routes.totalFocusApps),
-                          ),
-                          SettingsRowItem(
-                            title: 'Add new mode',
-                            titleColor: const Color(0xFFC4A97D),
-                            showChevron: false,
-                            onTap: () => Get.toNamed(Routes.newMode),
-                          ),
-                        ],
+                      return _AnimatedEntrance(
+                        delay: 400,
+                        child: SettingsGroupCard(
+                          children: [
+                            ...defaultModes.map((mode) {
+                              return SettingsRowItem(
+                                title: mode.title,
+                                trailingText: '${mode.totalLockedApps} apps',
+                                onTap: () => Get.toNamed(
+                                  Routes.newMode,
+                                  arguments: {
+                                    'modeId': mode.id,
+                                    'modeName': mode.title,
+                                    'isEditMode': true,
+                                  },
+                                ),
+                              );
+                            }),
+                            SettingsRowItem(
+                              title: 'All modes',
+                              onTap: () => Get.toNamed(Routes.modes, arguments: {'isManageMode': true}),
+                            ),
+                            SettingsRowItem(
+                              title: 'Total Focus',
+                              onTap: () => Get.toNamed(Routes.totalFocusApps),
+                            ),
+                            SettingsRowItem(
+                              title: 'Add new mode',
+                              titleColor: const Color(0xFFC4A97D),
+                              showChevron: false,
+                              onTap: () => Get.toNamed(Routes.newMode),
+                            ),
+                          ],
+                        ),
                       );
                     });
                   }),
                   SizedBox(height: 24.h),
-                  _buildSectionHeader('FOCUS'),
+                  _AnimatedEntrance(delay: 500, child: _buildSectionHeader('FOCUS')),
                   Obx(() {
                     final hasReminder =
                         controller.personalReminder.value.isNotEmpty &&
                         controller.personalReminder.value !=
                             'I want to stay focused for..';
-                    return SettingsGroupCard(
-                      children: [
-                        SettingsRowItem(
-                          title: 'Personal Reminder',
-                          trailingText: hasReminder ? 'Set' : 'Not Set',
-                          trailingTextColor: hasReminder
-                              ? const Color(0xFF2ECC71)
-                              : const Color(0xFFB5AFA5),
-                          onTap: () => Get.toNamed(Routes.personalReminder),
-                        ),
-                        SettingsRowItem(
-                          title: 'Key status',
-                          trailingText: 'Paired',
-                          trailingTextColor: const Color(0xFF2ECC71),
-                          showChevron: false,
-                          onTap: () => Get.toNamed(Routes.keyStatus),
-                        ),
-                        SettingsRowItem(
-                          title: 'Break',
-                          onTap: () => Get.toNamed(Routes.takeBreak),
-                        ),
-                      ],
+                    return _AnimatedEntrance(
+                      delay: 550,
+                      child: SettingsGroupCard(
+                        children: [
+                          SettingsRowItem(
+                            title: 'Personal Reminder',
+                            trailingText: hasReminder ? 'Set' : 'Not Set',
+                            trailingTextColor: hasReminder
+                                ? const Color(0xFF2ECC71)
+                                : const Color(0xFFB5AFA5),
+                            onTap: () => Get.toNamed(Routes.personalReminder),
+                          ),
+                          SettingsRowItem(
+                            title: 'Key status',
+                            trailingText: 'Paired',
+                            trailingTextColor: const Color(0xFF2ECC71),
+                            showChevron: false,
+                            onTap: () => Get.toNamed(Routes.keyStatus),
+                          ),
+                          SettingsRowItem(
+                            title: 'Break',
+                            onTap: () => Get.toNamed(Routes.takeBreak),
+                          ),
+                        ],
+                      ),
                     );
                   }),
                   SizedBox(height: 24.h),
-                  _buildSectionHeader('YOUR DATA'),
-                  SettingsGroupCard(
-                    children: [
-                      SettingsRowItem(
-                        title: 'Focus history',
-                        onTap: () => Get.toNamed(Routes.focusHistory),
-                      ),
-                      SettingsRowItem(
-                        title: 'Export data',
-                        onTap: () => Get.toNamed(Routes.exportData),
-                      ),
-                      SettingsRowItem(
-                        title: 'Clear all data',
-                        titleColor: const Color(0xFFC0392B),
-                        showChevron: false,
-                        onTap: () => _showClearDataDialog(context),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  _buildSectionHeader('ABOUT'),
-                  SettingsGroupCard(
-                    children: [
-                      SettingsRowItem(
-                        title: 'Terms and conditions',
-                        onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'Terms & Condition'}),
-                      ),
-                      SettingsRowItem(
-                        title: 'Privacy policy',
-                        onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'Privacy Policy'}),
-                      ),
-                      SettingsRowItem(
-                        title: 'About us',
-                        onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'About Us'}),
-                      ),
-                      SettingsRowItem(
-                        title: 'Focus Key',
-                        trailingText: 'v1.0.0',
-                        showChevron: false,
-                      ),
-                      SettingsRowItem(
-                        title: 'focus.co.sg',
-                        trailingText: 'Contact Support',
-                        showChevron: false,
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24.h),
-                  SettingsGroupCard(
-                    backgroundColor: Colors.transparent,
-                    border: Border.all(
-                      color: const Color(0xFFE8E3DA),
-                      width: 1.0,
+                  _AnimatedEntrance(delay: 650, child: _buildSectionHeader('YOUR DATA')),
+                  _AnimatedEntrance(
+                    delay: 700,
+                    child: SettingsGroupCard(
+                      children: [
+                        SettingsRowItem(
+                          title: 'Focus history',
+                          onTap: () => Get.toNamed(Routes.focusHistory),
+                        ),
+                        SettingsRowItem(
+                          title: 'Export data',
+                          onTap: () => Get.toNamed(Routes.exportData),
+                        ),
+                        SettingsRowItem(
+                          title: 'Clear all data',
+                          titleColor: const Color(0xFFC0392B),
+                          showChevron: false,
+                          onTap: () => _showClearDataDialog(context),
+                        ),
+                      ],
                     ),
-                    children: [
-                      SettingsRowItem(
-                        title: 'Log Out',
-                        titleColor: const Color(0xFFC0392B),
-                        onTap: () => _showLogoutDialog(context),
+                  ),
+                  SizedBox(height: 24.h),
+                  _AnimatedEntrance(delay: 800, child: _buildSectionHeader('ABOUT')),
+                  _AnimatedEntrance(
+                    delay: 850,
+                    child: SettingsGroupCard(
+                      children: [
+                        SettingsRowItem(
+                          title: 'Terms and conditions',
+                          onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'Terms & Condition'}),
+                        ),
+                        SettingsRowItem(
+                          title: 'Privacy policy',
+                          onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'Privacy Policy'}),
+                        ),
+                        SettingsRowItem(
+                          title: 'About us',
+                          onTap: () => Get.toNamed(Routes.legalInformation, parameters: {'title': 'About Us'}),
+                        ),
+                        SettingsRowItem(
+                          title: 'Focus Key',
+                          trailingText: 'v1.0.0',
+                          showChevron: false,
+                        ),
+                        SettingsRowItem(
+                          title: 'focus.co.sg',
+                          trailingText: 'Contact Support',
+                          showChevron: false,
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  _AnimatedEntrance(
+                    delay: 950,
+                    child: SettingsGroupCard(
+                      backgroundColor: Colors.transparent,
+                      border: Border.all(
+                        color: const Color(0xFFE8E3DA),
+                        width: 1.0,
                       ),
-                    ],
+                      children: [
+                        SettingsRowItem(
+                          title: 'Log Out',
+                          titleColor: const Color(0xFFC0392B),
+                          onTap: () => _showLogoutDialog(context),
+                        ),
+                      ],
+                    ),
                   ),
                   SizedBox(height: 32.h),
                 ],
@@ -433,6 +454,42 @@ class SettingsPage extends GetView<SettingsController> {
           ),
         );
       },
+    );
+  }
+}
+
+enum EntranceType { slide, scale }
+
+class _AnimatedEntrance extends StatelessWidget {
+  final Widget child;
+  final int delay;
+  final EntranceType type;
+
+  const _AnimatedEntrance({
+    required this.child,
+    this.delay = 0,
+    this.type = EntranceType.slide,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 600 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: type == EntranceType.scale
+                ? (Matrix4.identity()..scale(0.95 + (0.05 * value)))
+                : (Matrix4.identity()..translate(0.0, 10 * (1.0 - value))),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
