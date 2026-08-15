@@ -24,13 +24,20 @@ class FriendsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTitle(),
+              _AnimatedEntrance(
+                delay: 100,
+                child: _buildTitle(),
+              ),
               SizedBox(height: 24.h),
               Expanded(
                 child: Obx(
                   () => controller.addedFriends.isNotEmpty
                       ? _buildFriendsList()
-                      : _buildEmptyState(),
+                      : _AnimatedEntrance(
+                          delay: 300,
+                          type: EntranceType.scale,
+                          child: _buildEmptyState(),
+                        ),
                 ),
               ),
             ],
@@ -59,30 +66,33 @@ class FriendsPage extends StatelessWidget {
       children: [
         Obx(() {
           if (!lockController.isLocked.value) return const SizedBox.shrink();
-          return Container(
-            width: double.infinity,
-            margin: EdgeInsets.only(bottom: 12.h),
-            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0EBE2),
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lock_outline_rounded,
-                    size: 16.sp, color: const Color(0xFF8A8278)),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Text(
-                    "You're focusing right now. End your session to start a nudge.",
-                    style: GoogleFonts.dmSans(
-                        fontSize: 12.sp,
-                        color: const Color(0xFF8A8278),
-                        height: 1.3),
+          return _AnimatedEntrance(
+            delay: 150,
+            child: Container(
+              width: double.infinity,
+              margin: EdgeInsets.only(bottom: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0EBE2),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline_rounded,
+                      size: 16.sp, color: const Color(0xFF8A8278)),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      "You're focusing right now. End your session to start a nudge.",
+                      style: GoogleFonts.dmSans(
+                          fontSize: 12.sp,
+                          color: const Color(0xFF8A8278),
+                          height: 1.3),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }),
@@ -91,31 +101,39 @@ class FriendsPage extends StatelessWidget {
             () => ListView(
               physics: const BouncingScrollPhysics(),
               children: [
-                ...controller.addedFriends.map(
-                  (friend) => FriendListItem(
-                    name: friend.name,
-                    initials: friend.initials,
-                    isDarkAvatar: friend.isDarkAvatar,
-                    status: friend.status,
-                    isFocusing: friend.isFocusing,
-                    isSelected: controller.isSelectedForNudge(friend.id),
-                    onSelectToggle: () =>
-                        controller.toggleNudgeSelection(friend.id),
-                    disabledMessage: lockController.isLocked.value
-                        ? "End your focus session first."
-                        : null,
-                    onTap: () {
-                      if (!friend.isFocusing) {
-                        Get.toNamed(Routes.friendDetails, arguments: friend);
-                      }
-                    },
-                  ),
+                ...controller.addedFriends.asMap().entries.map(
+                  (entry) {
+                    final index = entry.key;
+                    final friend = entry.value;
+                    return _AnimatedEntrance(
+                      delay: 200 + (index * 50),
+                      child: FriendListItem(
+                        name: friend.name,
+                        initials: friend.initials,
+                        isDarkAvatar: friend.isDarkAvatar,
+                        status: friend.status,
+                        isFocusing: friend.isFocusing,
+                        isSelected: controller.isSelectedForNudge(friend.id),
+                        onSelectToggle: () =>
+                            controller.toggleNudgeSelection(friend.id),
+                        disabledMessage: lockController.isLocked.value
+                            ? "End your focus session first."
+                            : null,
+                        onTap: () {
+                          Get.toNamed(Routes.friendDetails, arguments: friend);
+                        },
+                      ),
+                    );
+                  },
                 ),
                 SizedBox(height: 16.h),
-                Obx(
-                  () => controller.selectedForNudge.isEmpty
-                      ? _buildAddFriendsOutlineButton()
-                      : _buildSelectModeButton(lockController),
+                _AnimatedEntrance(
+                  delay: 250 + (controller.addedFriends.length * 50),
+                  child: Obx(
+                    () => controller.selectedForNudge.isEmpty
+                        ? _buildAddFriendsOutlineButton()
+                        : _buildSelectModeButton(lockController),
+                  ),
                 ),
                 SizedBox(height: 24.h),
               ],
@@ -278,6 +296,42 @@ class FriendsPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+enum EntranceType { slide, scale }
+
+class _AnimatedEntrance extends StatelessWidget {
+  final Widget child;
+  final int delay;
+  final EntranceType type;
+
+  const _AnimatedEntrance({
+    required this.child,
+    this.delay = 0,
+    this.type = EntranceType.slide,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 600 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: type == EntranceType.scale
+                ? (Matrix4.identity()..scale(0.9 + (0.1 * value)))
+                : (Matrix4.identity()..translate(0.0, 15 * (1.0 - value))),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
