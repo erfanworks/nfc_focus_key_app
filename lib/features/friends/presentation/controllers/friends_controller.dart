@@ -318,7 +318,15 @@ class FriendsController extends GetxController {
       }
 
       final List<dynamic> data = response["data"] ?? [];
-      addedFriends.value = data.map((e) => FriendModel.fromJson(e as Map<String, dynamic>)).toList();
+      final List<FriendModel> list = data.map((e) => FriendModel.fromJson(e as Map<String, dynamic>)).toList();
+      
+      // Deduplication logic: ensure unique friends by their ID
+      final Map<String, FriendModel> uniqueFriends = {};
+      for (var friend in list) {
+        uniqueFriends[friend.id] = friend;
+      }
+      
+      addedFriends.value = uniqueFriends.values.toList();
     } catch (e) {
       CustomSnackbar.show(title: "Network Error", message: "Failed to sync friends list.", isError: true);
     } finally {
