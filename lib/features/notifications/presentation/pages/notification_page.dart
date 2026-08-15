@@ -153,7 +153,7 @@ class NotificationPage extends GetView<NotificationController> {
                   : null,
               isExpired: n.isExpiredNudge,
             ),
-            onTap: () => controller.markAsRead(n.id),
+            onTap: () => controller.fetchNotifications()
           );
         },
       ),
