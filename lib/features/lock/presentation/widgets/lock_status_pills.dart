@@ -39,10 +39,8 @@ class LockStatusPills extends StatelessWidget {
             final modesController = Get.isRegistered<ModesController>()
                 ? Get.find<ModesController>()
                 : Get.put<ModesController>(ModesController());
-            final selectedItem = modesController.modes.firstWhere(
-                  (m) => m.title == mode,
-              orElse: () => modesController.modes.first,
-            );
+            final selectedItem = modesController.modes.firstWhereOrNull((m) => m.title == mode) ??
+                ModeItem(mode, '', FKIcon.deepwork);
 
             return Row(
               mainAxisSize: MainAxisSize.min,
