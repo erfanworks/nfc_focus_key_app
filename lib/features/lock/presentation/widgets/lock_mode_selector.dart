@@ -23,10 +23,8 @@ class LockModeSelector extends StatelessWidget {
         return const SizedBox.shrink();
       }
 
-      final selectedItem = modesController.modes.firstWhere(
-            (m) => m.title == modeTitle,
-        orElse: () => modesController.modes.first,
-      );
+      final selectedItem = modesController.modes.firstWhereOrNull((m) => m.title == modeTitle) ??
+          ModeItem(modeTitle, '', FKIcon.deepwork);
 
       if (controller.selectedModeId == null && modesController.modes.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
