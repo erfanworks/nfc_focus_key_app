@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 import 'core/services/storage_service.dart';
 import 'core/services/storage_services.dart';
+import 'core/services/app_lock_native_service.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
@@ -16,6 +17,8 @@ Future<void> main() async {
 
   //// Test
   // await StorageServices.instance.savePairedKeyId("TEST_DEBUG_UID");
+
+  await Get.putAsync(() => AppLockNativeService().init());
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
