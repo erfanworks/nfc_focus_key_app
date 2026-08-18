@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
-import 'core/services/storage_service.dart';
-import 'core/services/storage_services.dart';
 import 'core/services/app_lock_native_service.dart';
 import 'core/theme/app_theme.dart';
 import 'routes/app_pages.dart';

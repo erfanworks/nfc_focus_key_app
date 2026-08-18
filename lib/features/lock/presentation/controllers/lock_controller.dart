@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import '../../../../core/services/app_lock_native_service.dart';
 import '../../../../core/services/nfc_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/services/api_service.dart';
@@ -451,6 +452,17 @@ class LockController extends GetxController {
       isLocked.value = true;
       sessionSeconds.value = 0;
       _startTimer();
+      final modeDetails = await ApiServices.instance.getServices(
+        AppApiUrl.instance.updateMoodById(modeId),
+      );
+      final lockedAppsJson = (modeDetails?["data"]?["lockedApps"] as List?) ?? [];
+      final packageNames = lockedAppsJson
+          .map((e) => e["packageName"] as String)
+          .toList();
+      await Get.find<AppLockNativeService>().activateLock(
+        modeId: modeId,
+        androidPackageNames: packageNames,
+      );
       CustomSnackbar.show(
         title: 'Locked',
         message: 'Your device is now locked. Scan your NFC key to unlock.',
@@ -488,7 +500,8 @@ class LockController extends GetxController {
       activeModeId = null;
       _stopTimer();
       endBreak();
-      
+      await Get.find<AppLockNativeService>().deactivateLock();
+
       CustomSnackbar.show(
         title: 'Session Ended', 
         message: 'Welcome back! You made great progress.',

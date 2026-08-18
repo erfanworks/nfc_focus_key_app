@@ -28,6 +28,11 @@ class StorageKey {
 
   // ==================== Modes cache (migrated off GetStorage) ====================
   final String cachedModes = "cachedModes";
+
+  // ==================== App Lock (NFC key lock/unlock, native shield sync) ====================
+  final String isLockActive          = "is_lock_active";
+  final String lockedApps            = "locked_apps";
+  final String cachedReminderMessage = "cached_reminder_message";
 }
 
 class StorageServices {
@@ -320,6 +325,70 @@ class StorageServices {
     } catch (e) {
       errorLog("getValue:$key", e);
       return null;
+    }
+  }
+
+
+
+  Future<void> setLockActive(bool value) async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(StorageKey.instance.isLockActive, value);
+    } catch (e) {
+      errorLog("setLockActive", e);
+    }
+  }
+
+  Future<bool> isLockActive() async {
+    try {
+      final pref = await _pref;
+      return pref.getBool(StorageKey.instance.isLockActive) ?? false;
+    } catch (e) {
+      errorLog("isLockActive", e);
+      return false;
+    }
+  }
+
+  /// Android package names only (e.g. com.instagram.android).
+  /// iOS locked-app identity (opaque ApplicationToken) native side e alada
+  /// App Group storage e thake — eikhane jabe na.
+  Future<void> setLockedApps(List<String> packageNames) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.lockedApps, jsonEncode(packageNames));
+    } catch (e) {
+      errorLog("setLockedApps", e);
+    }
+  }
+
+  Future<List<String>> getLockedApps() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.lockedApps) ?? "";
+      if (raw.isEmpty) return [];
+      return List<String>.from(jsonDecode(raw));
+    } catch (e) {
+      errorLog("getLockedApps", e);
+      return [];
+    }
+  }
+
+  Future<void> cacheReminderMessage(String message) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.cachedReminderMessage, message);
+    } catch (e) {
+      errorLog("cacheReminderMessage", e);
+    }
+  }
+
+  Future<String> getCachedReminderMessage() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.cachedReminderMessage) ?? "";
+    } catch (e) {
+      errorLog("getCachedReminderMessage", e);
+      return "";
     }
   }
 

@@ -43,12 +43,22 @@ import UIKit
         }
 
       case "presentAppPicker":
-        AppLockManager.shared.presentAppPicker(from: rootVC) { count in
+        guard let args = call.arguments as? [String: Any],
+              let modeId = args["modeId"] as? String else {
+          result(FlutterError(code: "MISSING_ARG", message: "modeId required", details: nil))
+          return
+        }
+        AppLockManager.shared.presentAppPicker(modeId: modeId, from: rootVC) { count in
           result(count)
         }
 
       case "applyShield":
-        AppLockManager.shared.applyShield()
+        guard let args = call.arguments as? [String: Any],
+              let modeId = args["modeId"] as? String else {
+          result(FlutterError(code: "MISSING_ARG", message: "modeId required", details: nil))
+          return
+        }
+        AppLockManager.shared.applyShield(modeId: modeId)
         result(nil)
 
       case "removeShield":
