@@ -97,6 +97,7 @@ class ModesPage extends GetView<ModesController> {
                           arguments: {
                             'modeId': mode.id,
                             'modeName': mode.title,
+                            'totalLockedApps': mode.totalLockedApps,
                             'isEditMode': true,
                           },
                         );
