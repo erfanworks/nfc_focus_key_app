@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -59,92 +61,86 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                     ),
                   ),
                   SizedBox(height: 20.h),
-                  Obx(() {
-                    final isBlock = controller.isBlockMode.value;
-                    return Container(
-                      width: double.infinity,
-                      height: 44.h,
-                      padding: EdgeInsets.all(4.w),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBE6DD),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => controller.setBlockMode(true),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isBlock
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9.r),
-                                  boxShadow: isBlock
-                                      ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.04,
+                  if (!Platform.isIOS)
+                    Obx(() {
+                      final isBlock = controller.isBlockMode.value;
+                      return Container(
+                        width: double.infinity,
+                        height: 44.h,
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBE6DD),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => controller.setBlockMode(true),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isBlock ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(9.r),
+                                    boxShadow: isBlock
+                                        ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.04),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Block',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF1A1814),
+                                    ]
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Block',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF1A1814),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => controller.setBlockMode(false),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: !isBlock
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9.r),
-                                  boxShadow: !isBlock
-                                      ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.04,
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => controller.setBlockMode(false),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: !isBlock ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(9.r),
+                                    boxShadow: !isBlock
+                                        ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.04),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
                                       ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Allow only',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: isBlock
-                                          ? const Color(0xFF8A8278)
-                                          : const Color(0xFF1A1814),
+                                    ]
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Allow only',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: isBlock
+                                            ? const Color(0xFF8A8278)
+                                            : const Color(0xFF1A1814),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                          ],
+                        ),
+                      );
+                    }),
+                  if (!Platform.isIOS) SizedBox(height: 16.h),
                   SizedBox(height: 16.h),
                   Obx(() {
                     final isBlock = controller.isBlockMode.value;
