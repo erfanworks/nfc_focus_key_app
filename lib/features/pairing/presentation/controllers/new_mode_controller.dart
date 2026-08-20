@@ -13,6 +13,8 @@ class NewModeController extends GetxController {
   
   final isEditMode = false.obs;
   final originalModeName = ''.obs;
+  String? _modeId;
+  int _totalLockedApps = 0;
 
   final icons = FKIcon.values;
 
@@ -23,6 +25,8 @@ class NewModeController extends GetxController {
     if (args != null && args['isEditMode'] == true) {
       isEditMode.value = true;
       originalModeName.value = args['modeName'] ?? '';
+      _modeId = args['modeId'] as String?;
+      _totalLockedApps = args['totalLockedApps'] as int? ?? 0;
       modeNameController.text = originalModeName.value;
       modeName.value = originalModeName.value;
       // Pre-fill description and icon if needed
@@ -52,6 +56,8 @@ class NewModeController extends GetxController {
         'description': descriptionController.text.isEmpty ? 'Custom blocklist' : descriptionController.text,
         'icon': icons[selectedIconIndex.value],
         'isEditMode': isEditMode.value,
+        'modeId': _modeId,
+        'totalLockedApps': _totalLockedApps,
       },
     );
   }
