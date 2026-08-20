@@ -126,7 +126,7 @@ class AppSelectionController extends GetxController {
       };
 
       final response = isEditMode
-          ? await ApiServices.instance.putServices(
+          ? await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.updateMoodById(_modeId!),
         body: body,
       )
