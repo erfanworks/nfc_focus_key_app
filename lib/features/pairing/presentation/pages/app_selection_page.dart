@@ -361,87 +361,117 @@ class AppSelectionPage extends GetView<AppSelectionController> {
   }
 
   Widget _buildIOSAppPicker(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72.w,
-              height: 72.w,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEBE6DD),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                CupertinoIcons.square_grid_2x2,
-                size: 32.sp,
-                color: const Color(0xFFC4A97D),
-              ),
-            ),
-            SizedBox(height: 20.h),
-            Obx(() {
-              final count = controller.iosSelectedAppsCount.value;
-              return Text(
-                count == 0
-                    ? 'No apps selected yet'
-                    : '$count app${count == 1 ? '' : 's'} selected',
-                style: GoogleFonts.cormorantGaramond(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1A1814),
-                ),
-              );
-            }),
-            SizedBox(height: 8.h),
-            Text(
-              'iOS chooses apps through its own picker for your privacy — app names aren\'t shared with Focus Key.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF8A8278),
-              ),
-            ),
-            SizedBox(height: 24.h),
-            Obx(() {
-              final busy = controller.isIOSBusy.value;
-              return GestureDetector(
-                onTap: busy ? null : controller.onIOSSelectApps,
-                child: Container(
-                  height: 48.h,
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1814),
-                    borderRadius: BorderRadius.circular(24.r),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      child: Column(
+        children: [
+          SizedBox(height: 8.h),
+          Expanded(
+            child: Center(
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 36.h),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(24.r),
+                  border: Border.all(
+                    color: const Color(0xFFC4A97D).withValues(alpha: 0.25),
+                    width: 1.2,
                   ),
-                  child: Center(
-                    child: busy
-                        ? SizedBox(
-                            width: 18.w,
-                            height: 18.w,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation(
-                                Color(0xFFF7F4EE),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64.w,
+                      height: 64.w,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC4A97D).withValues(alpha: 0.14),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        CupertinoIcons.square_grid_2x2_fill,
+                        size: 28.sp,
+                        color: const Color(0xFFC4A97D),
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
+                    Obx(() {
+                      final count = controller.iosSelectedAppsCount.value;
+                      return Text(
+                        count == 0
+                            ? 'No apps selected'
+                            : '$count app${count == 1 ? '' : 's'} selected',
+                        style: GoogleFonts.cormorantGaramond(
+                          fontSize: 26.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF1A1814),
+                          height: 1.1,
+                        ),
+                        textAlign: TextAlign.center,
+                      );
+                    }),
+                    SizedBox(height: 10.h),
+                    Text(
+                      'iOS uses its own private picker — Focus Key never sees which apps you choose.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF8A8278),
+                        height: 1.5,
+                      ),
+                    ),
+                    SizedBox(height: 28.h),
+                    Obx(() {
+                      final busy = controller.isIOSBusy.value;
+                      final hasSelection = controller.iosSelectedAppsCount.value > 0;
+                      return GestureDetector(
+                        onTap: busy ? null : controller.onIOSSelectApps,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48.h,
+                          decoration: BoxDecoration(
+                            color: hasSelection
+                                ? Colors.transparent
+                                : const Color(0xFF1A1814),
+                            borderRadius: BorderRadius.circular(24.r),
+                            border: hasSelection
+                                ? Border.all(color: const Color(0xFF1A1814), width: 1.2)
+                                : null,
+                          ),
+                          child: Center(
+                            child: busy
+                                ? SizedBox(
+                              width: 18.w,
+                              height: 18.w,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation(
+                                  hasSelection ? const Color(0xFF1A1814) : const Color(0xFFF7F4EE),
+                                ),
+                              ),
+                            )
+                                : Text(
+                              hasSelection ? 'Change Selection' : 'Select Apps to Lock',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: hasSelection
+                                    ? const Color(0xFF1A1814)
+                                    : const Color(0xFFF7F4EE),
                               ),
                             ),
-                          )
-                        : Text(
-                            'Select Apps to Lock',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFF7F4EE),
-                            ),
                           ),
-                  ),
+                        ),
+                      );
+                    }),
+                  ],
                 ),
-              );
-            }),
-          ],
-        ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
