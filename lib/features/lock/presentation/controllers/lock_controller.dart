@@ -13,7 +13,7 @@ import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../../../friends/presentation/controllers/friends_controller.dart';
 
-class LockController extends GetxController {
+class LockController extends GetxController with WidgetsBindingObserver {
   final isLocked = false.obs;
   final selectedMode = 'Deep work.'.obs;
   final todayTime = '0m'.obs;
@@ -24,6 +24,7 @@ class LockController extends GetxController {
   String? activeModeId;
   final Rxn<String> selectedModeIdRx = Rxn<String>();
   String? get selectedModeId => selectedModeIdRx.value;
+  List<String> _activePackageNames = [];
 
   final isOnBreak = false.obs;
   final breakSeconds = 150.obs;
@@ -41,8 +42,16 @@ class LockController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     fetchLockStatus();
     _fetchPersonalBreakLength();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      fetchLockStatus();
+    }
   }
 
   Future<void> refreshPersonalBreakSettings() async {
@@ -139,12 +148,6 @@ class LockController extends GetxController {
 
   void _resumeOrStartTimer(dynamic activeSession) {
     if (activeSession is Map<String, dynamic>) {
-      final elapsedMinutes = activeSession['elapsedMinutes'];
-      if (elapsedMinutes is int) {
-        sessionSeconds.value = elapsedMinutes * 60;
-        _startTimer();
-        return;
-      }
       final raw = activeSession['startTime'] ??
           activeSession['startedAt'] ??
           activeSession['createdAt'];
@@ -158,6 +161,12 @@ class LockController extends GetxController {
             return;
           }
         } catch (_) {}
+      }
+      final elapsedMinutes = activeSession['elapsedMinutes'];
+      if (elapsedMinutes is int) {
+        sessionSeconds.value = elapsedMinutes * 60;
+        _startTimer();
+        return;
       }
     }
     sessionSeconds.value = 0;
@@ -218,7 +227,7 @@ class LockController extends GetxController {
       }
 
       final data = response["data"];
-      _applyBreakDuration(data["startTime"], data["endTime"]);
+      await _applyBreakDuration(data["startTime"], data["endTime"]);
       if (breaksLeft.value > 0) breaksLeft.value -= 1;
       
       CustomSnackbar.show(
@@ -251,7 +260,7 @@ class LockController extends GetxController {
 
       final data = response["data"];
       final breakInfo = data["break"] ?? {};
-      _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
+      await _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
       await friendsController.fetchCurrentNudgeStatus();
 
       CustomSnackbar.show(
@@ -267,7 +276,7 @@ class LockController extends GetxController {
     }
   }
 
-  void _applyBreakDuration(String? startTime, String? endTime) {
+  Future<void> _applyBreakDuration(String? startTime, String? endTime) async {
     int seconds = 150;
     try {
       if (startTime != null && endTime != null) {
@@ -282,6 +291,7 @@ class LockController extends GetxController {
     breakSeconds.value = seconds;
     _stopTimer();
     _startBreakTimer();
+    await Get.find<AppLockNativeService>().deactivateLock();
   }
 
   void toggleBreakPause() {
@@ -304,13 +314,17 @@ class LockController extends GetxController {
     });
   }
 
-  void endBreak() {
+  Future<void> endBreak() async {
     _breakTimer?.cancel();
     _breakTimer = null;
     isOnBreak.value = false;
     isBreakPaused.value = false;
     if (isLocked.value) {
       _startTimer();
+      await Get.find<AppLockNativeService>().activateLock(
+        modeId: activeModeId ?? '',
+        androidPackageNames: _activePackageNames,
+      );
     }
   }
 
@@ -451,6 +465,7 @@ class LockController extends GetxController {
       activeModeId = modeId;
       isLocked.value = true;
       sessionSeconds.value = 0;
+      
       _startTimer();
       final modeDetails = await ApiServices.instance.getServices(
         AppApiUrl.instance.updateMoodById(modeId),
@@ -459,6 +474,7 @@ class LockController extends GetxController {
       final packageNames = lockedAppsJson
           .map((e) => e["packageName"] as String)
           .toList();
+      _activePackageNames = packageNames;
       await Get.find<AppLockNativeService>().activateLock(
         modeId: modeId,
         androidPackageNames: packageNames,
@@ -577,6 +593,7 @@ class LockController extends GetxController {
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
     _breakTimer?.cancel();
     _nfcService.stopScanning();
