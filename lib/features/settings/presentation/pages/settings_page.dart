@@ -98,6 +98,7 @@ class SettingsPage extends GetView<SettingsController> {
                                   arguments: {
                                     'modeId': mode.id,
                                     'modeName': mode.title,
+                                    'totalLockedApps': mode.totalLockedApps,
                                     'isEditMode': true,
                                   },
                                 ),
