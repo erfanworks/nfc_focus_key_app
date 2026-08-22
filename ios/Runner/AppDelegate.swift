@@ -10,18 +10,30 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let result = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+
+    if let controller = window?.rootViewController as? FlutterViewController {
+        setupMethodChannel(messenger: controller.binaryMessenger)
+    }
+
+    return result
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
+    if let messenger = engineBridge.pluginRegistry as? FlutterBinaryMessenger {
+        setupMethodChannel(messenger: messenger)
+    }
+  }
+
+  private func setupMethodChannel(messenger: FlutterBinaryMessenger) {
     let methodChannel = FlutterMethodChannel(
       name: CHANNEL,
-      binaryMessenger: engineBridge.pluginRegistry as! FlutterBinaryMessenger
+      binaryMessenger: messenger
     )
 
-    methodChannel.setMethodCallHandler { [weak self] call, result in
+    methodChannel.setMethodCallHandler { call, result in
       guard let rootVC = UIApplication.shared.connectedScenes
         .compactMap({ ($0 as? UIWindowScene)?.keyWindow?.rootViewController })
         .first else {
