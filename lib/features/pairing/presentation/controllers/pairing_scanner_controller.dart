@@ -19,7 +19,10 @@ class PairingScannerController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    startPairing();
+    // Small delay to ensure the screen is fully transitioned before showing NFC system dialog
+    Future.delayed(const Duration(milliseconds: 500), () {
+      startPairing();
+    });
   }
 
   void startPairing() {
