@@ -22,9 +22,11 @@ class LockController extends GetxController with WidgetsBindingObserver {
   final totalBlockedApps = 0.obs;
 
   String? activeModeId;
-  final Rxn<String> selectedModeIdRx = Rxn<String>();
-  String? get selectedModeId => selectedModeIdRx.value;
   List<String> _activePackageNames = [];
+  String? _nativeLockAppliedForModeId;
+  final Rxn<String> selectedModeIdRx = Rxn<String>();
+
+  String? get selectedModeId => selectedModeIdRx.value;
 
   final isOnBreak = false.obs;
   final breakSeconds = 150.obs;
@@ -66,7 +68,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
         AppApiUrl.instance.breakConfig,
       );
       if (response == null || response["success"] != true) return;
-      personalBreakLengthMinutes.value = response["data"]?["breakDurationMinutes"] ?? 5;
+      personalBreakLengthMinutes.value =
+          response["data"]?["breakDurationMinutes"] ?? 5;
     } catch (_) {
     } finally {
       isLoadingBreakSettings.value = false;
@@ -81,14 +84,14 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
 
       if (response == null || response["success"] != true) {
-         if (response != null) {
-            CustomSnackbar.show(
-              title: "Sync Failed",
-              message: response["message"] ?? "Could not update focus status.",
-              isError: true,
-            );
-         }
-         return;
+        if (response != null) {
+          CustomSnackbar.show(
+            title: "Sync Failed",
+            message: response["message"] ?? "Could not update focus status.",
+            isError: true,
+          );
+        }
+        return;
       }
 
       final data = response["data"];
@@ -99,7 +102,14 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final focusStats = data["focusStats"] ?? {};
       final breakStats = data["breakStats"] ?? {};
 
-      isLocked.value = lockStatus["isLocked"] == true;
+      // "isLocked" here means "an active focus session exists" (stays true
+      // through breaks too) — NOT "apps are physically blocked right now".
+      // Server's top-level isLocked reflects the latter and goes false
+      // during breaks, so we derive session-active state from activeSession
+      // instead, to avoid stomping isOnBreak/re-lock logic on refetch.
+      final activeSessionData = data["activeSession"];
+      isLocked.value = activeSessionData != null;
+
       if (lockStatus["activeModeName"] != null) {
         selectedMode.value = lockStatus["activeModeName"];
       }
@@ -110,7 +120,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       breaksLeft.value = breakStats["remainingToday"] ?? 0;
       totalBlockedApps.value = data["totalBlockedApps"] ?? 0;
 
-      final activeBreak = breakStats["activeBreak"];
+      final activeBreak = breakStats["activeBreak"] ?? breakStats["activeNudgeBreak"];
       if (activeBreak != null) {
         try {
           final end = DateTime.parse(activeBreak["endTime"]);
@@ -119,13 +129,23 @@ class LockController extends GetxController with WidgetsBindingObserver {
             isOnBreak.value = true;
             breakSeconds.value = remaining;
             _startBreakTimer();
+          } else {
+            isOnBreak.value = false;
           }
         } catch (_) {}
+      } else {
+        isOnBreak.value = false;
       }
 
-      if (isLocked.value) {
+      // Native app-lock should only be (re)applied when truly locked —
+      // never while on break, otherwise apps would wrongly re-lock mid-break.
+      if (isLocked.value && activeModeId != null && !isOnBreak.value) {
+        await _ensureNativeLockApplied(activeModeId!);
+      }
+
+      if (isLocked.value && !isOnBreak.value) {
         _resumeOrStartTimer(data["activeSession"]);
-      } else {
+      } else if (!isLocked.value) {
         _stopTimer();
       }
     } catch (e) {
@@ -148,7 +168,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   void _resumeOrStartTimer(dynamic activeSession) {
     if (activeSession is Map<String, dynamic>) {
-      final raw = activeSession['startTime'] ??
+      final raw =
+          activeSession['startTime'] ??
           activeSession['startedAt'] ??
           activeSession['createdAt'];
       if (raw != null) {
@@ -200,7 +221,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
     final friendsController = Get.find<FriendsController>();
     final nudge = friendsController.currentNudge.value;
-    final isNudgeSession = nudge != null && nudge.isActive && nudge.nudgeId != null;
+    final isNudgeSession =
+        nudge != null && nudge.isActive && nudge.nudgeId != null;
 
     if (isNudgeSession) {
       await _startNudgeBreak(friendsController, nudge!.nudgeId!);
@@ -229,7 +251,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final data = response["data"];
       await _applyBreakDuration(data["startTime"], data["endTime"]);
       if (breaksLeft.value > 0) breaksLeft.value -= 1;
-      
+
       CustomSnackbar.show(
         title: "Break Started",
         message: "Your apps are now available.",
@@ -243,7 +265,10 @@ class LockController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _startNudgeBreak(FriendsController friendsController, String nudgeId) async {
+  Future<void> _startNudgeBreak(
+    FriendsController friendsController,
+    String nudgeId,
+  ) async {
     try {
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
@@ -407,7 +432,11 @@ class LockController extends GetxController with WidgetsBindingObserver {
         isScanningNfc.value = false;
         _dismissAndroidNfcScanner();
         HapticFeedback.heavyImpact();
-        CustomSnackbar.show(title: 'Scan Failed', message: error, isError: true);
+        CustomSnackbar.show(
+          title: 'Scan Failed',
+          message: error,
+          isError: true,
+        );
       },
     );
   }
@@ -446,6 +475,26 @@ class LockController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _ensureNativeLockApplied(String modeId) async {
+    if (_nativeLockAppliedForModeId == modeId) return;
+    try {
+      final modeDetails = await ApiServices.instance.getServices(
+        AppApiUrl.instance.updateMoodById(modeId),
+      );
+      final lockedAppsJson =
+          (modeDetails?["data"]?["lockedApps"] as List?) ?? [];
+      final packageNames = lockedAppsJson
+          .map((e) => e["packageName"] as String)
+          .toList();
+      _activePackageNames = packageNames;
+      await Get.find<AppLockNativeService>().activateLock(
+        modeId: modeId,
+        androidPackageNames: packageNames,
+      );
+      _nativeLockAppliedForModeId = modeId;
+    } catch (_) {}
+  }
+
   Future<void> _activateMode(String modeId) async {
     try {
       isTogglingLock.value = true;
@@ -465,25 +514,13 @@ class LockController extends GetxController with WidgetsBindingObserver {
       activeModeId = modeId;
       isLocked.value = true;
       sessionSeconds.value = 0;
-      
       _startTimer();
-      final modeDetails = await ApiServices.instance.getServices(
-        AppApiUrl.instance.updateMoodById(modeId),
-      );
-      final lockedAppsJson = (modeDetails?["data"]?["lockedApps"] as List?) ?? [];
-      final packageNames = lockedAppsJson
-          .map((e) => e["packageName"] as String)
-          .toList();
-      _activePackageNames = packageNames;
-      await Get.find<AppLockNativeService>().activateLock(
-        modeId: modeId,
-        androidPackageNames: packageNames,
-      );
+      await _ensureNativeLockApplied(modeId);
       CustomSnackbar.show(
         title: 'Locked',
         message: 'Your device is now locked. Scan your NFC key to unlock.',
       );
-      
+
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       CustomSnackbar.show(
@@ -517,12 +554,13 @@ class LockController extends GetxController with WidgetsBindingObserver {
       _stopTimer();
       endBreak();
       await Get.find<AppLockNativeService>().deactivateLock();
+      _nativeLockAppliedForModeId = null;
 
       CustomSnackbar.show(
-        title: 'Session Ended', 
+        title: 'Session Ended',
         message: 'Welcome back! You made great progress.',
       );
-      
+
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       CustomSnackbar.show(
