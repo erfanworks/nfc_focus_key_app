@@ -195,6 +195,18 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         );
       }
 
+      final friendsController = Get.find<FriendsController>();
+      final nudge = friendsController.currentNudge.value;
+      final isNudge = nudge != null && nudge.isActive;
+      final isLoadingSettings = !isNudge && widget.controller.isLoadingBreakSettings.value;
+      final breaksLeft = isNudge
+          ? nudge!.breaksRemaining
+          : widget.controller.breaksLeft.value;
+
+      if (!isLoadingSettings && breaksLeft <= 0) {
+        return _buildNoBreaksLeftCard();
+      }
+
       return GestureDetector(
         onTapDown: (_) {
           _startVibration();
@@ -313,5 +325,54 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         ),
       );
     });
+  }
+  Widget _buildNoBreaksLeftCard() {
+    return Container(
+      width: 337.w,
+      height: 52.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EBE2).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            color: const Color(0xFFB5AFA5),
+            size: 18.sp,
+          ),
+          SizedBox(width: 10.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'All breaks used today',
+                style: GoogleFonts.dmSans(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF8A8278),
+                  height: 15.0 / 12.0,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                'More available tomorrow',
+                style: GoogleFonts.dmSans(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFFB5AFA5),
+                  height: 1.0,
+                  letterSpacing: 0.55,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
