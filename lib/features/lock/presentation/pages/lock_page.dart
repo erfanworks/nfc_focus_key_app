@@ -22,7 +22,7 @@ class LockPage extends GetView<LockController> {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Obx(() {
-            final isLocked = controller.isLocked.value;
+            final isLocked = controller.isLocked.value || controller.isOnBreak.value;
             final mode = controller.selectedMode.value;
 
             return Column(
