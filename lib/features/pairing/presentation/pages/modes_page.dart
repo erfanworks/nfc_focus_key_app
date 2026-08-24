@@ -88,87 +88,86 @@ class ModesPage extends GetView<ModesController> {
                 separatorBuilder: (context, index) => SizedBox(height: 16.h),
                 itemBuilder: (context, index) {
                   final mode = controller.modes[index];
-                  final isSelected = !isManageMode && controller.selectedIndex.value == index;
-                  return GestureDetector(
-                    onTap: () {
-                      if (isManageMode) {
-                        Get.toNamed(
-                          Routes.newMode,
-                          arguments: {
-                            'modeId': mode.id,
-                            'modeName': mode.title,
-                            'totalLockedApps': mode.totalLockedApps,
-                            'isEditMode': true,
-                          },
-                        );
-                      } else {
-                        controller.selectMode(index);
-                      }
-                    },
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 20.w,
-                        vertical: 18.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFEEE8DC)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border. all(
+                  
+                  return Obx(() {
+                    final isSelected = !isManageMode && controller.selectedIndex.value == index;
+                    return GestureDetector(
+                      onTap: () {
+                        if (isManageMode) {
+                          Get.toNamed(
+                            Routes.newMode,
+                            arguments: {
+                              'modeId': mode.id,
+                              'modeName': mode.title,
+                              'totalLockedApps': mode.totalLockedApps,
+                              'isEditMode': true,
+                            },
+                          );
+                        } else {
+                          controller.selectMode(index);
+                        }
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 18.h,
+                        ),
+                        decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFFC4A97D)
-                              : const Color(
-                            0xFFC4A97D,
-                          ).withValues(alpha: 0.20),
-                          width: 1.5,
+                              ? const Color(0xFFEEE8DC)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFC4A97D)
+                                : const Color(0xFFC4A97D).withValues(alpha: 0.20),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  mode.title,
+                                  style: GoogleFonts.cormorantGaramond(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSelected
+                                        ? const Color(0xFF141210)
+                                        : const Color(0xFF1A1814),
+                                    height: 30.0 / 20.0,
+                                  ),
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  mode.description,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF8A8278),
+                                    height: 18.0 / 12.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: FocusIcon(
+                                mode.icon,
+                                size: 24.w,
+                                color: isSelected
+                                    ? const Color(0xFFC4A97D)
+                                    : const Color(0xFFC4A97D).withValues(alpha: 0.20),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Stack(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                mode.title,
-                                style: GoogleFonts.cormorantGaramond(
-                                  fontSize: 20.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: isSelected
-                                      ? const Color(0xFF141210)
-                                      : const Color(0xFF1A1814),
-                                  height: 30.0 / 20.0,
-                                ),
-                              ),
-                              SizedBox(height: 8.h),
-                              Text(
-                                mode.description,
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF8A8278),
-                                  height: 18.0 / 12.0,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: FocusIcon(
-                              mode.icon,
-                              size: 24.w,
-                              color: isSelected
-                                  ? const Color(0xFFC4A97D)
-                                  : const Color(
-                                0xFFC4A97D,
-                              ).withValues(alpha: 0.20),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                    );
+                  });
                 },
               )),
             ),
