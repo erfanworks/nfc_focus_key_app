@@ -314,8 +314,10 @@ class LockController extends GetxController with WidgetsBindingObserver {
     isOnBreak.value = true;
     isBreakPaused.value = false;
     breakSeconds.value = seconds;
-    _stopTimer();
+    
+
     _startBreakTimer();
+
     await Get.find<AppLockNativeService>().deactivateLock();
   }
 
