@@ -139,67 +139,89 @@ class NotificationPage extends GetView<NotificationController> {
         ),
         itemBuilder: (context, index) {
           final n = group.items[index];
+          
+          // Logic to hide Join button if the user is the creator of the nudge
+          final isCreator = n.nudgeCreatorId != null && 
+                           controller.currentUserId != null && 
+                           n.nudgeCreatorId == controller.currentUserId;
+                           
+          final showJoinButton = n.isJoinableNudge && !isCreator;
+
           return NotificationItem(
             data: NotificationItemModel(
               avatarInitials: n.title.isNotEmpty ? n.title[0] : '?',
               title: n.title,
-              subtitle: n.text,
+              subtitle: n.displayMessage,
               hasUnreadDot: !n.read,
-              trailingWidget: n.isJoinableNudge ? _buildJoinButton(n) : null,
-              trailingText: n.isJoinableNudge
+              trailingWidget: showJoinButton ? _buildJoinButton(n) : null,
+              trailingText: showJoinButton
                   ? null
                   : n.isExpiredNudge
                   ? 'Expired'
                   : null,
               isExpired: n.isExpiredNudge,
             ),
-            onTap: () => controller.fetchNotifications()
+            onTap: () {
+              controller.markAsRead(n.id);
+              if (n.isJoinableNudge) {
+                _navigateToJoin(n);
+              }
+            },
           );
         },
       ),
     );
   }
 
+  void _navigateToJoin(NotificationModel n) {
+    final nudgeId = n.referenceId?['_id'] as String?;
+    final modeId = n.referenceId?['modeId'] as String?;
+
+    if (nudgeId == null || modeId == null) {
+      CustomSnackbar.show(
+        title: 'Session Ended',
+        message: 'This invitation has already expired.',
+        isError: true,
+      );
+      return;
+    }
+
+    Get.toNamed(
+      Routes.joinFocus,
+      arguments: {
+        'nudgeId': nudgeId,
+        'modeId': modeId,
+        'creatorId': n.nudgeCreatorId,
+        'breaksPerDay': n.nudgeBreaksPerDay,
+        'breakDurationMinutes': n.nudgeBreakDurationMinutes,
+        'participantIds': n.nudgeParticipantIds,
+      },
+    );
+  }
+
   Widget _buildJoinButton(NotificationModel n) {
     return GestureDetector(
-      onTap: () {
-        final nudgeId = n.referenceId?['_id'] as String?;
-        final modeId = n.referenceId?['modeId'] as String?;
-
-        if (nudgeId == null || modeId == null) {
-          CustomSnackbar.show(
-            title: 'Error',
-            message: 'This invitation is no longer valid',
-            isError: true,
-          );
-          return;
-        }
-
-        controller.markAsRead(n.id);
-        Get.toNamed(
-          Routes.joinFocus,
-          arguments: {
-            'nudgeId': nudgeId,
-            'modeId': modeId,
-            'creatorId': n.nudgeCreatorId,
-            'breaksPerDay': n.nudgeBreaksPerDay,
-            'breakDurationMinutes': n.nudgeBreakDurationMinutes,
-            'participantIds': n.nudgeParticipantIds,
-          },
-        );
-      },
+      onTap: () => _navigateToJoin(n),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: const Color(0xFF000000),
-          borderRadius: BorderRadius.circular(90.r),
+          color: const Color(0xFF1A1814),
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Text(
-          'Join',
+          'Join Focus',
           style: GoogleFonts.dmSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
             color: const Color(0xFFF7F4EE),
+            letterSpacing: 0.2,
           ),
         ),
       ),
