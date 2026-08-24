@@ -106,16 +106,11 @@ class _JoinFocusPageState extends State<JoinFocusPage> {
                     breakDurationMinutes: breakDurationMinutes,
                     participantIds: participantIds,
                   );
-                  setState(() => _isJoining = false);
-
+                  
                   if (success) {
-                    Get.toNamed(Routes.modes);
+                    Get.offAllNamed(Routes.lock);
                   } else {
-                    CustomSnackbar.show(
-                      title: 'Error',
-                      message: 'Failed to join focus session',
-                      isError: true,
-                    );
+                    setState(() => _isJoining = false);
                   }
                 },
               ),
