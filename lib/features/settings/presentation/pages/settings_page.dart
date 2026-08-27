@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
@@ -295,8 +296,7 @@ class SettingsPage extends GetView<SettingsController> {
                 SizedBox(height: 22.h),
                 InkWell(
                   onTap: () async {
-                    await StorageServices.instance.logout();
-                    Get.offAllNamed(Routes.login);
+                    await ApiServices.instance.logoutAndRedirect();
                   },
                   borderRadius: BorderRadius.circular(90.r),
                   child: Container(
