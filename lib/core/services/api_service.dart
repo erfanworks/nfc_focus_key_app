@@ -11,7 +11,10 @@ class ApiServices {
   static ApiServices get instance => _instance;
 
   final _api = AppApi.instance;
-  final _storage = StorageServices.instance;
+
+  Future<void> logoutAndRedirect() async {
+    await _api.logoutAndRedirect();
+  }
 
   // ==================== GET ====================
   Future<dynamic> getServices(
@@ -133,7 +136,10 @@ class ApiServices {
 
   // ==================== Dio Error Handler ====================
   Future<dynamic> _handleDioException(DioException e) async {
-    errorLog('DioException', e);
+    // Silently ignore 401 logging as it's handled by AppApi redirect
+    if (e.response?.statusCode != 401) {
+      errorLog('DioException', e);
+    }
 
     if (e.response != null) {
       // 401 is already handled in AppApi interceptor (token refresh + redirect)
