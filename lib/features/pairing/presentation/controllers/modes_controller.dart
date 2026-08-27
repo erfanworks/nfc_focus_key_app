@@ -93,6 +93,9 @@ class ModesController extends GetxController {
 
   Future<void> fetchModes() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoading.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.getAllMood,

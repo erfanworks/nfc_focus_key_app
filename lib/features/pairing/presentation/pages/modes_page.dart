@@ -90,7 +90,7 @@ class ModesPage extends GetView<ModesController> {
                   final mode = controller.modes[index];
                   
                   return Obx(() {
-                    final isSelected = !isManageMode && controller.selectedIndex.value == index;
+                    final isSelected = controller.selectedIndex.value == index && !isManageMode;
                     return GestureDetector(
                       onTap: () {
                         if (isManageMode) {

@@ -80,19 +80,20 @@ class NotificationModel {
   }
 
   bool get isJoinableNudge {
-    final isNudge = referenceModel == 'Nudge' && referenceId != null;
-    final isActive = referenceId!['status'] == 'active';
-    
+    if (referenceModel != 'Nudge' || referenceId == null) return false;
+
+    final isActive = referenceId?['status'] == 'active';
+
     // --- Logic Fix: Hide Join button for Acceptance/Status updates ---
     final lowTitle = title.toLowerCase();
     final lowText = text.toLowerCase();
-    
-    final isStatusUpdate = lowTitle.contains('accepted') || 
-                           lowText.contains('accepted') || 
-                           lowTitle.contains('joined') || 
+
+    final isStatusUpdate = lowTitle.contains('accepted') ||
+                           lowText.contains('accepted') ||
+                           lowTitle.contains('joined') ||
                            lowText.contains('joined');
 
-    return isNudge && isActive && !isStatusUpdate;
+    return isActive && !isStatusUpdate;
   }
 
   bool get isExpiredNudge =>
@@ -157,12 +158,15 @@ class NotificationController extends GetxController {
 
   @override
   void onClose() {
-    _markAllAsReadSilently();
+    markAllAsRead();
     super.onClose();
   }
 
-  Future<void> _markAllAsReadSilently() async {
+  Future<void> markAllAsRead() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Don't call if logged out to avoid 401 loop
+
       final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.readNotifications,
       );

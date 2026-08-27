@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 class FocusSession {
@@ -55,8 +56,11 @@ class HistoryController extends GetxController {
   }
 
   Future<void> fetchHistory() async {
-    isLoading.value = true;
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
+      isLoading.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.history,
       );

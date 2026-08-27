@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:get/get.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 // ==================== Models ====================
@@ -306,6 +307,9 @@ class FriendsController extends GetxController {
   // ==================== Friends List ====================
   Future<void> fetchFriendsList() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoadingFriends.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.friendsList,
@@ -609,6 +613,9 @@ class FriendsController extends GetxController {
 
   Future<void> fetchCurrentNudgeStatus() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoadingNudgeStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.currentNudgeStatus,
@@ -625,6 +632,9 @@ class FriendsController extends GetxController {
 
   Future<void> fetchNudgeHistory({int page = 1}) async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return;
+
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.friendsNudgeHistory,
         queryParameters: {'page': page},
