@@ -11,6 +11,7 @@ abstract class Routes {
   static const pairing = '/pairing';
   static const pairingScanner = '/pairing-scanner';
   static const paired = '/paired';
+  static const enablePermissions = '/enable-permissions';
   static const letsUnlock = '/lets-unlock';
   static const customizeModes = '/customize-modes';
   static const lock = '/lock';
@@ -37,7 +38,7 @@ abstract class Routes {
   static const String legalInformation = '/legal-information';
   static const totalFocusApps = '/total-focus-apps';
 
-
+  static const shield = '/shield';
 
   static const String nfcUidDebugPage = '/nfcUidDebugPage';
 }

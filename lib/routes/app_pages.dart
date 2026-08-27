@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:focus_key/features/pairing/presentation/bindings/new_mode_binding.dart';
 import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
+import '../features/pairing/presentation/bindings/enable_permissions_binding.dart';
+import '../features/pairing/presentation/pages/enable_permissions_page.dart';
 import '../features/settings/presentation/pages/total_focus_apps_page.dart';
 import 'app_routes.dart';
 import '../features/auth/presentation/bindings/auth_binding.dart';
@@ -123,6 +126,11 @@ class AppPages {
       binding: PairedSuccessBinding(),
     ),
     GetPage(
+      name: Routes.enablePermissions,
+      page: () => const EnablePermissionsPage(),
+      binding: EnablePermissionsBinding(),
+    ),
+    GetPage(
       name: Routes.letsUnlock,
       page: () => const LetsUnlockPage(),
       binding: LetsUnlockBinding(),
@@ -199,6 +207,7 @@ class AppPages {
       page: () => const LegalInformationPage(),
     ),
 
+    GetPage(name: Routes.shield, page: () => const Placeholder()),
     GetPage(
       name: Routes.totalFocusApps,
       page: () => const TotalFocusAppsPage(),
