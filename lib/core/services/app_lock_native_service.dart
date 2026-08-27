@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:focus_key/core/services/storage_services.dart';
 import 'package:get/get.dart';
+import '../../routes/app_routes.dart';
 
 class AppLockNativeService extends GetxService {
   static const MethodChannel _channel =
@@ -21,8 +22,7 @@ class AppLockNativeService extends GetxService {
     switch (call.method) {
       case 'showShield':
         final packageName = call.arguments['packageName'] as String? ?? '';
-        // TODO: replace '/shield' with the real shield screen route once built
-        Get.toNamed('/shield', arguments: {'packageName': packageName});
+        Get.toNamed(Routes.shield, arguments: {'packageName': packageName});
         break;
     }
   }
@@ -82,14 +82,26 @@ class AppLockNativeService extends GetxService {
     required String modeId,
     required List<String> androidPackageNames,
   }) async {
+    // FORCE SET both keys for cross-platform and native visibility
     await StorageServices.instance.setLockActive(true);
+    // Explicitly update the raw shared preference for Android Native process
+    await StorageServices.instance.setValue("is_lock_active", "true"); 
+    
     await StorageServices.instance.setLockedApps(androidPackageNames);
-    await applyIOSShield(modeId);
+    
+    print("!!! ANDROID LOCK FORCE ACTIVATED: ${androidPackageNames.length} apps");
+    
+    if (Platform.isIOS) {
+      await applyIOSShield(modeId);
+    }
   }
 
   /// Call this after NFC scan toggles lock OFF. Handles both platforms.
   Future<void> deactivateLock() async {
     await StorageServices.instance.setLockActive(false);
-    await removeIOSShield();
+    await StorageServices.instance.setValue("is_lock_active", "false");
+    if (Platform.isIOS) {
+      await removeIOSShield();
+    }
   }
 }
