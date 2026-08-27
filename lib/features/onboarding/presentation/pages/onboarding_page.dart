@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
@@ -704,7 +705,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       ),
       _ => MessageScreen(
         key: const ValueKey(3),
-        onBegin: () {
+        onBegin: () async {
+          await StorageServices.instance.setCompletedOnboarding();
           Get.offAllNamed(Routes.login);
         },
       ),
