@@ -39,7 +39,19 @@ class LockHeader extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => Get.toNamed(Routes.notification),
+                onTap: () async {
+                  final notificationsController = Get.isRegistered<NotificationController>()
+                      ? Get.find<NotificationController>()
+                      : Get.put<NotificationController>(NotificationController());
+                  
+                  // World-class behavior: Clear badge immediately when opening notifications
+                  notificationsController.markAllAsRead();
+                  
+                  await Get.toNamed(Routes.notification);
+                  
+                  // Refresh when coming back to ensure sync
+                  notificationsController.fetchNotifications();
+                },
                 child: Builder(builder: (_) {
                   final notificationsController = Get.isRegistered<NotificationController>()
                       ? Get.find<NotificationController>()

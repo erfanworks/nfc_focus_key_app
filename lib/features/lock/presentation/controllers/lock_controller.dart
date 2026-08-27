@@ -63,6 +63,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _fetchPersonalBreakLength() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoadingBreakSettings.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.breakConfig,
@@ -78,6 +81,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   Future<void> fetchLockStatus() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoadingStatus.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.lockStatus,

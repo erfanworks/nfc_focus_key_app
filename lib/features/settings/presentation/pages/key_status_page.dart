@@ -19,28 +19,31 @@ class KeyStatusPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: Obx(
-                () => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                SizedBox(height: 24.h),
-                if (controller.isPaired.value) ...[
-                  const KeyPairedCard(),
-                  SizedBox(height: 16.h),
-                  const KeyDetailCard(),
-                  SizedBox(height: 16.h),
-                  controller.showConfirmUnpair.value
-                      ? _buildConfirmUnpairCard()
-                      : _buildInitialUnpairButton(),
-                ] else ...[
-                  _buildUnpairedCard(),
-                  SizedBox(height: 16.h),
-                  _buildPairNewKeyButton(),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+            child: Obx(
+                  () => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 24.h),
+                  if (controller.isPaired.value) ...[
+                    const KeyPairedCard(),
+                    SizedBox(height: 16.h),
+                    const KeyDetailCard(),
+                    SizedBox(height: 16.h),
+                    controller.showConfirmUnpair.value
+                        ? _buildConfirmUnpairCard()
+                        : _buildInitialUnpairButton(),
+                  ] else ...[
+                    _buildUnpairedCard(),
+                    SizedBox(height: 16.h),
+                    _buildPairNewKeyButton(),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
