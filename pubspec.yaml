@@ -80,6 +80,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/fonts/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -106,6 +107,17 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  fonts:
+    - family: AGaramondPro
+      fonts:
+        - asset: assets/fonts/AGaramondPro-Regular.otf
+        - asset: assets/fonts/AGaramondPro-Bold.otf
+          weight: 700
+        - asset: assets/fonts/AGaramondPro-Italic.otf
+          style: italic
+        - asset: assets/fonts/AGaramondPro-BoldItalic.otf
+          weight: 700
+          style: italic
 
 flutter_launcher_icons:
   android: "launcher_icon"

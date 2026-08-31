@@ -271,9 +271,10 @@ class _QuestionScreenState extends State<QuestionScreen> {
                           child: Center(
                             child: Text(
                               _hrs.isEmpty ? '0' : _hrs,
-                              style: GoogleFonts.inter(
-                                fontSize: 62.sp,
-                                fontWeight: FontWeight.w300,
+                              style: TextStyle(
+                                fontFamily: 'AGaramondPro',
+                                fontSize: 72.sp,
+                                fontWeight: FontWeight.w400,
                                 color: _hrs.isEmpty ? FK.faint : FK.ink,
                                 height: 1.0,
                               ),
