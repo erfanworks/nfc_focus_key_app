@@ -13,9 +13,10 @@ class SplashController extends GetxController {
   }
 
   void _navigateToNext() async {
-    await Future.delayed(const Duration(milliseconds: 2500));
-
     try {
+      // Small delay to ensure the splash page is rendered and animation starts
+      await Future.delayed(const Duration(milliseconds: 1900));
+
       final hasCompletedOnboarding = await StorageServices.instance.hasCompletedOnboarding();
 
       if (!hasCompletedOnboarding) {
@@ -24,6 +25,7 @@ class SplashController extends GetxController {
       }
 
       final token = await StorageServices.instance.getToken();
+      
       if (token.isEmpty) {
         Get.offAllNamed(Routes.login);
         return;

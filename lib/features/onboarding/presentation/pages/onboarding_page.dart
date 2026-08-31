@@ -113,81 +113,6 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  SCREEN 1 — SPLASH
-// ═══════════════════════════════════════════════════════════════
-class SplashScreen extends StatefulWidget {
-  final VoidCallback onDone;
-  const SplashScreen({super.key, required this.onDone});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  double _opacity = 0;
-  final List<Timer> _timers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60),
-        () => mounted ? setState(() => _opacity = 1) : null,
-      ),
-    );
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60 + 600 + 2700),
-        () => mounted ? setState(() => _opacity = 0) : null,
-      ),
-    );
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60 + 600 + 2700 + 500),
-        () => mounted ? widget.onDone() : null,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    for (final t in _timers) {
-      t.cancel();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: FK.cream,
-      alignment: Alignment.center,
-      child: AnimatedOpacity(
-        opacity: _opacity,
-        duration: Duration(milliseconds: _opacity == 0 ? 500 : 600),
-        curve: Curves.easeInOut,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('FocusKey', style: FK.wordmark(size: 40)),
-            const SizedBox(height: 9),
-            Text(
-              'by Presence Labs',
-              style: GoogleFonts.lora(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: FK.ink,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
 //  SCREEN 2 — THE QUESTION
 // ═══════════════════════════════════════════════════════════════
 class QuestionScreen extends StatefulWidget {
@@ -683,7 +608,7 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  int _screen = 0;
+  int _screen = 1;
   int _hours = 5;
 
   void _go(int next) => setState(() => _screen = next);
@@ -691,7 +616,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final Widget current = switch (_screen) {
-      0 => SplashScreen(key: const ValueKey(0), onDone: () => _go(1)),
       1 => QuestionScreen(
         key: const ValueKey(1),
         onNext: (h) {

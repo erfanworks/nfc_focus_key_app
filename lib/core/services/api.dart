@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../constants/app_api_url.dart';
 import '../utils/log_print.dart';
 import 'non_auth_api.dart';
+import 'push_notification_service.dart';
 
 class AppApi {
   AppApi._privateConstructor() {
@@ -124,6 +125,15 @@ API Error ►
     _isRedirecting = true;
     
     await _storage.logout();
+    
+    try {
+      if (Get.isRegistered<PushNotificationService>()) {
+        await Get.find<PushNotificationService>().resetSyncState();
+      }
+    } catch (e) {
+      errorLog("logoutAndRedirect.resetSyncState", e);
+    }
+
     _dio.options.headers.remove("Authorization");
     
     // Check if we are already on login page or if the route is being disposed
