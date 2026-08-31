@@ -4,7 +4,7 @@ import '../utils/log_print.dart';
 class AppApiUrl {
   AppApiUrl._privateConstructor();
 
-  static final AppApiUrl _instance = AppApiUrl._privateConstructor();
+  static final AppApiUrl _instance = AppApiUrl. _privateConstructor();
 
   static AppApiUrl get instance => _instance;
 
@@ -30,12 +30,15 @@ class AppApiUrl {
   final String createMood = "/modes";
   final String getAllMood = "/modes";
   final String getMoodById = "/modes";
+
   String updateMoodById(String modeId) => "/modes/$modeId";
   final String deleteMoodById = "/modes";
+
   String toggleModeActivation(String modeId) =>
       "/modes/$modeId/toggle-activation";
   final String lockStatus = "/modes/lock-status";
   final String lock = "/modes/lock-status";
+
   // String updateLockUnlock(String modeId) =>
   //     "/modes/$modeId/toggle-activation";
 
@@ -51,15 +54,16 @@ class AppApiUrl {
   final String addFriend = "/friends/add-friend"; // POST METHOD
   final String friendsList = "/friends/list"; // GET METHOD
   String removeFriend(String friendId) =>
-      "/friends/remove-friend/$friendId";  // DELETE METHOD
+      "/friends/remove-friend/$friendId"; // DELETE METHOD
   final String createNudge = "/friends/create-nudge"; // POST METHOD
   String joinNudge(String nudgeId) =>
       "/friends/join-nudge/$nudgeId"; // POST METHOD
   final String removeParticipant = "/friends/remove-participant"; // POST METHOD
   final String friendsNudgeHistory = "/friends/nudge-history"; // GET METHOD
-  final String currentNudgeStatus = "/friends/current-nudge-status"; // GET METHOD
-  String takeNudgeBreak(String nudgeId) =>
-      "/friends/take-nudge-break/$nudgeId";
+  final String currentNudgeStatus =
+      "/friends/current-nudge-status"; // GET METHOD
+  String takeNudgeBreak(String nudgeId) => "/friends/take-nudge-break/$nudgeId";
+
   // final String initiateNudge = "/friends/current-nudge-status"; // POST METHOD
   // String nudgePreviewByDetails(String previewId) =>  // GET METHOD
   //     "/friends/nudge/preview/$previewId";
@@ -68,8 +72,13 @@ class AppApiUrl {
   // String leaveNudgeBYID(String nudgeId) => // POST METHOD
   //     "/friends/leave-nudge/$nudgeId";
   final String initiateNudge = "/friends/nudge/initiate";
-  String nudgePreviewByDetails(String previewId) => "/friends/nudge/preview/$previewId";
-  String midgeConfirmById(String previewId) => "/friends/nudge/confirm/$previewId";
+
+  String nudgePreviewByDetails(String previewId) =>
+      "/friends/nudge/preview/$previewId";
+
+  String midgeConfirmById(String previewId) =>
+      "/friends/nudge/confirm/$previewId";
+
   String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";
 
   // ==================== Settings ====================
@@ -96,20 +105,15 @@ class AppApiUrl {
   final String notifications = "/notifications"; // GET METHOD
   String getNotificationById(String id) => // GET METHOD
       "/notifications/$id";
-  String markNotificationAsRead(String id) =>  // PATCH METHOD
+
+  String markNotificationAsRead(String id) => // PATCH METHOD
       "/notifications/$id/read";
+
   final String readNotifications = "/notifications"; // PATCH METHOD
   final String saveFcmToken = "/fcmTokens/save-token"; // POST METHOD
 
-
   // ==================== Banner ====================
   final String banner = "/banners";
-
-
-
-
-
-
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty || path.toLowerCase().contains("null")) {

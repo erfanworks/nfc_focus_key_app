@@ -6,6 +6,10 @@ import android.net.Uri
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -41,6 +45,10 @@ class MainActivity : FlutterActivity() {
                     debugPrintSharedPreferences()
                     result.success(null)
                 }
+                "requestNotificationPermission" -> {
+                    requestNotificationPermissionIfNeeded()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -71,5 +79,20 @@ class MainActivity : FlutterActivity() {
             if (splitter.next().equals(expectedComponentName, ignoreCase = true)) return true
         }
         return false
+    }
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!granted) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
     }
 }

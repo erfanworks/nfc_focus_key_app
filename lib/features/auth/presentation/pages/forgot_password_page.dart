@@ -39,14 +39,14 @@ class ForgotPasswordPage extends GetView<ForgotPasswordController> {
                 SizedBox(height: 16.h),
 
                 // Top-left Icon
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Image.asset(
-                    'assets/images/lock_only.png',
-                    width: 60.w,
-                    height: 62.w,
-                  ),
-                ),
+                // Align(
+                //   alignment: Alignment.centerLeft,
+                //   child: Image.asset(
+                //     'assets/images/lock_only.png',
+                //     width: 60.w,
+                //     height: 62.w,
+                //   ),
+                // ),
                 SizedBox(height: 32.h),
 
                 // Title

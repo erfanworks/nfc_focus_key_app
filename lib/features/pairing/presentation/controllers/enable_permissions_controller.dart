@@ -16,6 +16,7 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    _native.requestNotificationPermission();
     _refreshStatus();
   }
 

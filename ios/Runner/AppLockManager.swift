@@ -30,18 +30,17 @@ class AppLockManager {
         AuthorizationCenter.shared.authorizationStatus == .approved
     }
 
-    func presentAppPicker(modeId: String, from rootViewController: UIViewController, completion: @escaping (Int) -> Void) {
-        let existingSelection = loadSelection(for: modeId)
-        let pickerView = AppPickerView(selection: existingSelection) { [weak self] newSelection in
-            guard let self = self else { return }
-            self.saveSelection(newSelection, for: modeId)
-            rootViewController.dismiss(animated: true) {
-                completion(newSelection.applicationTokens.count + newSelection.categoryTokens.count)
+        func presentAppPicker(modeId: String, from rootViewController: UIViewController, completion: @escaping (Int) -> Void) {
+            let pickerView = AppPickerView(selection: FamilyActivitySelection()) { [weak self] newSelection in
+                guard let self = self else { return }
+                self.saveSelection(newSelection, for: modeId)
+                rootViewController.dismiss(animated: true) {
+                    completion(newSelection.applicationTokens.count + newSelection.categoryTokens.count)
+                }
             }
+            let hostingController = UIHostingController(rootView: pickerView)
+            rootViewController.present(hostingController, animated: true)
         }
-        let hostingController = UIHostingController(rootView: pickerView)
-        rootViewController.present(hostingController, animated: true)
-    }
 
     func applyShield(modeId: String) {
         let selection = loadSelection(for: modeId)

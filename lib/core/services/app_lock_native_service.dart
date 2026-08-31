@@ -45,6 +45,11 @@ class AppLockNativeService extends GetxService {
     await _channel.invokeMethod('requestOverlayPermission');
   }
 
+  Future<void> requestNotificationPermission() async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod('requestNotificationPermission');
+  }
+
   Future<bool> isIOSAuthorized() async {
     if (!Platform.isIOS) return false;
     final result = await _channel.invokeMethod<bool>('isAuthorized');
