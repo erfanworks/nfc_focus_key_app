@@ -19,28 +19,49 @@ class FocusSession {
 
   factory FocusSession.fromJson(Map<String, dynamic> json) {
     String displayTimeRange = json['timeRange'] ?? '';
+    String displayDuration = '';
+
+    // Handle duration which can be a string or a map
+    final durationData = json['duration'];
+    if (durationData is Map) {
+      displayDuration = durationData['formatted']?.toString() ?? '';
+    } else {
+      displayDuration = durationData?.toString() ?? '';
+    }
 
     try {
       final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
       final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
 
       if (startRaw != null) {
-        final start = DateTime.parse(startRaw.toString()).toLocal();
+        // Ensure we parse as UTC if it doesn't have a timezone indicator
+        String startStrRaw = startRaw.toString();
+        if (!startStrRaw.contains('Z') && !startStrRaw.contains('+')) {
+          startStrRaw += 'Z';
+        }
+        
+        final start = DateTime.parse(startStrRaw).toLocal();
         final startStr = _formatTime(start);
 
         if (json['status'] == 'active') {
           displayTimeRange = 'Started at $startStr';
         } else if (endRaw != null) {
-          final end = DateTime.parse(endRaw.toString()).toLocal();
+          String endStrRaw = endRaw.toString();
+          if (!endStrRaw.contains('Z') && !endStrRaw.contains('+')) {
+            endStrRaw += 'Z';
+          }
+          final end = DateTime.parse(endStrRaw).toLocal();
           final endStr = _formatTime(end);
           displayTimeRange = '$startStr - $endStr';
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      // Fallback to timeRange if parsing fails
+    }
 
     return FocusSession(
       timeRange: displayTimeRange,
-      duration: json['duration'] ?? '',
+      duration: displayDuration,
       mode: json['modeName'] ?? '',
       isActive: json['status'] == 'active',
     );
@@ -61,11 +82,18 @@ class HistoryGroup {
   const HistoryGroup({required this.date, required this.sessions});
 
   factory HistoryGroup.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> sessionList = json['sessions'] as List<dynamic>? ?? [];
+    
+    // Sort sessions within the group by startTime/createdAt descending (most recent first)
+    sessionList.sort((a, b) {
+      final aStart = a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? '';
+      final bStart = b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? '';
+      return bStart.toString().compareTo(aStart.toString());
+    });
+
     return HistoryGroup(
       date: json['dateGroup'] ?? '',
-      sessions: (json['sessions'] as List<dynamic>? ?? [])
-          .map((e) => FocusSession.fromJson(e))
-          .toList(),
+      sessions: sessionList.map((e) => FocusSession.fromJson(e)).toList(),
     );
   }
 }
@@ -94,11 +122,25 @@ class HistoryController extends GetxController {
 
       if (response != null && response["success"] == true) {
         final data = response["data"];
-        totalFocusTime.value = data['totalFocusTime'] ?? '';
-        sinceDate.value = data['sinceDate'] ?? '';
-        historyGroups.value = (data['history'] as List<dynamic>? ?? [])
+        
+        final totalFocus = data['totalFocusTime'];
+        if (totalFocus is Map) {
+          totalFocusTime.value = totalFocus['formatted']?.toString() ?? '';
+        } else {
+          totalFocusTime.value = totalFocus?.toString() ?? '';
+        }
+        
+        sinceDate.value = data['sinceDate']?.toString() ?? '';
+        
+        final List<dynamic> historyData = data['history'] ?? [];
+        final List<HistoryGroup> groups = historyData
             .map((e) => HistoryGroup.fromJson(e))
             .toList();
+            
+        // Sorting groups by date might be complex because 'date' is a string like "Today", "Yesterday" or "Oct 25"
+        // Usually the backend returns them in order. But within groups, we can't easily sort without a real date.
+        // Assuming backend sends groups in correct order, we just assign.
+        historyGroups.value = groups;
       } else if (response != null) {
         CustomSnackbar.show(
           title: "Update Failed",

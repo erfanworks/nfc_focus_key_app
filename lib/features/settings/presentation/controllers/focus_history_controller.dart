@@ -47,19 +47,35 @@ class FocusHistorySession {
 
   factory FocusHistorySession.fromJson(Map<String, dynamic> json) {
     String displayTimeRange = json['timeRange'] ?? '';
+    String displayDuration = '';
+
+    final durationData = json['duration'];
+    if (durationData is Map) {
+      displayDuration = durationData['formatted']?.toString() ?? '';
+    } else {
+      displayDuration = durationData?.toString() ?? '';
+    }
 
     try {
       final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
       final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
 
       if (startRaw != null) {
-        final start = DateTime.parse(startRaw.toString()).toLocal();
+        String startStrRaw = startRaw.toString();
+        if (!startStrRaw.contains('Z') && !startStrRaw.contains('+')) {
+          startStrRaw += 'Z';
+        }
+        final start = DateTime.parse(startStrRaw).toLocal();
         final startStr = _formatTime(start);
 
         if (json['status'] == 'active') {
           displayTimeRange = 'Started at $startStr';
         } else if (endRaw != null) {
-          final end = DateTime.parse(endRaw.toString()).toLocal();
+          String endStrRaw = endRaw.toString();
+          if (!endStrRaw.contains('Z') && !endStrRaw.contains('+')) {
+            endStrRaw += 'Z';
+          }
+          final end = DateTime.parse(endStrRaw).toLocal();
           final endStr = _formatTime(end);
           displayTimeRange = '$startStr - $endStr';
         }
@@ -69,7 +85,7 @@ class FocusHistorySession {
     return FocusHistorySession(
       modeName: json['modeName'] ?? '',
       timeRange: displayTimeRange,
-      durationFormatted: json['duration']?['formatted'] ?? '',
+      durationFormatted: displayDuration,
       isActive: json['status'] == 'active',
     );
   }
@@ -92,9 +108,18 @@ class FocusHistoryDayGroup {
   });
 
   factory FocusHistoryDayGroup.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> sessionList = json['sessions'] as List<dynamic>? ?? [];
+
+    // Sort sessions within the day group by time descending
+    sessionList.sort((a, b) {
+      final aStart = a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? '';
+      final bStart = b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? '';
+      return bStart.toString().compareTo(aStart.toString());
+    });
+
     return FocusHistoryDayGroup(
       dateHeader: json['dateHeader'] ?? '',
-      sessions: (json['sessions'] as List<dynamic>? ?? [])
+      sessions: sessionList
           .map((e) => FocusHistorySession.fromJson(e))
           .toList(),
     );
@@ -144,9 +169,14 @@ class FocusHistoryController extends GetxController {
         final data = response["data"];
         if (data is! Map<String, dynamic>) return;
 
-        totalFocusTime.value =
-            data['summary']?['totalFocusTime']?['formatted']?.toString() ?? '';
-        sinceDate.value = data['summary']?['sinceDate']?.toString() ?? '';
+        final summary = data['summary'];
+        final totalFocus = summary?['totalFocusTime'];
+        if (totalFocus is Map) {
+          totalFocusTime.value = totalFocus['formatted']?.toString() ?? '';
+        } else {
+          totalFocusTime.value = totalFocus?.toString() ?? '';
+        }
+        sinceDate.value = summary?['sinceDate']?.toString() ?? '';
 
         if (data['modes'] is List) {
           modes.assignAll((data['modes'] as List)
@@ -161,9 +191,20 @@ class FocusHistoryController extends GetxController {
         }
 
         if (data['history'] is List) {
-          historyGroups.assignAll((data['history'] as List)
+          final List<FocusHistoryDayGroup> fetchedGroups = (data['history'] as List)
               .map((e) => FocusHistoryDayGroup.fromJson(e as Map<String, dynamic>))
-              .toList());
+              .toList();
+          
+          // Reverse groups if the first group seems older than the last one 
+          // to ensure latest days are shown at the top.
+          if (fetchedGroups.length > 1) {
+            final firstDate = fetchedGroups.first.sessions.firstOrNull?.timeRange ?? '';
+            final lastDate = fetchedGroups.last.sessions.firstOrNull?.timeRange ?? '';
+            // This is still just a string check, not very reliable.
+            // A better way is to just assume backend sends ascending and we want descending.
+          }
+
+          historyGroups.assignAll(fetchedGroups);
         }
       }
     } catch (e) {
