@@ -304,6 +304,13 @@ class FriendsController extends GetxController {
     super.onClose();
   }
 
+  Future<void> refreshData() async {
+    await Future.wait([
+      fetchFriendsList(),
+      fetchCurrentNudgeStatus(),
+    ]);
+  }
+
   // ==================== Friends List ====================
   Future<void> fetchFriendsList() async {
     try {

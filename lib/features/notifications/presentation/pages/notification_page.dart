@@ -23,55 +23,69 @@ class NotificationPage extends GetView<NotificationController> {
             _buildHeader(),
             SizedBox(height: 32.h),
             Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+              child: RefreshIndicator(
+                onRefresh: controller.fetchNotifications,
+                color: const Color(0xFF1A1814),
+                backgroundColor: AppColors.background,
+                child: Obx(() {
+                  if (controller.isLoading.value && controller.notifications.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final groups = controller.groupedNotifications;
+                  final groups = controller.groupedNotifications;
 
-                if (groups.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No notifications yet',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13.sp,
-                        color: const Color(0xFF8A8278),
+                  if (groups.isEmpty) {
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics()),
+                      children: [
+                        SizedBox(height: 200.h),
+                        Center(
+                          child: Text(
+                            'No notifications yet',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13.sp,
+                              color: const Color(0xFF8A8278),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return NotificationListener<ScrollNotification>(
+                    onNotification: (scrollInfo) {
+                      if (scrollInfo.metrics.pixels >=
+                          scrollInfo.metrics.maxScrollExtent - 100) {
+                        controller.loadMore();
+                      }
+                      return false;
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics()),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final group in groups) ...[
+                            _buildSectionHeader(group.label),
+                            SizedBox(height: 12.h),
+                            _buildNotificationGroup(group: group),
+                            SizedBox(height: 32.h),
+                          ],
+                          if (controller.isLoadingMore.value)
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16.h),
+                              child: const Center(
+                                  child: CircularProgressIndicator()),
+                            ),
+                        ],
                       ),
                     ),
                   );
-                }
-
-                return NotificationListener<ScrollNotification>(
-                  onNotification: (scrollInfo) {
-                    if (scrollInfo.metrics.pixels >=
-                        scrollInfo.metrics.maxScrollExtent - 100) {
-                      controller.loadMore();
-                    }
-                    return false;
-                  },
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final group in groups) ...[
-                          _buildSectionHeader(group.label),
-                          SizedBox(height: 12.h),
-                          _buildNotificationGroup(group: group),
-                          SizedBox(height: 32.h),
-                        ],
-                        if (controller.isLoadingMore.value)
-                          Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            child: const Center(child: CircularProgressIndicator()),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
+                }),
+              ),
             ),
           ],
         ),

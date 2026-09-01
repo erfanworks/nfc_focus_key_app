@@ -14,26 +14,34 @@ class FocusHistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
       body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                SizedBox(height: 24.h),
-                _buildTotalFocusCard(),
-                SizedBox(height: 24.h),
-                _buildFilters(),
-                SizedBox(height: 24.h),
-                _buildHistoryList(),
-              ],
-            ),
-          );
-        }),
+        child: RefreshIndicator(
+          onRefresh: controller.fetchFocusHistory,
+          color: const Color(0xFF1A1814),
+          backgroundColor: const Color(0xFFF7F4EE),
+          child: Obx(() {
+            if (controller.isLoading.value && controller.historyGroups.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 24.h),
+                  _buildTotalFocusCard(),
+                  SizedBox(height: 24.h),
+                  _buildFilters(),
+                  SizedBox(height: 24.h),
+                  _buildHistoryList(),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
