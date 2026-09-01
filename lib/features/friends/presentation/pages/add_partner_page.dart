@@ -17,84 +17,109 @@ class AddPartnerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              SizedBox(height: 32.h),
-              _buildSearchInput(),
-              SizedBox(height: 8.h),
-              Text(
-                'handles are lowercase, 3-15 characters',
-                style: GoogleFonts.dmSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w300,
-                  color: const Color(0xFFB5AFA5),
-                  height: 16.5 / 11,
-                  letterSpacing: -0.28.w,
-                ),
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 32.h),
+                  _buildSearchInput(),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'handles are lowercase, 3-15 characters',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w300,
+                      color: const Color(0xFFB5AFA5),
+                      height: 16.5 / 11,
+                      letterSpacing: -0.28.w,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 32.h),
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoadingAppUsers.value) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+            ),
+            SizedBox(height: 16.h),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoadingAppUsers.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  if (controller.appUsers.isEmpty) {
-                    return ListView(
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        SizedBox(height: 48.h),
-                        // _buildContactsSection(),
-                      ],
+                if (controller.appUsers.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                return ListView.builder(
+                  padding: EdgeInsets.only(
+                    left: 20.w,
+                    right: 20.w,
+                    bottom: controller.addedFriends.isNotEmpty ? 80.h : 20.h,
+                  ),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: controller.appUsers.length,
+                  itemBuilder: (context, index) {
+                    final user = controller.appUsers[index];
+                    return _buildUserItem(
+                      user.name,
+                      user.userName,
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      user.id.hashCode.isEven,
+                      user.id,
                     );
-                  }
-
-                  return ListView(
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      Column(
-                        children: controller.appUsers
-                            .map(
-                              (user) => _buildUserItem(
-                            user.name,
-                            user.userName,
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                            user.id.hashCode.isEven,
-                            user.id,
+                  },
+                );
+              }),
+            ),
+            Obx(() {
+              if (controller.addedFriends.isEmpty) return SizedBox(height: MediaQuery.of(context).padding.bottom + 10.h);
+              return Container(
+                padding: EdgeInsets.only(
+                  top: 5.h,
+                  bottom: MediaQuery.of(context).padding.bottom + 5.h,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.background.withAlpha(50),
+                      offset: const Offset(0, -20),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => Get.back(),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: const Color(0xFF1A1814).withAlpha(20),
+                            width: 0.5,
                           ),
-                        )
-                            .toList(),
+                        ),
                       ),
-                      SizedBox(height: 48.h),
-                      // _buildContactsSection(),
-                    ],
-                  );
-                }),
-              ),
-              if (controller.addedFriends.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
-                  child: Center(
-                    child: TextButton(
-                      onPressed: () => Get.back(),
                       child: Text(
                         'See your friends list',
                         style: GoogleFonts.dmSans(
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w500,
                           color: const Color(0xFF1A1814),
-                          decoration: TextDecoration.underline,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+              );
+            }),
+          ],
         ),
       ),
     );
@@ -113,7 +138,7 @@ class AddPartnerPage extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Text(
-            'Add Partner',
+            'Add Friend',
             style: GoogleFonts.cormorantGaramond(
               fontSize: 24.sp,
               fontWeight: FontWeight.w300,

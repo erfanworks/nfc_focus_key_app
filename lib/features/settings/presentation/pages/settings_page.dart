@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -210,6 +211,15 @@ class SettingsPage extends GetView<SettingsController> {
                           showChevron: false,
                           onTap: () {},
                         ),
+                        /// Notification test debug section
+                        /*
+                        if (kDebugMode)
+                          SettingsRowItem(
+                            title: 'Debug Notification',
+                            titleColor: const Color(0xFFC4A97D),
+                            onTap: () => Get.toNamed(Routes.notificationDebug),
+                          ),
+                        */
                       ],
                     ),
                   ),

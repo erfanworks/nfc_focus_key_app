@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:focus_key/features/pairing/presentation/bindings/new_mode_binding.dart';
 import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
+import 'package:focus_key/features/pairing/presentation/pages/notification_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
 import '../features/pairing/presentation/bindings/enable_permissions_binding.dart';
@@ -216,5 +217,6 @@ class AppPages {
 
 
     GetPage(name: Routes.nfcUidDebugPage, page: () => const NfcUidDebugPage()),
+    // GetPage(name: Routes.notificationDebug, page: () => const NotificationDebugPage()),
   ];
 }

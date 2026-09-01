@@ -65,7 +65,7 @@ class NotificationModel {
           }
           return "Invited you to a shared focus session. Join now to stay productive together!";
         case 'FriendRequest':
-          return "Sent you a partner request. Connect to build focus habits together.";
+          return "Sent you a friend request. Connect to build focus habits together.";
         default:
           return "You have a new update from Focus Key. Tap to see details.";
       }
@@ -73,7 +73,7 @@ class NotificationModel {
     
     // If text is not empty but contains "accepted", ensure it's clean
     if (isAccepted && !text.contains('accepted')) {
-       return "Focus session accepted! Your partner is ready.";
+       return "Focus session accepted! Your friend is ready.";
     }
 
     return text;

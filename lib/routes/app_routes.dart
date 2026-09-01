@@ -41,4 +41,5 @@ abstract class Routes {
   static const shield = '/shield';
 
   static const String nfcUidDebugPage = '/nfcUidDebugPage';
+  static const String notificationDebug = '/notification-debug';
 }

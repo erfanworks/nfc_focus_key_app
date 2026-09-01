@@ -75,17 +75,14 @@ class PushNotificationService extends GetxService {
     try {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
+        requestAlertPermission: true, // Requesting here specifically for iOS
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       );
 
       await _localNotifications.initialize(
         settings: const InitializationSettings(android: androidInit, iOS: iosInit),
         onDidReceiveNotificationResponse: (response) {
-          // User tapped the banner while app was in foreground/background
-          // but process alive. Payload carries the raw FCM data as a
-          // JSON-ish string if needed later; kept minimal for now.
           appLog("Local notification tapped ► payload=${response.payload}");
         },
       );
@@ -243,4 +240,45 @@ class PushNotificationService extends GetxService {
 
   @visibleForTesting
   String? get debugCachedToken => _cachedToken;
+
+  /// Trigger a local notification for testing sound and UI.
+  Future<void> showTestNotification() async {
+    try {
+      // Ensure channel is created before showing (Android specific)
+      if (Platform.isAndroid) {
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(_androidChannel);
+      }
+
+      await _localNotifications.show(
+        id: 999,
+        title: "Test Notification 🔔",
+        body: "If you see this and hear a sound, it works perfectly!",
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.max,
+            priority: Priority.max,
+            ticker: 'ticker',
+            // Sometimes @mipmap/ic_launcher causes issues in debug if not found
+            // This fallback helps ensure it shows something
+            icon: Platform.isAndroid ? '@mipmap/ic_launcher' : null,
+            playSound: true,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+      );
+      appLog("Test notification triggered successfully");
+    } catch (e) {
+      appLog("Test notification error: $e");
+    }
+  }
 }
