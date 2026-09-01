@@ -18,12 +18,39 @@ class FocusSession {
   });
 
   factory FocusSession.fromJson(Map<String, dynamic> json) {
+    String displayTimeRange = json['timeRange'] ?? '';
+
+    try {
+      final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
+      final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
+
+      if (startRaw != null) {
+        final start = DateTime.parse(startRaw.toString()).toLocal();
+        final startStr = _formatTime(start);
+
+        if (json['status'] == 'active') {
+          displayTimeRange = 'Started at $startStr';
+        } else if (endRaw != null) {
+          final end = DateTime.parse(endRaw.toString()).toLocal();
+          final endStr = _formatTime(end);
+          displayTimeRange = '$startStr - $endStr';
+        }
+      }
+    } catch (_) {}
+
     return FocusSession(
-      timeRange: json['timeRange'] ?? '',
+      timeRange: displayTimeRange,
       duration: json['duration'] ?? '',
       mode: json['modeName'] ?? '',
       isActive: json['status'] == 'active',
     );
+  }
+
+  static String _formatTime(DateTime dt) {
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 }
 
