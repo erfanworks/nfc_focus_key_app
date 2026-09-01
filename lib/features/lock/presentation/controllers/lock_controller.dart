@@ -45,8 +45,39 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
+    
+    // Phase 1: Immediate hydration from local cache to prevent UI lag/flicker
+    _hydrateFromLocalCache();
+    
+    // Phase 2: Background sync with server
     fetchLockStatus();
     _fetchPersonalBreakLength();
+  }
+
+  Future<void> _hydrateFromLocalCache() async {
+    try {
+      final localLockActive = await StorageServices.instance.isLockActive();
+      final localModeId = await StorageServices.instance.getActiveModeId();
+      final localModeName = await StorageServices.instance.getActiveModeName();
+      
+      if (localLockActive) {
+        isLocked.value = true;
+        if (localModeId != null) activeModeId = localModeId;
+        if (localModeName != null) selectedMode.value = localModeName;
+        
+        // Restore timer if we have a start time cached
+        final startTimeStr = await StorageServices.instance.getValue("session_start_time");
+        if (startTimeStr != null && startTimeStr.isNotEmpty) {
+          try {
+            final start = DateTime.parse(startTimeStr);
+            sessionSeconds.value = DateTime.now().difference(start).inSeconds;
+            _startTimer();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {
+      // Hydration should never crash the app
+    }
   }
 
   @override
@@ -64,7 +95,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
   Future<void> _fetchPersonalBreakLength() async {
     try {
       final token = await StorageServices.instance.getToken();
-      if (token.isEmpty) return; // Skip if logged out
+      if (token.isEmpty) return;
 
       isLoadingBreakSettings.value = true;
       final response = await ApiServices.instance.getServices(
@@ -82,7 +113,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
   Future<void> fetchLockStatus() async {
     try {
       final token = await StorageServices.instance.getToken();
-      if (token.isEmpty) return; // Skip if logged out
+      if (token.isEmpty) return;
 
       isLoadingStatus.value = true;
       final response = await ApiServices.instance.getServices(
@@ -90,13 +121,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
 
       if (response == null || response["success"] != true) {
-        if (response != null) {
-          CustomSnackbar.show(
-            title: "Sync Failed",
-            message: response["message"] ?? "Could not update focus status.",
-            isError: true,
-          );
-        }
+        // Keep local state on sync failure
         return;
       }
 
@@ -108,18 +133,19 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final focusStats = data["focusStats"] ?? {};
       final breakStats = data["breakStats"] ?? {};
 
-      // "isLocked" here means "an active focus session exists" (stays true
-      // through breaks too) — NOT "apps are physically blocked right now".
-      // Server's top-level isLocked reflects the latter and goes false
-      // during breaks, so we derive session-active state from activeSession
-      // instead, to avoid stomping isOnBreak/re-lock logic on refetch.
       final activeSessionData = data["activeSession"];
-      isLocked.value = activeSessionData != null;
+      final serverLocked = activeSessionData != null;
+      isLocked.value = serverLocked;
+      
+      // Sync local cache with server truth
+      await StorageServices.instance.setLockActive(serverLocked);
 
       if (lockStatus["activeModeName"] != null) {
         selectedMode.value = lockStatus["activeModeName"];
+        await StorageServices.instance.setActiveModeName(selectedMode.value);
       }
-      activeModeId = activeMode != null ? activeMode["_id"] as String? : null;
+      activeModeId = activeMode != null ? activeMode["_id"]?.toString() : null;
+      await StorageServices.instance.setActiveModeId(activeModeId);
 
       todayTime.value = _formatMinutes(focusStats["todayMinutes"] ?? 0);
       thisWeekTime.value = _formatMinutes(focusStats["weekMinutes"] ?? 0);
@@ -143,23 +169,17 @@ class LockController extends GetxController with WidgetsBindingObserver {
         isOnBreak.value = false;
       }
 
-      // Native app-lock should only be (re)applied when truly locked —
-      // never while on break, otherwise apps would wrongly re-lock mid-break.
       if (isLocked.value && activeModeId != null && !isOnBreak.value) {
         await _ensureNativeLockApplied(activeModeId!);
       }
 
       if (isLocked.value && !isOnBreak.value) {
-        _resumeOrStartTimer(data["activeSession"]);
+        unawaited(_resumeOrStartTimer(data["activeSession"]));
       } else if (!isLocked.value) {
-        _stopTimer();
+        unawaited(_stopTimer());
       }
     } catch (e) {
-      CustomSnackbar.show(
-        title: "Connection Issue",
-        message: "Failed to fetch focus status. Check your internet.",
-        isError: true,
-      );
+      // Keep local state on error
     } finally {
       isLoadingStatus.value = false;
     }
@@ -172,7 +192,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
     return '${m}m';
   }
 
-  void _resumeOrStartTimer(dynamic activeSession) {
+  Future<void> _resumeOrStartTimer(dynamic activeSession) async {
     if (activeSession is Map<String, dynamic>) {
       final raw =
           activeSession['startTime'] ??
@@ -180,7 +200,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
           activeSession['createdAt'];
       if (raw != null) {
         try {
-          final start = DateTime.parse(raw as String);
+          final start = DateTime.parse(raw.toString());
+          await StorageServices.instance.setValue("session_start_time", raw.toString());
           final elapsed = DateTime.now().difference(start).inSeconds;
           if (elapsed >= 0) {
             sessionSeconds.value = elapsed;
@@ -209,10 +230,11 @@ class LockController extends GetxController with WidgetsBindingObserver {
     });
   }
 
-  void _stopTimer() {
+  Future<void> _stopTimer() async {
     _timer?.cancel();
     _timer = null;
     sessionSeconds.value = 0;
+    await StorageServices.instance.setValue("session_start_time", "");
   }
 
   String get formattedSessionTime {
@@ -231,7 +253,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
         nudge != null && nudge.isActive && nudge.nudgeId != null;
 
     if (isNudgeSession) {
-      await _startNudgeBreak(friendsController, nudge!.nudgeId!);
+      await _startNudgeBreak(friendsController, nudge.nudgeId!);
     } else {
       await _startPersonalBreak();
     }
@@ -400,15 +422,10 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
         if (tagId == pairedId) {
           await HapticFeedback.vibrate();
-          if (activeModeId == null || activeModeId!.isEmpty) {
-            CustomSnackbar.show(
-              title: "Unlock Error",
-              message: 'No active mode session found.',
-              isError: true,
-            );
-            return;
-          }
-          await _deactivateMode(activeModeId!);
+          
+          // CRITICAL: Always deactivate locally first if key matches, 
+          // regardless of internet status.
+          await _deactivateMode(activeModeId ?? 'offline_fallback');
           return;
         }
 
@@ -416,15 +433,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
           final verified = await _verifyKeyWithBackend(tagId);
           if (verified) {
             await HapticFeedback.vibrate();
-            if (activeModeId == null || activeModeId!.isEmpty) {
-              CustomSnackbar.show(
-                title: "Unlock Error",
-                message: 'Session data not available on server.',
-                isError: true,
-              );
-              return;
-            }
-            await _deactivateMode(activeModeId!);
+            await _deactivateMode(activeModeId ?? 'offline_fallback');
             return;
           }
         }
@@ -486,15 +495,21 @@ class LockController extends GetxController with WidgetsBindingObserver {
   Future<void> _ensureNativeLockApplied(String modeId) async {
     if (_nativeLockAppliedForModeId == modeId) return;
     try {
+      // Try fetching mode details
       final modeDetails = await ApiServices.instance.getServices(
         AppApiUrl.instance.updateMoodById(modeId),
       );
-      final lockedAppsJson =
-          (modeDetails?["data"]?["lockedApps"] as List?) ?? [];
-      final packageNames = lockedAppsJson
-          .map((e) => e["packageName"] as String)
-          .toList();
-      _activePackageNames = packageNames;
+      
+      List<String> packageNames = [];
+      if (modeDetails != null && modeDetails["success"] == true) {
+        final lockedAppsJson = (modeDetails["data"]?["lockedApps"] as List?) ?? [];
+        packageNames = lockedAppsJson.map((e) => e["packageName"] as String).toList();
+        _activePackageNames = packageNames;
+      } else {
+        // Offline: Try to use cached package names
+        packageNames = await StorageServices.instance.getLockedApps();
+      }
+
       await Get.find<AppLockNativeService>().activateLock(
         modeId: modeId,
         androidPackageNames: packageNames,
@@ -504,10 +519,17 @@ class LockController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _activateMode(String modeId) async {
+    // Optimistic UI — instant visual feedback, no waiting on network
     activeModeId = modeId;
     isLocked.value = true;
     sessionSeconds.value = 0;
     _startTimer();
+    
+    // Persist for offline resilience and lag-free loading
+    await StorageServices.instance.setLockActive(true);
+    await StorageServices.instance.setActiveModeId(modeId);
+    await StorageServices.instance.setActiveModeName(selectedMode.value);
+    await StorageServices.instance.setValue("session_start_time", DateTime.now().toIso8601String());
 
     try {
       isTogglingLock.value = true;
@@ -516,15 +538,19 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
 
       if (response == null || response["success"] != true) {
-        isLocked.value = false;
-        activeModeId = null;
-        _stopTimer();
-        CustomSnackbar.show(
-          title: 'Session Failed',
-          message: response?["message"] ?? 'Could not start focus session.',
-          isError: true,
-        );
-        return;
+        // If not a network error (e.g. invalid mode), revert. 
+        if (response != null && response["message"] != "Check your internet connection.") {
+          isLocked.value = false;
+          activeModeId = null;
+          unawaited(_stopTimer());
+          await StorageServices.instance.setLockActive(false);
+          CustomSnackbar.show(
+            title: 'Session Failed',
+            message: response["message"] ?? 'Could not start focus session.',
+            isError: true,
+          );
+          return;
+        }
       }
 
       unawaited(_ensureNativeLockApplied(modeId));
@@ -534,41 +560,34 @@ class LockController extends GetxController with WidgetsBindingObserver {
         message: 'Your device is now locked. Scan your NFC key to unlock.',
       );
     } catch (e) {
-      isLocked.value = false;
-      activeModeId = null;
-      _stopTimer();
-      CustomSnackbar.show(
-        title: 'Network Error',
-        message: 'Failed to activate focus. Check your connection.',
-        isError: true,
-      );
+      // On network exception, we keep the local lock active (Offline Mode)
     } finally {
       isTogglingLock.value = false;
     }
   }
 
   Future<void> _deactivateMode(String modeId) async {
+    // Optimistic local unlock — prevents stuck state on poor connection
+    isLocked.value = false;
+    activeModeId = null;
+    unawaited(_stopTimer());
+    endBreak();
+    
+    // Update local storage first
+    await StorageServices.instance.setLockActive(false);
+    await StorageServices.instance.setActiveModeId(null);
+    await StorageServices.instance.setActiveModeName(null);
+    
+    // Deactivate native shield immediately
+    await Get.find<AppLockNativeService>().deactivateLock();
+    _nativeLockAppliedForModeId = null;
+
     try {
       isTogglingLock.value = true;
-      final response = await ApiServices.instance.patchServices(
+      // Background sync: Try to tell the server we unlocked
+      await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.toggleModeActivation(modeId),
       );
-
-      if (response == null || response["success"] != true) {
-        CustomSnackbar.show(
-          title: 'Unlock Failed',
-          message: response?["message"] ?? 'Could not end focus session.',
-          isError: true,
-        );
-        return;
-      }
-
-      isLocked.value = false;
-      activeModeId = null;
-      _stopTimer();
-      endBreak();
-      await Get.find<AppLockNativeService>().deactivateLock();
-      _nativeLockAppliedForModeId = null;
 
       CustomSnackbar.show(
         title: 'Session Ended',
@@ -577,10 +596,10 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
+      // Even if server sync fails, the user is already unlocked locally.
       CustomSnackbar.show(
-        title: 'Error',
-        message: 'Connection issue. Failed to end session on server.',
-        isError: true,
+        title: 'Unlocked',
+        message: 'Session ended locally. Will sync with server when online.',
       );
     } finally {
       isTogglingLock.value = false;

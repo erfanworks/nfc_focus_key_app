@@ -26,6 +26,11 @@ class NotificationModel {
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     try {
+      String createdStr = json['createdAt'] ?? '';
+      if (createdStr.isNotEmpty && !createdStr.contains('Z') && !createdStr.contains('+')) {
+        createdStr += 'Z';
+      }
+      
       return NotificationModel(
         id: json['_id'] ?? '',
         title: json['title'] ?? 'Notification',
@@ -35,7 +40,7 @@ class NotificationModel {
             ? json['referenceId']
             : null,
         read: json['read'] ?? false,
-        createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(createdStr)?.toLocal() ?? DateTime.now(),
       );
     } catch (e) {
       return NotificationModel(
@@ -239,6 +244,9 @@ class NotificationController extends GetxController {
         } else {
           notifications.addAll(list);
         }
+        
+        // Sort notifications to ensure the latest are at the top
+        notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         final meta = response["meta"];
         _totalPage = meta?['totalPage'] ?? 1;

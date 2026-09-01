@@ -30,6 +30,9 @@ class StorageKey {
   final String cachedModes = "cachedModes";
 
   // ==================== App Lock (NFC key lock/unlock, native shield sync) ====================
+  final String isLockActiveInternal  = "internal_is_lock_active";
+  final String activeModeId          = "active_mode_id";
+  final String activeModeName        = "active_mode_name";
   final String isLockActive          = "is_lock_active";
   final String lockedApps            = "locked_apps";
   final String cachedReminderMessage = "cached_reminder_message";
@@ -333,7 +336,7 @@ class StorageServices {
   Future<void> setLockActive(bool value) async {
     try {
       final pref = await _pref;
-      await pref.setBool(StorageKey.instance.isLockActive, value);
+      await pref.setBool(StorageKey.instance.isLockActiveInternal, value);
     } catch (e) {
       errorLog("setLockActive", e);
     }
@@ -342,10 +345,56 @@ class StorageServices {
   Future<bool> isLockActive() async {
     try {
       final pref = await _pref;
-      return pref.getBool(StorageKey.instance.isLockActive) ?? false;
+      return pref.getBool(StorageKey.instance.isLockActiveInternal) ?? false;
     } catch (e) {
       errorLog("isLockActive", e);
       return false;
+    }
+  }
+
+  Future<void> setActiveModeId(String? modeId) async {
+    try {
+      final pref = await _pref;
+      if (modeId == null) {
+        await pref.remove(StorageKey.instance.activeModeId);
+      } else {
+        await pref.setString(StorageKey.instance.activeModeId, modeId);
+      }
+    } catch (e) {
+      errorLog("setActiveModeId", e);
+    }
+  }
+
+  Future<String?> getActiveModeId() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.activeModeId);
+    } catch (e) {
+      errorLog("getActiveModeId", e);
+      return null;
+    }
+  }
+
+  Future<void> setActiveModeName(String? name) async {
+    try {
+      final pref = await _pref;
+      if (name == null) {
+        await pref.remove(StorageKey.instance.activeModeName);
+      } else {
+        await pref.setString(StorageKey.instance.activeModeName, name);
+      }
+    } catch (e) {
+      errorLog("setActiveModeName", e);
+    }
+  }
+
+  Future<String?> getActiveModeName() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.activeModeName);
+    } catch (e) {
+      errorLog("getActiveModeName", e);
+      return null;
     }
   }
 
