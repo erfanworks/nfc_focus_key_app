@@ -122,7 +122,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
     if (success) {
       CustomSnackbar.show(
         title: 'Request sent',
-        message: 'Your partner${_preview!.participants.length > 1 ? "s" : ""} will get a notification.',
+        message: 'Your friend${_preview!.participants.length > 1 ? "s" : ""} will get a notification.',
       );
       Get.offAllNamed(Routes.lock);
     }
@@ -226,7 +226,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
           onTap: isBusy
               ? () {
                   CustomSnackbar.show(
-                    title: 'Partner Busy',
+                    title: 'Friend Busy',
                     message: '${_singleFriend!.name} is currently focusing. You can nudge them once they finish.',
                     isError: true,
                   );
@@ -242,7 +242,7 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
             ),
             child: Center(
               child: Text(
-                isBusy ? 'Partner is focusing' : 'Send a nudge',
+                isBusy ? 'Friend is focusing' : 'Send a nudge',
                 style: GoogleFonts.dmSans(
                   fontSize: 14.sp,
                   color: isBusy ? const Color(0xFF8A8278) : const Color(0xFFF7F4EE),

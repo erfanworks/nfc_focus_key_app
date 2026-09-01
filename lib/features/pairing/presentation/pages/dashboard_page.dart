@@ -75,7 +75,7 @@ class DashboardPage extends GetView<DashboardController> {
               ),
               _buildNavItem(
                 index: 2,
-                label: 'Partners',
+                label: 'Friends',
                 icon: Icons.people_outline_rounded,
                 activeIcon: Icons.people_rounded,
               ),

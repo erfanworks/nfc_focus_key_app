@@ -379,19 +379,19 @@ class FriendsController extends GetxController {
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
           title: "Request Failed",
-          message: response?["message"] ?? "Could not add partner.",
+          message: response?["message"] ?? "Could not add friend.",
           isError: true,
         );
         return;
       }
 
-      CustomSnackbar.show(title: "Partner Added", message: "Successfully added to your list.");
+      CustomSnackbar.show(title: "Friend Added", message: "Successfully added to your list.");
       await Future.delayed(const Duration(milliseconds: 800));
       await fetchFriendsList();
     } catch (e) {
       CustomSnackbar.show(
         title: "Connection Error",
-        message: "Failed to send partner request.",
+        message: "Failed to send friend request.",
         isError: true,
       );
     } finally {
@@ -410,18 +410,18 @@ class FriendsController extends GetxController {
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
           title: "Action Failed",
-          message: response?["message"] ?? "Could not remove partner.",
+          message: response?["message"] ?? "Could not remove friend.",
           isError: true,
         );
         return;
       }
 
-      CustomSnackbar.show(title: "Partner Removed", message: "Successfully removed from your list.");
+      CustomSnackbar.show(title: "Friend Removed", message: "Successfully removed from your list.");
       addedFriends.removeWhere((f) => f.id == friendId);
     } catch (e) {
       CustomSnackbar.show(
         title: "Network Error",
-        message: "Failed to remove partner. Try again.",
+        message: "Failed to remove friend. Try again.",
         isError: true,
       );
     } finally {
@@ -506,7 +506,7 @@ class FriendsController extends GetxController {
         return false;
       }
       
-      CustomSnackbar.show(title: "Nudge Sent", message: "Your partners have been notified.");
+      CustomSnackbar.show(title: "Nudge Sent", message: "Your friends have been notified.");
       await Future.delayed(const Duration(milliseconds: 1200));
       return true;
     } catch (e) {

@@ -285,7 +285,7 @@ class FriendsPage extends StatelessWidget {
             border: Border.all(color: const Color(0xFF1A1814), width: 1.0),
           ),
           child: Text(
-            'Add a partner',
+            'Add a friend',
             style: GoogleFonts.dmSans(
               fontSize: 13.sp,
               fontWeight: FontWeight.w400,
