@@ -504,6 +504,11 @@ class LockController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _activateMode(String modeId) async {
+    activeModeId = modeId;
+    isLocked.value = true;
+    sessionSeconds.value = 0;
+    _startTimer();
+
     try {
       isTogglingLock.value = true;
       final response = await ApiServices.instance.patchServices(
@@ -511,6 +516,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
 
       if (response == null || response["success"] != true) {
+        isLocked.value = false;
+        activeModeId = null;
+        _stopTimer();
         CustomSnackbar.show(
           title: 'Session Failed',
           message: response?["message"] ?? 'Could not start focus session.',
@@ -519,18 +527,16 @@ class LockController extends GetxController with WidgetsBindingObserver {
         return;
       }
 
-      activeModeId = modeId;
-      isLocked.value = true;
-      sessionSeconds.value = 0;
-      _startTimer();
-      await _ensureNativeLockApplied(modeId);
+      unawaited(_ensureNativeLockApplied(modeId));
+
       CustomSnackbar.show(
         title: 'Locked',
         message: 'Your device is now locked. Scan your NFC key to unlock.',
       );
-
-      await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
+      isLocked.value = false;
+      activeModeId = null;
+      _stopTimer();
       CustomSnackbar.show(
         title: 'Network Error',
         message: 'Failed to activate focus. Check your connection.',

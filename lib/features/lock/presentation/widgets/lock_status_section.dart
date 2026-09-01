@@ -56,8 +56,8 @@ class LockStatusSection extends StatelessWidget {
             controller.isOnBreak.value
                 ? 'Apps are available now'
                 : (isLocked
-                      ? 'Tap your key to unlock'
-                      : 'Hold to lock - or tap your key.'),
+                      ? 'Hold to unlock'
+                      : 'Hold to lock'),
             style: GoogleFonts.dmSans(
               fontSize: 14.sp,
               fontWeight: FontWeight.w300,
