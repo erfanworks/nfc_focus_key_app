@@ -77,6 +77,13 @@ import UIKit
         AppLockManager.shared.removeShield()
         result(nil)
 
+      case "cacheReminderMessage":
+        if let args = call.arguments as? [String: Any],
+           let message = args["message"] as? String {
+          AppLockManager.shared.cacheReminderMessage(message)
+        }
+        result(nil)
+
       default:
         result(FlutterMethodNotImplemented)
       }

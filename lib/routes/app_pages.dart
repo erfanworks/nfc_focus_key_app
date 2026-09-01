@@ -6,6 +6,7 @@ import 'package:focus_key/features/pairing/presentation/pages/customize_modes_pa
 import 'package:get/get.dart';
 import '../features/pairing/presentation/bindings/enable_permissions_binding.dart';
 import '../features/pairing/presentation/pages/enable_permissions_page.dart';
+import '../features/pairing/presentation/pages/shield_page.dart';
 import '../features/settings/presentation/pages/total_focus_apps_page.dart';
 import 'app_routes.dart';
 import '../features/auth/presentation/bindings/auth_binding.dart';
@@ -208,7 +209,7 @@ class AppPages {
       page: () => const LegalInformationPage(),
     ),
 
-    GetPage(name: Routes.shield, page: () => const Placeholder()),
+    GetPage(name: Routes.shield, page: () => const ShieldPage()),
     GetPage(
       name: Routes.totalFocusApps,
       page: () => const TotalFocusAppsPage(),

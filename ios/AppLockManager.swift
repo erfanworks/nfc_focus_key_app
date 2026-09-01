@@ -56,6 +56,11 @@ class AppLockManager {
         store.shield.applicationCategories = nil
     }
 
+        func cacheReminderMessage(_ message: String) {
+            let defaults = UserDefaults(suiteName: appGroupId)
+            defaults?.set(message, forKey: "cached_reminder_message")
+        }
+
     private func saveSelection(_ selection: FamilyActivitySelection, for modeId: String) {
         let defaults = UserDefaults(suiteName: appGroupId)
         if let data = try? PropertyListEncoder().encode(selection) {

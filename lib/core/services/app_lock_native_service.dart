@@ -101,6 +101,12 @@ class AppLockNativeService extends GetxService {
     }
   }
 
+  Future<void> cacheReminderMessage(String message) async {
+    await StorageServices.instance.cacheReminderMessage(message);
+    if (Platform.isIOS) {
+      await _channel.invokeMethod('cacheReminderMessage', {'message': message});
+    }
+  }
   /// Call this after NFC scan toggles lock OFF. Handles both platforms.
   Future<void> deactivateLock() async {
     await StorageServices.instance.setLockActive(false);

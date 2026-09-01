@@ -1,10 +1,11 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/app_lock_native_service.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 class SettingsController extends GetxController {
-  final personalReminder = 'I want to stay focused for..'.obs;
+  final personalReminder = ''.obs;
 
   final userName = ''.obs;
   final userContact = ''.obs;
@@ -125,6 +126,7 @@ class SettingsController extends GetxController {
 
       if (response != null && response["success"] == true) {
         personalReminder.value = response["data"]?["message"] ?? personalReminder.value;
+        await Get.find<AppLockNativeService>().cacheReminderMessage(personalReminder.value);
       }
     } catch (_) {}
   }
@@ -138,6 +140,7 @@ class SettingsController extends GetxController {
 
       if (response != null && response["success"] == true) {
         personalReminder.value = response["data"]?["message"] ?? message;
+        await Get.find<AppLockNativeService>().cacheReminderMessage(personalReminder.value);
         CustomSnackbar.show(
           title: 'Reminder Saved',
           message: 'Your personal reminder is now active.',

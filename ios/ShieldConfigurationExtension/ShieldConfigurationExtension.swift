@@ -13,25 +13,27 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     private let appGroupId = "group.com.presencelabsllp.focuskeyapp"
 
-    private func buildShieldConfiguration() -> ShieldConfiguration {
-        let defaults = UserDefaults(suiteName: appGroupId)
-        let reminderMessage = defaults?.string(forKey: "cached_reminder_message")
-            ?? "This app is locked."
+        private func buildShieldConfiguration() -> ShieldConfiguration {
+            let defaults = UserDefaults(suiteName: appGroupId)
+            let savedMessage = defaults?.string(forKey: "cached_reminder_message")
+            let reminderMessage = (savedMessage?.isEmpty ?? true)
+                ? "You pity the moth for confusing a lamp for the moon, yet here you are confusing a screen for the world…"
+                : savedMessage!
 
-        return ShieldConfiguration(
-            backgroundBlurStyle: .systemMaterialDark,
-            backgroundColor: UIColor.black.withAlphaComponent(0.9),
-            icon: UIImage(named: "AppIcon"),
-            title: ShieldConfiguration.Label(text: "App Locked", color: .white),
-            subtitle: ShieldConfiguration.Label(
-                text: "\(reminderMessage)\n\nOpen Focus Key and scan your NFC key to unlock.",
-                color: .lightGray
-            ),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "Got it", color: .white),
-            primaryButtonBackgroundColor: UIColor.systemBlue,
-            secondaryButtonLabel: ShieldConfiguration.Label(text: "Close", color: .lightGray)
-        )
-    }
+            return ShieldConfiguration(
+                backgroundBlurStyle: .systemMaterialDark,
+                backgroundColor: UIColor.black.withAlphaComponent(0.9),
+                icon: UIImage(named: "AppIcon"),
+                title: ShieldConfiguration.Label(text: "App Locked", color: .white),
+                subtitle: ShieldConfiguration.Label(
+                    text: reminderMessage,
+                    color: .lightGray
+                ),
+                primaryButtonLabel: ShieldConfiguration.Label(text: "Got it", color: .white),
+                primaryButtonBackgroundColor: UIColor.systemBlue,
+                secondaryButtonLabel: ShieldConfiguration.Label(text: "Close", color: .lightGray)
+            )
+        }
 
     override func configuration(shielding application: Application) -> ShieldConfiguration {
         buildShieldConfiguration()
