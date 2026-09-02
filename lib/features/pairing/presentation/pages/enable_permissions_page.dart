@@ -50,6 +50,20 @@ class EnablePermissionsPage extends GetView<EnablePermissionsController> {
                 granted: controller.overlayGranted.value,
                 onTap: controller.enableOverlay,
               )),
+              SizedBox(height: 12.h),
+              Obx(() => _PermissionRow(
+                title: 'Battery Optimization',
+                subtitle: 'Ensures the lock stays active',
+                granted: controller.batteryOptimizationIgnored.value,
+                onTap: controller.enableBatteryOptimization,
+              )),
+              SizedBox(height: 12.h),
+              Obx(() => _PermissionRow(
+                title: 'Usage Access',
+                subtitle: 'Helps track app activity',
+                granted: controller.usageAccessGranted.value,
+                onTap: controller.enableUsageAccess,
+              )),
               const Spacer(),
               Obx(() => GestureDetector(
                 onTap: controller.allGranted ? controller.continueToApp : null,

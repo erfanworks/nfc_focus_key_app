@@ -15,16 +15,11 @@ class AppLockNativeService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _channel.setMethodCallHandler(_handleNativeCall);
+    // Native handles the shield now, no need for Dart listener
   }
 
   Future<dynamic> _handleNativeCall(MethodCall call) async {
-    switch (call.method) {
-      case 'showShield':
-        final packageName = call.arguments['packageName'] as String? ?? '';
-        Get.toNamed(Routes.shield, arguments: {'packageName': packageName});
-        break;
-    }
+    return null;
   }
 
   Future<bool> isAccessibilityPermissionGranted() async {
@@ -48,6 +43,28 @@ class AppLockNativeService extends GetxService {
   Future<void> requestNotificationPermission() async {
     if (!Platform.isAndroid) return;
     await _channel.invokeMethod('requestNotificationPermission');
+  }
+
+  Future<bool> isBatteryOptimizationIgnored() async {
+    if (!Platform.isAndroid) return true;
+    final result = await _channel.invokeMethod<bool>('isBatteryOptimizationIgnored');
+    return result ?? true;
+  }
+
+  Future<void> requestIgnoreBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod('requestIgnoreBatteryOptimization');
+  }
+
+  Future<bool> isUsageAccessPermissionGranted() async {
+    if (!Platform.isAndroid) return true;
+    final result = await _channel.invokeMethod<bool>('isUsageAccessPermissionGranted');
+    return result ?? true;
+  }
+
+  Future<void> requestUsageAccessPermission() async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod('requestUsageAccessPermission');
   }
 
   Future<bool> isIOSAuthorized() async {
@@ -90,7 +107,8 @@ class AppLockNativeService extends GetxService {
     // FORCE SET both keys for cross-platform and native visibility
     await StorageServices.instance.setLockActive(true);
     // Explicitly update the raw shared preference for Android Native process
-    await StorageServices.instance.setValue("is_lock_active", "true"); 
+    // Use setBoolValue to ensure the native side can read it as a Boolean
+    await StorageServices.instance.setBoolValue("is_lock_active", true);
     
     await StorageServices.instance.setLockedApps(androidPackageNames);
     
@@ -110,7 +128,7 @@ class AppLockNativeService extends GetxService {
   /// Call this after NFC scan toggles lock OFF. Handles both platforms.
   Future<void> deactivateLock() async {
     await StorageServices.instance.setLockActive(false);
-    await StorageServices.instance.setValue("is_lock_active", "false");
+    await StorageServices.instance.setBoolValue("is_lock_active", false);
     if (Platform.isIOS) {
       await removeIOSShield();
     }

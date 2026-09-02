@@ -48,6 +48,11 @@ class AppApiUrl {
   final String breakStart = "/breaks/start";
   final String breakStatus = "/breaks/status";
   final String breakRemaining = "/breaks/remaining";
+  // new add
+  final String breakPause = "/breaks/pause"; // POST METHOD
+  final String breakResum = "/breaks/resume"; // POST METHOD
+
+
 
   // ==================== Friends ========================
   final String seeAppUsers = "/friends/users"; // GET METHOD

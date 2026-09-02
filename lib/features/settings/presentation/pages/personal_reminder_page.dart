@@ -23,12 +23,12 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
   void initState() {
     super.initState();
     _settingsController = Get.find<SettingsController>();
-    
+
     // Initialize with controller value, but only if it's not the old placeholder
     final initialText = _settingsController.personalReminder.value;
     _controller = TextEditingController(text: initialText);
     _charCount.value = _controller.text.length;
-    
+
     _controller.addListener(() {
       _charCount.value = _controller.text.length;
     });
@@ -49,7 +49,9 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
 
   Future<void> _handleSave() async {
     _isSaving.value = true;
-    final success = await _settingsController.savePersonalReminder(_controller.text.trim());
+    final success = await _settingsController.savePersonalReminder(
+      _controller.text.trim(),
+    );
     _isSaving.value = false;
 
     if (success) {
@@ -142,7 +144,8 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
                         height: 1.4,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Type your reminder here...\n(e.g., "Stay focused on your goals, not your screen.")',
+                        hintText:
+                            'Type your reminder here...\n(e.g., "Stay focused on your goals, not your screen.")',
                         hintStyle: GoogleFonts.dmSans(
                           fontSize: 15.sp,
                           fontWeight: FontWeight.w400,
@@ -161,7 +164,9 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
                         style: GoogleFonts.dmSans(
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w500,
-                          color: _charCount.value >= 110 ? Colors.red.shade300 : const Color(0xFFB5AFA5),
+                          color: _charCount.value >= 110
+                              ? Colors.red.shade300
+                              : const Color(0xFFB5AFA5),
                         ),
                       ),
                     ),
@@ -171,7 +176,11 @@ class _PersonalReminderPageState extends State<PersonalReminderPage> {
               SizedBox(height: 16.h),
               Row(
                 children: [
-                  Icon(Icons.info_outline_rounded, size: 14.sp, color: const Color(0xFFB5AFA5)),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 14.sp,
+                    color: const Color(0xFFB5AFA5),
+                  ),
                   SizedBox(width: 6.w),
                   Expanded(
                     child: Text(

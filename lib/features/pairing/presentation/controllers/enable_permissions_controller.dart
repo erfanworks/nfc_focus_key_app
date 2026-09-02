@@ -7,8 +7,14 @@ import '../../../../routes/app_routes.dart';
 class EnablePermissionsController extends GetxController with WidgetsBindingObserver {
   final accessibilityGranted = false.obs;
   final overlayGranted = false.obs;
+  final batteryOptimizationIgnored = false.obs;
+  final usageAccessGranted = false.obs;
 
-  bool get allGranted => accessibilityGranted.value && overlayGranted.value;
+  bool get allGranted =>
+      accessibilityGranted.value &&
+      overlayGranted.value &&
+      batteryOptimizationIgnored.value &&
+      usageAccessGranted.value;
 
   AppLockNativeService get _native => Get.find<AppLockNativeService>();
 
@@ -25,13 +31,17 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
     if (state == AppLifecycleState.resumed) _refreshStatus();
   }
 
-  Future<void> _refreshStatus() async {
+  Future<void> _refreshStatus() async { 
     accessibilityGranted.value = await _native.isAccessibilityPermissionGranted();
     overlayGranted.value = await _native.isOverlayPermissionGranted();
+    batteryOptimizationIgnored.value = await _native.isBatteryOptimizationIgnored();
+    usageAccessGranted.value = await _native.isUsageAccessPermissionGranted();
   }
 
   Future<void> enableAccessibility() => _native.requestAccessibilityPermission();
   Future<void> enableOverlay() => _native.requestOverlayPermission();
+  Future<void> enableBatteryOptimization() => _native.requestIgnoreBatteryOptimization();
+  Future<void> enableUsageAccess() => _native.requestUsageAccessPermission();
 
   void continueToApp() => Get.offNamed(Routes.letsUnlock);
 
@@ -42,4 +52,9 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
   }
 
   static bool get isRelevantOnThisPlatform => Platform.isAndroid;
+
+  Future<bool> checkAllPermissionsGranted() async {
+    await _refreshStatus();
+    return allGranted;
+  }
 }

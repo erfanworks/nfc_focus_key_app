@@ -1,12 +1,16 @@
 package com.presencelabsllp.focuskeyapp
 
+import android.app.AppOpsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
 import android.os.Build
+import android.os.Process
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
@@ -24,7 +28,9 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "isAccessibilityPermissionGranted" -> {
-                    result.success(isAccessibilityServiceEnabled())
+                    val enabled = isAccessibilityServiceEnabled()
+                    Log.e("!!!FOCUS_LOCK!!!", "UI_CHECK: Accessibility Enabled? $enabled")
+                    result.success(enabled)
                 }
                 "requestAccessibilityPermission" -> {
                     startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
@@ -49,6 +55,30 @@ class MainActivity : FlutterActivity() {
                     requestNotificationPermissionIfNeeded()
                     result.success(null)
                 }
+                "isBatteryOptimizationIgnored" -> {
+                    val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                    result.success(pm.isIgnoringBatteryOptimizations(packageName))
+                }
+                "requestIgnoreBatteryOptimization" -> {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                    result.success(null)
+                }
+                "isUsageAccessPermissionGranted" -> {
+                    result.success(isUsageAccessPermissionGranted())
+                }
+                "requestUsageAccessPermission" -> {
+                    startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    result.success(null)
+                }
+                "getPhoneBrand" -> {
+                    result.success(Build.MANUFACTURER.lowercase())
+                }
+                "requestAutoStartPermission" -> {
+                    openAutoStartSettings()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -62,6 +92,16 @@ class MainActivity : FlutterActivity() {
             Log.e("!!!FOCUS_LOCK!!!", "$key: $value")
         }
         Log.e("!!!FOCUS_LOCK!!!", "---------------------------")
+    }
+
+    private fun isUsageAccessPermissionGranted(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), packageName)
+        } else {
+            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), packageName)
+        }
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
@@ -80,6 +120,76 @@ class MainActivity : FlutterActivity() {
         }
         return false
     }
+    /**
+     * Opens the OEM-specific "Auto Start" / "Background activity" settings screen.
+     * Each manufacturer hides this in a different location under their custom ROM.
+     * Without this enabled, ColorOS (OPPO/OnePlus) silently kills the accessibility binding.
+     */
+    private fun openAutoStartSettings() {
+        val brand = Build.MANUFACTURER.lowercase()
+        val intentsToTry: List<Intent> = when {
+            // OPPO / OnePlus (ColorOS)
+            brand.contains("oppo") || brand.contains("oneplus") -> listOf(
+                Intent().setComponent(ComponentName("com.coloros.safecenter",
+                    "com.coloros.permissionmanager.PermissionTopActivity")),
+                Intent().setComponent(ComponentName("com.oppo.safe",
+                    "com.oppo.safe.permission.startup.StartupAppListActivity")),
+                Intent().setComponent(ComponentName("com.coloros.safecenter",
+                    "com.coloros.safecenter.permission.startup.StartupAppListActivity")),
+                Intent().setComponent(ComponentName("com.coloros.oppoguardelf",
+                    "com.coloros.powermanager.fuelgaue.PowerUsageModelActivity"))
+            )
+            // Vivo / iQOO (FuntouchOS / OriginOS)
+            brand.contains("vivo") -> listOf(
+                Intent().setComponent(ComponentName("com.vivo.permissionmanager",
+                    "com.vivo.permissionmanager.activity.BgStartUpManagerActivity")),
+                Intent().setComponent(ComponentName("com.iqoo.secure",
+                    "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity")),
+                Intent().setComponent(ComponentName("com.vivo.permissionmanager",
+                    "com.vivo.permissionmanager.activity.PurviewTabActivity"))
+            )
+            // Xiaomi / POCO / Redmi (MIUI / HyperOS)
+            brand.contains("xiaomi") || brand.contains("redmi") || brand.contains("poco") -> listOf(
+                Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT),
+                Intent().setComponent(ComponentName("com.miui.securitycenter",
+                    "com.miui.powercenter.PowerSettings")),
+                Intent().setComponent(ComponentName("com.miui.securitycenter",
+                    "com.miui.securitycenter.MainActivity"))
+            )
+            // Huawei / Honor (EMUI / MagicUI)
+            brand.contains("huawei") || brand.contains("honor") -> listOf(
+                Intent().setComponent(ComponentName("com.huawei.systemmanager",
+                    "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")),
+                Intent().setComponent(ComponentName("com.huawei.systemmanager",
+                    "com.huawei.systemmanager.optimize.process.ProtectActivity"))
+            )
+            // Samsung (One UI)
+            brand.contains("samsung") -> listOf(
+                Intent().setComponent(ComponentName("com.samsung.android.lool",
+                    "com.samsung.android.sm.ui.battery.BatteryActivity")),
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName"))
+            )
+            // Generic fallback — open app info page
+            else -> listOf(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName"))
+            )
+        }
+
+        for (intent in intentsToTry) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                Log.e("!!!FOCUS_LOCK!!!", "✅ AUTO_START: Opened settings for brand=$brand")
+                return
+            } catch (e: Exception) {
+                Log.e("!!!FOCUS_LOCK!!!", "⚠️ AUTO_START: Intent failed, trying next... ${e.message}")
+            }
+        }
+        Log.e("!!!FOCUS_LOCK!!!", "❌ AUTO_START: No working intent found for brand=$brand")
+    }
+
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val granted = ContextCompat.checkSelfPermission(

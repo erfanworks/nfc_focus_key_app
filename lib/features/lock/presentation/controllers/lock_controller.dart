@@ -10,6 +10,7 @@ import '../../../../core/services/storage_services.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../../routes/app_routes.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../../../friends/presentation/controllers/friends_controller.dart';
 
@@ -52,6 +53,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
     // Phase 2: Background sync with server
     fetchLockStatus();
     _fetchPersonalBreakLength();
+    _checkPermissionsOnResume();
   }
 
   Future<void> _hydrateFromLocalCache() async {
@@ -84,6 +86,47 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       fetchLockStatus();
+      _checkPermissionsOnResume();
+    }
+  }
+
+  Future<void> _checkPermissionsOnResume() async {
+    if (!Platform.isAndroid) return;
+    
+    final nativeService = Get.find<AppLockNativeService>();
+    final accessibility = await nativeService.isAccessibilityPermissionGranted();
+    final overlay = await nativeService.isOverlayPermissionGranted();
+    final battery = await nativeService.isBatteryOptimizationIgnored();
+    final usage = await nativeService.isUsageAccessPermissionGranted();
+
+    if (!accessibility || !overlay || !battery || !usage) {
+      Get.dialog(
+        AlertDialog(
+          backgroundColor: const Color(0xFFF7F4EE),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Permissions Required',
+            style: TextStyle(color: Color(0xFF1A1814), fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Focus Key needs Accessibility, Overlay, Battery, and Usage Access permissions to guard your locked apps properly. Please enable them to continue.',
+            style: TextStyle(color: const Color(0xFF1A1814).withOpacity(0.7)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Get.back();
+                Get.toNamed(Routes.enablePermissions);
+              },
+              child: const Text(
+                'Go to Settings',
+                style: TextStyle(color: Color(0xFFC4A97D), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        barrierDismissible: false,
+      );
     }
   }
 

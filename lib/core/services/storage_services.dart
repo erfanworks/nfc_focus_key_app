@@ -321,6 +321,15 @@ class StorageServices {
     }
   }
 
+  Future<void> setBoolValue(String key, bool value) async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(key, value);
+    } catch (e) {
+      errorLog("setBoolValue:$key", e);
+    }
+  }
+
   Future<String?> getValue(String key) async {
     try {
       final pref = await _pref;
