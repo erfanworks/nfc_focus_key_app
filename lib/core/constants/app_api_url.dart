@@ -139,7 +139,7 @@ class AppApiUrl {
 }
 
 String _getDomain() {
-  const String liveServer = "http://62.72.26.31:5002"; // 🔴live URL
+  const String liveServer = "http://195.35.6.13:5001"; // 🔴live URL
   // const String localServer = "http://10.10.7.10:5002"; // 🟡 local Server
 
   try {
