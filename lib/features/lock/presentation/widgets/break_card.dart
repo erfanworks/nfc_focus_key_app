@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/lock_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class BreakCard extends StatefulWidget {
   final LockController controller;
@@ -122,6 +123,11 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                 ],
               ),
               const Spacer(),
+              // Cancel button disabled — backend has no break-cancel/end-early
+              // endpoint yet. Breaks currently must run their full duration
+              // and end automatically. Uncomment this block if/when a
+              // cancel endpoint becomes available.
+              /*
               GestureDetector(
                 onTapDown: (_) {
                   widget.controller.isHoldingCancel.value = true;
@@ -183,6 +189,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+              */
             ],
           ),
         );
@@ -254,16 +261,41 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(height: 2.h),
-                          Text(
-                            '5 min • 2 left today',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 10.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF8A8278),
-                              height: 1.0,
-                              letterSpacing: 0.55,
-                            ),
-                          ),
+                          Obx(() {
+                            final friendsController = Get.find<FriendsController>();
+                            final nudge = friendsController.currentNudge.value;
+                            final isNudge = nudge != null && nudge.isActive;
+
+                            if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
+                              return Text(
+                                '— min • — left today',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFFB5AFA5),
+                                  height: 1.0,
+                                  letterSpacing: 0.55,
+                                ),
+                              );
+                            }
+
+                            final minutes = isNudge
+                                ? nudge!.breakDurationMinutes
+                                : widget.controller.personalBreakLengthMinutes.value;
+                            final left = isNudge
+                                ? nudge!.breaksRemaining
+                                : widget.controller.breaksLeft.value;
+                            return Text(
+                              '$minutes min • $left left today',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF8A8278),
+                                height: 1.0,
+                                letterSpacing: 0.55,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                       const Spacer(),

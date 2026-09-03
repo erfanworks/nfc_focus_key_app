@@ -36,11 +36,11 @@ class LockStatusPills extends StatelessWidget {
           //   border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           // ),
           child: Obx(() {
-            final modesController = Get.put<ModesController>(ModesController());
-            final selectedItem = modesController.modes.firstWhere(
-              (m) => m.title == mode,
-              orElse: () => modesController.modes.first,
-            );
+            final modesController = Get.isRegistered<ModesController>()
+                ? Get.find<ModesController>()
+                : Get.put<ModesController>(ModesController());
+            final selectedItem = modesController.modes.firstWhereOrNull((m) => m.title == mode) ??
+                ModeItem(mode, '', FKIcon.deepwork);
 
             return Row(
               mainAxisSize: MainAxisSize.min,

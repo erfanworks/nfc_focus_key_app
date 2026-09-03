@@ -8,11 +8,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 class HoldToLockCircle extends StatefulWidget {
   final bool isLocked;
   final VoidCallback onTrigger;
+  final bool isDisabled;
+  final VoidCallback? onDisabledTap;
 
   const HoldToLockCircle({
     super.key,
     required this.isLocked,
     required this.onTrigger,
+    this.isDisabled = false,
+    this.onDisabledTap,
   });
 
   @override
@@ -80,8 +84,8 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
     if (!widget.isLocked) {
       HapticFeedback.mediumImpact();
       _vibrationTimer = Timer.periodic(const Duration(milliseconds: 200), (
-        timer,
-      ) {
+          timer,
+          ) {
         HapticFeedback.mediumImpact();
       });
     }
@@ -104,6 +108,10 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
+        if (widget.isDisabled) {
+          widget.onDisabledTap?.call();
+          return;
+        }
         setState(() => _isPressed = true);
         _startVibration();
         _controller.forward();
@@ -125,79 +133,81 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
       child: AnimatedBuilder(
         animation: Listenable.merge([_controller, _splashController]),
         builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              if (_splashController.isAnimating)
-                Transform.scale(
-                  scale: _splashScale.value,
-                  child: Opacity(
-                    opacity: _splashOpacity.value,
-                    child: Container(
-                      width: 170.w,
-                      height: 170.w,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFC4A97D),
-                          width: 1.w,
+          return Opacity(
+              opacity: widget.isDisabled ? 0.5 : 1.0,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  if (_splashController.isAnimating)
+                    Transform.scale(
+                      scale: _splashScale.value,
+                      child: Opacity(
+                        opacity: _splashOpacity.value,
+                        child: Container(
+                          width: 170.w,
+                          height: 170.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFC4A97D),
+                              width: 1.w,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              AnimatedScale(
-                scale: _isPressed ? 0.965 : 1.0,
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeOutCubic,
-                child: SizedBox(
-                  width: 170.w,
-                  height: 170.w,
-                  child: CustomPaint(
-                    foregroundPainter: _CircleProgressPainter(
-                      progress: _controller.value,
-                      trackColor: const Color(0xFFE8E3DA),
-                      progressColor: const Color(0xFFC4A97D),
-                      radius: 75.w,
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: 150.w,
-                        height: 150.w,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF7F4EE),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0x33BD9F63),
-                              offset: const Offset(10, 10),
-                              blurRadius: 20.r,
-                            ),
-                            const BoxShadow(
-                              color: Color(0xFFFFFFFF),
-                              offset: Offset(-10, -10),
-                              blurRadius: 28,
-                            ),
-                          ],
+                  AnimatedScale(
+                    scale: _isPressed ? 0.965 : 1.0,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    child: SizedBox(
+                      width: 170.w,
+                      height: 170.w,
+                      child: CustomPaint(
+                        foregroundPainter: _CircleProgressPainter(
+                          progress: _controller.value,
+                          trackColor: const Color(0xFFE8E3DA),
+                          progressColor: const Color(0xFFC4A97D),
+                          radius: 75.w,
                         ),
                         child: Center(
-                          child: SvgPicture.string(
-                            widget.isLocked ? _lockSvg : _unlockSvg,
-                            width: 28.45.w,
-                            height: 28.45.w,
-                            colorFilter: const ColorFilter.mode(
-                              Color(0xFFC4A97D),
-                              BlendMode.srcIn,
+                          child: Container(
+                            width: 150.w,
+                            height: 150.w,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7F4EE),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0x33BD9F63),
+                                  offset: const Offset(10, 10),
+                                  blurRadius: 20.r,
+                                ),
+                                const BoxShadow(
+                                  color: Color(0xFFFFFFFF),
+                                  offset: Offset(-10, -10),
+                                  blurRadius: 28,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: SvgPicture.string(
+                                widget.isLocked ? _lockSvg : _unlockSvg,
+                                width: 28.45.w,
+                                height: 28.45.w,
+                                colorFilter: const ColorFilter.mode(
+                                  Color(0xFFC4A97D),
+                                  BlendMode.srcIn,
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ],
-          );
+                ],
+              ));
         },
       ),
     );

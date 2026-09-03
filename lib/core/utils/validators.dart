@@ -1,6 +1,13 @@
 import '../constants/app_strings.dart';
 
 class Validators {
+  static String? nameValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      return AppStrings.errorEmptyField;
+    }
+    return null;
+  }
+
   static String? emailValidator(String? value) {
     if (value == null || value.isEmpty) {
       return AppStrings.errorEmptyField;

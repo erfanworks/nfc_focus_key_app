@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 import '../controllers/settings_controller.dart';
 
 class EditInformationPage extends StatefulWidget {
@@ -172,14 +173,9 @@ class _EditInformationPageState extends State<EditInformationPage> {
           _settingsController.userContact.value = _contactController.text.trim();
           _settingsController.userEmail.value = _emailController.text.trim();
           Get.back();
-          Get.snackbar(
-            'Success',
-            'Information updated successfully.',
-            backgroundColor: const Color(0xFFF0EBE2),
-            colorText: const Color(0xFF1A1814),
-            snackPosition: SnackPosition.BOTTOM,
-            margin: EdgeInsets.all(20.w),
-            borderRadius: 14.r,
+          CustomSnackbar.show(
+            title: 'Success',
+            message: 'Information updated successfully.',
           );
         },
         borderRadius: BorderRadius.circular(90.r),

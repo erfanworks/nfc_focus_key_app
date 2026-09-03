@@ -41,7 +41,14 @@ class SignUpPage extends GetView<SignUpController> {
                   Text(AppStrings.dataStaysOnDevice, style: AppTextStyles.body),
                   SizedBox(height: 48.h),
 
-                  // Email Field
+                  // Name Field
+                  UnderlineTextField(
+                    label: 'NAME',
+                    hint: 'Enter your name',
+                    controller: controller.nameController,
+                    validator: Validators.nameValidator,
+                  ),
+                  SizedBox(height: 32.h),
                   UnderlineTextField(
                     label: 'EMAIL',
                     hint: 'you@example.com',

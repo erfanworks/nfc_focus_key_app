@@ -69,6 +69,17 @@ class _PairingScannerPageState extends State<PairingScannerPage> {
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    SizedBox(height: 20.h),
+                    // TEMPORARY DEBUG BUTTON
+                    // TextButton(
+                    //   onPressed: () async {
+                    //     await Get.find<PairingScannerController>().skipPairingForDebug();
+                    //   },
+                    //   child: Text(
+                    //     "Skip Pairing (Debug Only)",
+                    //     style: TextStyle(color: Colors.red.withOpacity(0.5), fontSize: 10),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

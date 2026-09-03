@@ -205,29 +205,42 @@ class BreakPage extends GetView<BreakController> {
             ),
 
             // Bottom Continue Button
+            // Bottom Continue Button
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
-              child: GestureDetector(
-                onTap: controller.onContinue,
-                child: Container(
-                  width: double.infinity,
-                  height: 56.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(28.r),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Continue',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFF7F4EE),
+              child: Obx(() {
+                final isSaving = controller.isSaving.value;
+                return GestureDetector(
+                  onTap: isSaving ? null : controller.onContinue,
+                  child: Container(
+                    width: double.infinity,
+                    height: 56.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(28.r),
+                    ),
+                    child: Center(
+                      child: isSaving
+                          ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE)),
+                        ),
+                      )
+                          : Text(
+                        'Continue',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF7F4EE),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
             ),
           ],
         ),

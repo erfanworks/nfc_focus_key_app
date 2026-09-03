@@ -6,7 +6,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/friends_controller.dart';
 
 class AddPartnerPage extends StatelessWidget {
-  AddPartnerPage({super.key});
+  AddPartnerPage({super.key}) {
+    controller.fetchAppUsers();
+  }
 
   final FriendsController controller = Get.find<FriendsController>();
 
@@ -36,27 +38,61 @@ class AddPartnerPage extends StatelessWidget {
               ),
               SizedBox(height: 32.h),
               Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    Column(
-                      children: controller.demoFriends
-                          .map(
-                            (friend) => _buildUserItem(
-                              friend.name,
-                              friend.handle,
-                              friend.initials,
-                              friend.isDarkAvatar,
-                              friend,
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    SizedBox(height: 48.h),
-                    _buildContactsSection(),
-                  ],
-                ),
+                child: Obx(() {
+                  if (controller.isLoadingAppUsers.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (controller.appUsers.isEmpty) {
+                    return ListView(
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        SizedBox(height: 48.h),
+                        // _buildContactsSection(),
+                      ],
+                    );
+                  }
+
+                  return ListView(
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      Column(
+                        children: controller.appUsers
+                            .map(
+                              (user) => _buildUserItem(
+                            user.name,
+                            user.userName,
+                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                            user.id.hashCode.isEven,
+                            user.id,
+                          ),
+                        )
+                            .toList(),
+                      ),
+                      SizedBox(height: 48.h),
+                      // _buildContactsSection(),
+                    ],
+                  );
+                }),
               ),
+              if (controller.addedFriends.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
+                  child: Center(
+                    child: TextButton(
+                      onPressed: () => Get.back(),
+                      child: Text(
+                        'See your friends list',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF1A1814),
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -105,9 +141,10 @@ class AddPartnerPage extends StatelessWidget {
           SizedBox(width: 8.w),
           Expanded(
             child: TextField(
+              onChanged: (value) => controller.fetchAppUsers(search: value),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Search by email...',
+                hintText: 'Search by email or handle...',
                 hintStyle: GoogleFonts.dmSans(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
@@ -127,12 +164,12 @@ class AddPartnerPage extends StatelessWidget {
   }
 
   Widget _buildUserItem(
-    String name,
-    String handle,
-    String initials,
-    bool isDarkAvatar,
-    FriendModel friend,
-  ) {
+      String name,
+      String handle,
+      String initials,
+      bool isDarkAvatar,
+      String userId,
+      ) {
     return Container(
       height: 69.h,
       decoration: const BoxDecoration(
@@ -182,7 +219,7 @@ class AddPartnerPage extends StatelessWidget {
                 ),
                 SizedBox(height: 0.h),
                 Text(
-                  handle,
+                  '@$handle',
                   style: GoogleFonts.dmSans(
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w300,
@@ -195,11 +232,11 @@ class AddPartnerPage extends StatelessWidget {
             ),
           ),
           Obx(() {
-            final isAdded = controller.isFriendAdded(friend.id);
+            final isAdded = controller.isFriendAdded(userId);
             return InkWell(
               onTap: () {
                 if (!isAdded) {
-                  controller.addFriend(friend);
+                  controller.addFriend(userId);
                 }
               },
               borderRadius: BorderRadius.circular(14.r),
@@ -234,56 +271,4 @@ class AddPartnerPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactsSection() {
-    return Column(
-      children: [
-        Text(
-          'Or add from contacts',
-          style: GoogleFonts.dmSans(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF8A8278),
-            height: 21 / 14,
-            letterSpacing: 0,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          'Only shows contacts who have FocusKey',
-          style: GoogleFonts.dmSans(
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w300,
-            color: const Color(0xFF8A8278),
-            height: 16.5 / 11,
-            letterSpacing: 0,
-          ),
-        ),
-        SizedBox(height: 24.h),
-        InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(24.r),
-          child: Container(
-            width: double.infinity,
-            height: 44.h,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24.r),
-              border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-            ),
-            child: Center(
-              child: Text(
-                'Allow contacts access',
-                style: GoogleFonts.dmSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF1A1814),
-                  height: 18 / 12,
-                  letterSpacing: 0,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }

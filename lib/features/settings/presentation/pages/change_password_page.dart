@@ -4,6 +4,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -16,6 +19,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,6 +27,39 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'Passwords do not match',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.changePassword,
+        body: {
+          "currentPassword": _currentPasswordController.text,
+          "newPassword": _newPasswordController.text,
+          "confirmPassword": _confirmPasswordController.text,
+        },
+      );
+
+      if (response != null && response["success"] == true) {
+        CustomSnackbar.show(
+          title: 'Success',
+          message: response["message"] ?? 'Password changed successfully',
+        );
+        Get.back();
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -45,22 +82,22 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                       label: 'Current Password',
                       controller: _currentPasswordController,
                     ),
-
-                    _buildDivider(),
                     SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
+                    SizedBox(height: 20.h),
                     _buildPasswordField(
                       label: 'New Password',
                       controller: _newPasswordController,
                     ),
-                    _buildDivider(),
-
                     SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
+                    SizedBox(height: 20.h),
                     _buildPasswordField(
                       label: 'Confirm Password',
                       controller: _confirmPasswordController,
                     ),
-
-                    _buildDivider(),
+                    SizedBox(height: 12.h),
+                    Container(height: 1.h, color: const Color(0xFFE8E3DA)),
                   ],
                 ),
               ),
@@ -160,10 +197,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
       child: InkWell(
-        onTap: () {
-          // TODO: Implement save password logic
-          Get.back();
-        },
+        onTap: _isLoading ? null : _changePassword,
         borderRadius: BorderRadius.circular(90.r),
         child: Container(
           width: double.infinity,
@@ -173,7 +207,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             borderRadius: BorderRadius.circular(90.r),
           ),
           child: Center(
-            child: Text(
+            child: _isLoading
+                ? SizedBox(
+              width: 20.w,
+              height: 20.w,
+              child: const CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFF7F4EE),
+              ),
+            )
+                : Text(
               'Save',
               style: GoogleFonts.dmSans(
                 fontSize: 16.sp,

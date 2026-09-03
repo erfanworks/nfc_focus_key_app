@@ -4,9 +4,51 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
 
-class LegalInformationPage extends StatelessWidget {
+class LegalInformationPage extends StatefulWidget {
   const LegalInformationPage({super.key});
+
+  @override
+  State<LegalInformationPage> createState() => _LegalInformationPageState();
+}
+
+class _LegalInformationPageState extends State<LegalInformationPage> {
+  bool _isLoading = true;
+  String _content = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchContent();
+  }
+
+  Future<void> _fetchContent() async {
+    final title = Get.parameters['title'] ?? 'Terms & Condition';
+
+    String url;
+    switch (title) {
+      case 'Privacy Policy':
+        url = AppApiUrl.instance.privacy;
+        break;
+      case 'About Us':
+        url = AppApiUrl.instance.about;
+        break;
+      case 'Terms & Condition':
+      default:
+        url = AppApiUrl.instance.terms;
+    }
+
+    try {
+      final response = await ApiServices.instance.getServices(url);
+      if (response != null && response["success"] == true) {
+        _content = response["data"]?["content"] ?? '';
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +63,9 @@ class LegalInformationPage extends StatelessWidget {
           children: [
             _buildHeader(title),
             Expanded(
-              child: SingleChildScrollView(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(horizontal: 20.w),
                 child: Column(
@@ -39,29 +83,7 @@ class LegalInformationPage extends StatelessWidget {
                       ),
                     ],
                     SizedBox(height: 24.h),
-                    _buildSectionTitle('1. Acceptance of Terms'),
-                    SizedBox(height: 16.h),
-                    _buildParagraph(
-                        'By accessing or using FocusKey, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions. Our service is designed to promote deep work and presence; your use of the platform signifies your commitment to these digital quietude principles.'),
-                    SizedBox(height: 16.h),
-                    _buildParagraph(
-                        'If you do not agree with any part of these terms, you are requested to discontinue use of the application immediately to preserve the integrity of your own focus.'),
-                    SizedBox(height: 24.h),
-                    _buildDivider(),
-                    SizedBox(height: 24.h),
-                    _buildSectionTitle('2. User Conduct'),
-                    SizedBox(height: 16.h),
-                    _buildParagraph(
-                        'FocusKey is a sanctuary for productivity. Users are expected to interact with the platform in a way that respects the intentional design of the software. This includes:'),
-                    SizedBox(height: 16.h),
-                    _buildBulletPoint(
-                        'Respecting the focus intervals and avoiding attempts to bypass the "Quiet Mode" restrictions.'),
-                    SizedBox(height: 12.h),
-                    _buildBulletPoint(
-                        'Using the \'Friends\' feature solely for collaborative accountability and encouragement.'),
-                    SizedBox(height: 12.h),
-                    _buildBulletPoint(
-                        'Refraining from any behavior that compromises the platform\'s security or performance.'),
+                    _buildParagraph(_content),
                     SizedBox(height: 32.h),
                   ],
                 ),
