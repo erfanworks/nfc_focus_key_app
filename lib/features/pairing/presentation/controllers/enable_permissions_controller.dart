@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/services/app_lock_native_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 
 class EnablePermissionsController extends GetxController with WidgetsBindingObserver {
@@ -43,7 +44,17 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
   Future<void> enableBatteryOptimization() => _native.requestIgnoreBatteryOptimization();
   Future<void> enableUsageAccess() => _native.requestUsageAccessPermission();
 
-  void continueToApp() => Get.offNamed(Routes.letsUnlock);
+  Future<void> continueToApp() async {
+    final isInitialSetupComplete = await StorageServices.instance.hasCompletedInitialSetup();
+    
+    if (isInitialSetupComplete) {
+      // Returning user: go straight to lock screen
+      Get.offAllNamed(Routes.lock);
+    } else {
+      // New user: follow the normal onboarding flow
+      Get.offNamed(Routes.letsUnlock);
+    }
+  }
 
   @override
   void onClose() {

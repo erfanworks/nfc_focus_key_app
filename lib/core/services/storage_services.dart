@@ -36,6 +36,7 @@ class StorageKey {
   final String isLockActive          = "is_lock_active";
   final String lockedApps            = "locked_apps";
   final String cachedReminderMessage = "cached_reminder_message";
+  final String completedInitialSetup = "completedInitialSetup";
 }
 
 class StorageServices {
@@ -285,6 +286,25 @@ class StorageServices {
       return pref.getBool(StorageKey.instance.completedOnboarding) ?? false;
     } catch (e) {
       errorLog("hasCompletedOnboarding", e);
+      return false;
+    }
+  }
+
+  Future<void> setCompletedInitialSetup() async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(StorageKey.instance.completedInitialSetup, true);
+    } catch (e) {
+      errorLog("setCompletedInitialSetup", e);
+    }
+  }
+
+  Future<bool> hasCompletedInitialSetup() async {
+    try {
+      final pref = await _pref;
+      return pref.getBool(StorageKey.instance.completedInitialSetup) ?? false;
+    } catch (e) {
+      errorLog("hasCompletedInitialSetup", e);
       return false;
     }
   }

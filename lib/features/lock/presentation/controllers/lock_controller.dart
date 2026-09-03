@@ -197,22 +197,35 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
       final activeBreak = breakStats["activeBreak"] ?? breakStats["activeNudgeBreak"];
       if (activeBreak != null) {
-        try {
-          final end = DateTime.parse(activeBreak["endTime"]);
-          final remaining = end.difference(DateTime.now()).inSeconds;
-          if (remaining > 0) {
-            isOnBreak.value = true;
-            breakSeconds.value = remaining;
-            _startBreakTimer();
-          } else {
-            isOnBreak.value = false;
-          }
-        } catch (_) {}
+        final status = activeBreak["status"] as String?;
+        final remainingSeconds = activeBreak["remainingSeconds"] as int?;
+
+        if (status == "paused") {
+          isOnBreak.value = true;
+          isBreakPaused.value = true;
+          breakSeconds.value = remainingSeconds ?? 0;
+          _breakTimer?.cancel();
+        } else {
+          try {
+            final remaining = remainingSeconds ??
+                DateTime.parse(activeBreak["endTime"]).difference(DateTime.now()).inSeconds;
+            if (remaining > 0) {
+              isOnBreak.value = true;
+              isBreakPaused.value = false;
+              breakSeconds.value = remaining;
+              _startBreakTimer();
+            } else {
+              isOnBreak.value = false;
+              isBreakPaused.value = false;
+            }
+          } catch (_) {}
+        }
       } else {
         isOnBreak.value = false;
+        isBreakPaused.value = false;
       }
 
-      if (isLocked.value && activeModeId != null && !isOnBreak.value) {
+      if (isLocked.value && activeModeId != null && (!isOnBreak.value || isBreakPaused.value)) {
         await _ensureNativeLockApplied(activeModeId!);
       }
 
@@ -267,7 +280,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!isOnBreak.value) {
+      if (!isOnBreak.value || isBreakPaused.value) {
         sessionSeconds.value++;
       }
     });
@@ -392,12 +405,71 @@ class LockController extends GetxController with WidgetsBindingObserver {
     await Get.find<AppLockNativeService>().deactivateLock();
   }
 
-  void toggleBreakPause() {
-    isBreakPaused.value = !isBreakPaused.value;
-    if (isBreakPaused.value) {
+  Future<void> pauseBreak() async {
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.breakPause,
+      );
+
+      if (response == null || response["success"] != true) {
+        CustomSnackbar.show(
+          title: "Error",
+          message: response?["message"] ?? "Could not pause break.",
+          isError: true,
+        );
+        return;
+      }
+
+      final data = response["data"];
+      final remaining = data["remainingSeconds"] as int? ?? breakSeconds.value;
+
       _breakTimer?.cancel();
-    } else {
+      isBreakPaused.value = true;
+      breakSeconds.value = remaining;
+
+      if (activeModeId != null) {
+        unawaited(Get.find<AppLockNativeService>().activateLock(
+          modeId: activeModeId!,
+          androidPackageNames: _activePackageNames,
+        ));
+      }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Error",
+        message: "Network error. Please try again.",
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> resumeBreak() async {
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.breakResum,
+      );
+
+      if (response == null || response["success"] != true) {
+        CustomSnackbar.show(
+          title: "Error",
+          message: response?["message"] ?? "Could not resume break.",
+          isError: true,
+        );
+        return;
+      }
+
+      final data = response["data"];
+      final remaining = data["remainingSeconds"] as int? ?? breakSeconds.value;
+
+      isBreakPaused.value = false;
+      breakSeconds.value = remaining;
       _startBreakTimer();
+      unawaited(Get.find<AppLockNativeService>().deactivateLock());
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Error",
+        message: "Network error. Please try again.",
+        isError: true,
+      );
     }
   }
 

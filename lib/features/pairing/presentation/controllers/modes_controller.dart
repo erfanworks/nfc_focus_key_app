@@ -173,6 +173,7 @@ class ModesController extends GetxController {
         },
       );
     } else {
+      StorageServices.instance.setCompletedInitialSetup();
       Get.offAllNamed(Routes.lock);
     }
   }
