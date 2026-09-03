@@ -18,12 +18,18 @@ class BreakCard extends StatefulWidget {
 
 class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   late AnimationController _activateController;
+  late AnimationController _cancelController;
   Timer? _vibrationTimer;
+
 
   @override
   void initState() {
     super.initState();
     _activateController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+    _cancelController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
@@ -36,13 +42,22 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         _activateController.reset();
       }
     });
+
+    _cancelController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _stopVibration();
+        HapticFeedback.vibrate();
+        widget.controller.endBreak();
+        _cancelController.reset();
+        widget.controller.isHoldingCancel.value = false;
+      }
+    });
   }
 
   void _startVibration() {
     _vibrationTimer?.cancel();
     HapticFeedback.vibrate();
-    _vibrationTimer =
-        Timer.periodic(const Duration(milliseconds: 200), (timer) {
+    _vibrationTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       HapticFeedback.vibrate();
     });
   }
@@ -56,6 +71,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   void dispose() {
     _stopVibration();
     _activateController.dispose();
+    _cancelController.dispose();
     super.dispose();
   }
 
@@ -63,21 +79,129 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Obx(() {
       if (widget.controller.isOnBreak.value) {
-        return Obx(() {
-          if (widget.controller.isBreakPaused.value) {
-            return _PausedBreakCard(controller: widget.controller);
-          }
-          return _ActiveBreakCard(controller: widget.controller);
-        });
+        return Container(
+          width: 337.w,
+          height: 52.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0EBE2),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+          ),
+          child: Row(
+            children: [
+              // No icon! (Removed coffee cup as per feedback)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        'Break ends in ',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF1A1814),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        widget.controller.formattedBreakTime,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFC4A97D),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                ],
+              ),
+              const Spacer(),
+              // Cancel button disabled — backend has no break-cancel/end-early
+              // endpoint yet. Breaks currently must run their full duration
+              // and end automatically. Uncomment this block if/when a
+              // cancel endpoint becomes available.
+              /*
+              GestureDetector(
+                onTapDown: (_) {
+                  widget.controller.isHoldingCancel.value = true;
+                  _startVibration();
+                  _cancelController.forward();
+                },
+                onTapUp: (_) {
+                  _stopVibration();
+                  widget.controller.isHoldingCancel.value = false;
+                  if (_cancelController.status != AnimationStatus.completed) {
+                    _cancelController.reverse();
+                  }
+                },
+                onTapCancel: () {
+                  _stopVibration();
+                  widget.controller.isHoldingCancel.value = false;
+                  if (_cancelController.status != AnimationStatus.completed) {
+                    _cancelController.reverse();
+                  }
+                },
+                child: SizedBox(
+                  width: 36.w,
+                  height: 36.w,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 36.w,
+                        height: 36.w,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFE8E3DA),
+                            width: 1.5.w,
+                          ),
+                        ),
+                      ),
+                      AnimatedBuilder(
+                        animation: _cancelController,
+                        builder: (context, child) {
+                          return CircularProgressIndicator(
+                            value: widget.controller.isHoldingCancel.value
+                                ? _cancelController.value
+                                : 0.0,
+                            strokeWidth: 1.5.w,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFC4A97D),
+                            ),
+                            backgroundColor: Colors.transparent,
+                          );
+                        },
+                      ),
+                      Icon(
+                        Icons.close_rounded,
+                        color: const Color(0xFFC4A97D),
+                        size: 18.sp,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              */
+            ],
+          ),
+        );
       }
 
       final friendsController = Get.find<FriendsController>();
       final nudge = friendsController.currentNudge.value;
       final isNudge = nudge != null && nudge.isActive;
-      final isLoadingSettings =
-          !isNudge && widget.controller.isLoadingBreakSettings.value;
-      final breaksLeft =
-          isNudge ? nudge.breaksRemaining : widget.controller.breaksLeft.value;
+      final isLoadingSettings = !isNudge && widget.controller.isLoadingBreakSettings.value;
+      final breaksLeft = isNudge
+          ? nudge!.breaksRemaining
+          : widget.controller.breaksLeft.value;
 
       if (!isLoadingSettings && breaksLeft <= 0) {
         return _buildNoBreaksLeftCard();
@@ -121,8 +245,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                     animation: _activateController,
                     builder: (context, child) {
                       return FractionalTranslation(
-                        translation:
-                            Offset(_activateController.value - 1.0, 0.0),
+                        translation: Offset(_activateController.value - 1.0, 0.0),
                         child: Container(
                           color: const Color(0xFFE5DDD0),
                         ),
@@ -134,6 +257,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                   padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Row(
                     children: [
+                      // No icon! (Removed phone dotted line as per feedback)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -150,13 +274,11 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                           ),
                           SizedBox(height: 2.h),
                           Obx(() {
-                            final friendsController =
-                                Get.find<FriendsController>();
+                            final friendsController = Get.find<FriendsController>();
                             final nudge = friendsController.currentNudge.value;
                             final isNudge = nudge != null && nudge.isActive;
 
-                            if (!isNudge &&
-                                widget.controller.isLoadingBreakSettings.value) {
+                            if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
                               return Text(
                                 '— min • — left today',
                                 style: GoogleFonts.dmSans(
@@ -170,11 +292,10 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                             }
 
                             final minutes = isNudge
-                                ? nudge.breakDurationMinutes
-                                : widget.controller.personalBreakLengthMinutes
-                                    .value;
+                                ? nudge!.breakDurationMinutes
+                                : widget.controller.personalBreakLengthMinutes.value;
                             final left = isNudge
-                                ? nudge.breaksRemaining
+                                ? nudge!.breaksRemaining
                                 : widget.controller.breaksLeft.value;
                             return Text(
                               '$minutes min • $left left today',
@@ -205,7 +326,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
       );
     });
   }
-
   Widget _buildNoBreaksLeftCard() {
     return Container(
       width: 337.w,
@@ -252,280 +372,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ─── INTERNAL WIDGETS (PRO STYLE) ──────────────────────────────────────────
-
-class _ActiveBreakCard extends StatelessWidget {
-  final LockController controller;
-  const _ActiveBreakCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final left = controller.breaksLeft.value;
-      return Container(
-        width: 337.w,
-        height: 82.h,
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF0EBE2),
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-        ),
-        child: Row(
-          children: [
-            _buildCoffeeIcon(),
-            SizedBox(width: 14.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Break ends in',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF1A1814),
-                    ),
-                  ),
-                  Text(
-                    controller.formattedBreakTime,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFC4A97D),
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    '$left break${left == 1 ? '' : 's'} left this session',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF8A8278),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _PauseHoldButton(controller: controller),
-          ],
-        ),
-      );
-    });
-  }
-
-  Widget _buildCoffeeIcon() {
-    return Container(
-      width: 42.w,
-      height: 42.w,
-      decoration: const BoxDecoration(
-        color: Color(0xFFE8E3DA),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.coffee_outlined,
-        color: const Color(0xFF8A8278),
-        size: 20.sp,
-      ),
-    );
-  }
-}
-
-class _PausedBreakCard extends StatelessWidget {
-  final LockController controller;
-  const _PausedBreakCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() => Container(
-      width: 337.w,
-      height: 82.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0EBE2),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-      ),
-      child: Row(
-        children: [
-          _buildCoffeeIcon(),
-          SizedBox(width: 14.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Break paused',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF1A1814),
-                  ),
-                ),
-                Text(
-                  controller.formattedBreakTime,
-                  style: GoogleFonts.dmSans(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8A8278),
-                    height: 1.1,
-                  ),
-                ),
-                Text(
-                  'Apps are currently locked',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF8A8278),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: controller.resumeBreak,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1814),
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                'Resume',
-                style: GoogleFonts.dmSans(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFFF7F4EE),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ));
-  }
-
-  Widget _buildCoffeeIcon() {
-    return Container(
-      width: 42.w,
-      height: 42.w,
-      decoration: const BoxDecoration(
-        color: Color(0xFFE8E3DA),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.coffee_outlined,
-        color: const Color(0xFF8A8278).withOpacity(0.5),
-        size: 20.sp,
-      ),
-    );
-  }
-}
-
-class _PauseHoldButton extends StatefulWidget {
-  final LockController controller;
-  const _PauseHoldButton({required this.controller});
-
-  @override
-  State<_PauseHoldButton> createState() => _PauseHoldButtonState();
-}
-
-class _PauseHoldButtonState extends State<_PauseHoldButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _holdController;
-  Timer? _vibrationTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _holdController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _holdController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _stopVibration();
-        HapticFeedback.vibrate();
-        widget.controller.pauseBreak();
-        _holdController.reset();
-      }
-    });
-  }
-
-  void _startVibration() {
-    _vibrationTimer?.cancel();
-    HapticFeedback.vibrate();
-    _vibrationTimer =
-        Timer.periodic(const Duration(milliseconds: 200), (_) {
-      HapticFeedback.vibrate();
-    });
-  }
-
-  void _stopVibration() {
-    _vibrationTimer?.cancel();
-    _vibrationTimer = null;
-  }
-
-  @override
-  void dispose() {
-    _stopVibration();
-    _holdController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        _startVibration();
-        _holdController.forward();
-      },
-      onTapUp: (_) {
-        _stopVibration();
-        if (_holdController.status != AnimationStatus.completed) {
-          _holdController.reverse();
-        }
-      },
-      onTapCancel: () {
-        _stopVibration();
-        if (_holdController.status != AnimationStatus.completed) {
-          _holdController.reverse();
-        }
-      },
-      child: SizedBox(
-        width: 44.w,
-        height: 44.w,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 44.w,
-              height: 44.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFE8E3DA), width: 1.5.w),
-              ),
-            ),
-            AnimatedBuilder(
-              animation: _holdController,
-              builder: (context, child) => CircularProgressIndicator(
-                value: _holdController.value,
-                strokeWidth: 2.w,
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFFC4A97D)),
-                backgroundColor: Colors.transparent,
-              ),
-            ),
-            Icon(Icons.pause_rounded, color: const Color(0xFFC4A97D), size: 22.sp),
-          ],
-        ),
       ),
     );
   }

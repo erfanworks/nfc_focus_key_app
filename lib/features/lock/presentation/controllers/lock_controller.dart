@@ -46,10 +46,10 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Phase 1: Immediate hydration from local cache to prevent UI lag/flicker
     _hydrateFromLocalCache();
-    
+
     // Phase 2: Background sync with server
     fetchLockStatus();
     _fetchPersonalBreakLength();
@@ -61,12 +61,12 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final localLockActive = await StorageServices.instance.isLockActive();
       final localModeId = await StorageServices.instance.getActiveModeId();
       final localModeName = await StorageServices.instance.getActiveModeName();
-      
+
       if (localLockActive) {
         isLocked.value = true;
         if (localModeId != null) activeModeId = localModeId;
         if (localModeName != null) selectedMode.value = localModeName;
-        
+
         // Restore timer if we have a start time cached
         final startTimeStr = await StorageServices.instance.getValue("session_start_time");
         if (startTimeStr != null && startTimeStr.isNotEmpty) {
@@ -92,7 +92,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _checkPermissionsOnResume() async {
     if (!Platform.isAndroid) return;
-    
+
     final nativeService = Get.find<AppLockNativeService>();
     final accessibility = await nativeService.isAccessibilityPermissionGranted();
     final overlay = await nativeService.isOverlayPermissionGranted();
@@ -179,7 +179,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final activeSessionData = data["activeSession"];
       final serverLocked = activeSessionData != null;
       isLocked.value = serverLocked;
-      
+
       // Sync local cache with server truth
       await StorageServices.instance.setLockActive(serverLocked);
 
@@ -197,35 +197,22 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
       final activeBreak = breakStats["activeBreak"] ?? breakStats["activeNudgeBreak"];
       if (activeBreak != null) {
-        final status = activeBreak["status"] as String?;
-        final remainingSeconds = activeBreak["remainingSeconds"] as int?;
-
-        if (status == "paused") {
-          isOnBreak.value = true;
-          isBreakPaused.value = true;
-          breakSeconds.value = remainingSeconds ?? 0;
-          _breakTimer?.cancel();
-        } else {
-          try {
-            final remaining = remainingSeconds ??
-                DateTime.parse(activeBreak["endTime"]).difference(DateTime.now()).inSeconds;
-            if (remaining > 0) {
-              isOnBreak.value = true;
-              isBreakPaused.value = false;
-              breakSeconds.value = remaining;
-              _startBreakTimer();
-            } else {
-              isOnBreak.value = false;
-              isBreakPaused.value = false;
-            }
-          } catch (_) {}
-        }
+        try {
+          final end = DateTime.parse(activeBreak["endTime"]);
+          final remaining = end.difference(DateTime.now()).inSeconds;
+          if (remaining > 0) {
+            isOnBreak.value = true;
+            breakSeconds.value = remaining;
+            _startBreakTimer();
+          } else {
+            isOnBreak.value = false;
+          }
+        } catch (_) {}
       } else {
         isOnBreak.value = false;
-        isBreakPaused.value = false;
       }
 
-      if (isLocked.value && activeModeId != null && (!isOnBreak.value || isBreakPaused.value)) {
+      if (isLocked.value && activeModeId != null && !isOnBreak.value) {
         await _ensureNativeLockApplied(activeModeId!);
       }
 
@@ -280,7 +267,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!isOnBreak.value || isBreakPaused.value) {
+      if (!isOnBreak.value) {
         sessionSeconds.value++;
       }
     });
@@ -398,78 +385,19 @@ class LockController extends GetxController with WidgetsBindingObserver {
     isOnBreak.value = true;
     isBreakPaused.value = false;
     breakSeconds.value = seconds;
-    
+
 
     _startBreakTimer();
 
     await Get.find<AppLockNativeService>().deactivateLock();
   }
 
-  Future<void> pauseBreak() async {
-    try {
-      final response = await ApiServices.instance.postServices(
-        url: AppApiUrl.instance.breakPause,
-      );
-
-      if (response == null || response["success"] != true) {
-        CustomSnackbar.show(
-          title: "Error",
-          message: response?["message"] ?? "Could not pause break.",
-          isError: true,
-        );
-        return;
-      }
-
-      final data = response["data"];
-      final remaining = data["remainingSeconds"] as int? ?? breakSeconds.value;
-
+  void toggleBreakPause() {
+    isBreakPaused.value = !isBreakPaused.value;
+    if (isBreakPaused.value) {
       _breakTimer?.cancel();
-      isBreakPaused.value = true;
-      breakSeconds.value = remaining;
-
-      if (activeModeId != null) {
-        unawaited(Get.find<AppLockNativeService>().activateLock(
-          modeId: activeModeId!,
-          androidPackageNames: _activePackageNames,
-        ));
-      }
-    } catch (e) {
-      CustomSnackbar.show(
-        title: "Error",
-        message: "Network error. Please try again.",
-        isError: true,
-      );
-    }
-  }
-
-  Future<void> resumeBreak() async {
-    try {
-      final response = await ApiServices.instance.postServices(
-        url: AppApiUrl.instance.breakResum,
-      );
-
-      if (response == null || response["success"] != true) {
-        CustomSnackbar.show(
-          title: "Error",
-          message: response?["message"] ?? "Could not resume break.",
-          isError: true,
-        );
-        return;
-      }
-
-      final data = response["data"];
-      final remaining = data["remainingSeconds"] as int? ?? breakSeconds.value;
-
-      isBreakPaused.value = false;
-      breakSeconds.value = remaining;
+    } else {
       _startBreakTimer();
-      unawaited(Get.find<AppLockNativeService>().deactivateLock());
-    } catch (e) {
-      CustomSnackbar.show(
-        title: "Error",
-        message: "Network error. Please try again.",
-        isError: true,
-      );
     }
   }
 
@@ -537,8 +465,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
         if (tagId == pairedId) {
           await HapticFeedback.vibrate();
-          
-          // CRITICAL: Always deactivate locally first if key matches, 
+
+          // CRITICAL: Always deactivate locally first if key matches,
           // regardless of internet status.
           await _deactivateMode(activeModeId ?? 'offline_fallback');
           return;
@@ -614,7 +542,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final modeDetails = await ApiServices.instance.getServices(
         AppApiUrl.instance.updateMoodById(modeId),
       );
-      
+
       List<String> packageNames = [];
       if (modeDetails != null && modeDetails["success"] == true) {
         final lockedAppsJson = (modeDetails["data"]?["lockedApps"] as List?) ?? [];
@@ -639,7 +567,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
     isLocked.value = true;
     sessionSeconds.value = 0;
     _startTimer();
-    
+
     // Persist for offline resilience and lag-free loading
     await StorageServices.instance.setLockActive(true);
     await StorageServices.instance.setActiveModeId(modeId);
@@ -653,7 +581,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
 
       if (response == null || response["success"] != true) {
-        // If not a network error (e.g. invalid mode), revert. 
+        // If not a network error (e.g. invalid mode), revert.
         if (response != null && response["message"] != "Check your internet connection.") {
           isLocked.value = false;
           activeModeId = null;
@@ -687,12 +615,12 @@ class LockController extends GetxController with WidgetsBindingObserver {
     activeModeId = null;
     unawaited(_stopTimer());
     endBreak();
-    
+
     // Update local storage first
     await StorageServices.instance.setLockActive(false);
     await StorageServices.instance.setActiveModeId(null);
     await StorageServices.instance.setActiveModeName(null);
-    
+
     // Deactivate native shield immediately
     await Get.find<AppLockNativeService>().deactivateLock();
     _nativeLockAppliedForModeId = null;

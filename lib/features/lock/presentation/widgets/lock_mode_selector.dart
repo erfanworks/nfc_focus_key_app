@@ -81,7 +81,7 @@ class LockModeSelector extends StatelessWidget {
         elevation: 0,
         child: Container(
           width: 320.w,
-          padding: EdgeInsets.all(24.w),
+          padding: EdgeInsets.all(20.w),
           decoration: BoxDecoration(
             color: const Color(0xFFF7F4EE),
             borderRadius: BorderRadius.circular(24.r),
@@ -93,17 +93,18 @@ class LockModeSelector extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: modesController.modes.length,
-                itemBuilder: (context, index) {
-                  return _buildDialogItem(modesController.modes[index]);
-                },
-              ),
-            ],
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.5,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: modesController.modes.length,
+              itemBuilder: (context, index) {
+                return _buildDialogItem(modesController.modes[index]);
+              },
+            ),
           ),
         ),
       ),
