@@ -4,6 +4,11 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_services.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
+import '../../../../routes/app_routes.dart';
 
 class DeleteAccountPage extends StatefulWidget {
   const DeleteAccountPage({super.key});
@@ -14,11 +19,42 @@ class DeleteAccountPage extends StatefulWidget {
 
 class _DeleteAccountPageState extends State<DeleteAccountPage> {
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_passwordController.text.isEmpty) {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'Please enter your password',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiServices.instance.deleteServices(
+        url: AppApiUrl.instance.deleteAccount,
+        body: {"password": _passwordController.text},
+      );
+
+      if (response != null && response["success"] == true) {
+        await StorageServices.instance.logout();
+        CustomSnackbar.show(
+          title: 'Success',
+          message: response["message"] ?? 'Profile deleted successfully',
+        );
+        Get.offAllNamed(Routes.login);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -146,9 +182,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
   Widget _buildDeleteButton() {
     return InkWell(
-      onTap: () {
-        // Implement delete account logic here
-      },
+      onTap: _isLoading ? null : _deleteAccount,
       borderRadius: BorderRadius.circular(90.r),
       child: Container(
         width: double.infinity,
@@ -158,7 +192,16 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           borderRadius: BorderRadius.circular(90.r),
         ),
         child: Center(
-          child: Text(
+          child: _isLoading
+              ? SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFFF7F4EE),
+            ),
+          )
+              : Text(
             'Permanently Delete Account',
             style: GoogleFonts.dmSans(
               fontSize: 16.sp,

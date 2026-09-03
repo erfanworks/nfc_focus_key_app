@@ -1,0 +1,149 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:focus_key/core/services/storage_services.dart';
+import 'package:get/get.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import '../../routes/app_routes.dart';
+import '../constants/app_api_url.dart';
+import '../utils/log_print.dart';
+import 'non_auth_api.dart';
+
+class AppApi {
+  AppApi._privateConstructor() {
+    _initDio();
+  }
+  static final AppApi _instance = AppApi._privateConstructor();
+  static AppApi get instance => _instance;
+
+  final Dio _dio = Dio();
+  final _storage = StorageServices.instance;
+
+  void _initDio() {
+    _dio.options
+      ..baseUrl = AppApiUrl.instance.baseUrl
+      ..connectTimeout = const Duration(seconds: 120)
+      ..sendTimeout = const Duration(seconds: 120)
+      ..receiveTimeout = const Duration(seconds: 120)
+      ..followRedirects = false;
+
+    _dio.interceptors.addAll([
+      InterceptorsWrapper(
+        onRequest: _onRequest,
+        onError: _onError,
+      ),
+      if (kDebugMode)
+        PrettyDioLogger(
+          requestHeader: true,
+          request: true,
+          compact: true,
+          error: true,
+          requestBody: true,
+          responseHeader: true,
+          responseBody: true,
+        ),
+    ]);
+  }
+
+  // ==================== Request Interceptor ====================
+  Future<void> _onRequest(
+      RequestOptions options,
+      RequestInterceptorHandler handler,
+      ) async {
+    options.baseUrl = AppApiUrl.instance.baseUrl;
+    options.contentType = 'application/json';
+    options.headers["Accept"] = "application/json";
+
+    final hasCustomAuth = options.headers.containsKey("Authorization") &&
+        (options.headers["Authorization"] as String? ?? "").isNotEmpty;
+
+    if (!hasCustomAuth) {
+      final token = await _storage.getToken();
+      if (token.isNotEmpty) {
+        options.headers["Authorization"] = "Bearer $token";
+      }
+    }
+
+    return handler.next(options);
+  }
+
+  // ==================== Error Interceptor ====================
+  Future<void> _onError(
+      DioException error,
+      ErrorInterceptorHandler handler,
+      ) async {
+    appLog("""
+API Error ►
+  Status  : ${error.response?.statusCode}
+  Message : ${error.message}
+  URL     : ${error.requestOptions.path}
+""");
+
+    if (error.response?.statusCode == 401) {
+      await _handle401(error, handler);
+      return;
+    }
+
+    return handler.next(error);
+  }
+
+  // ==================== 401 Handler ====================
+  Future<void> _handle401(
+      DioException error,
+      ErrorInterceptorHandler handler,
+      ) async {
+    try {
+      final refreshToken = await _storage.getRefreshToken();
+
+      if (refreshToken.isEmpty) {
+        await _logoutAndRedirect();
+        return handler.next(error);
+      }
+
+      final newAccessToken = await reFreshNewAccessToken(refreshToken);
+
+      if (newAccessToken.isNotEmpty) {
+        _dio.options.headers["Authorization"] = "Bearer $newAccessToken";
+        final retryResponse = await _dio.fetch(error.requestOptions);
+        return handler.resolve(retryResponse);
+      } else {
+        await _logoutAndRedirect();
+        return handler.next(error);
+      }
+    } catch (e) {
+      errorLog("_handle401", e);
+      return handler.next(error);
+    }
+  }
+
+  // ==================== Logout Helper ====================
+  Future<void> _logoutAndRedirect() async {
+    await _storage.logout();
+    Get.offAllNamed(Routes.login); // 🔴 Replace with your login route
+  }
+
+  Dio get sendRequest => _dio;
+}
+
+// ==================== Token Refresh ====================
+Future<String> reFreshNewAccessToken(String refreshToken) async {
+  try {
+    final response = await NonAuthApi.instance.sendRequest.post(
+      AppApiUrl.instance.refreshToken,
+      data: {"token": refreshToken},
+    );
+
+    if (response.statusCode == 200) {
+      final data = response.data?["data"];
+      if (data is Map && data["accessToken"] is String) {
+        final newToken = data["accessToken"] as String;
+        await StorageServices.instance.setToken(newToken);
+        return newToken;
+      }
+    } else {
+      await StorageServices.instance.logout();
+    }
+  } catch (e) {
+    errorLog("reFreshNewAccessToken", e);
+  }
+  return "";
+}

@@ -1,6 +1,8 @@
 import 'package:focus_key/features/pairing/presentation/bindings/new_mode_binding.dart';
+import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
+import '../features/settings/presentation/pages/total_focus_apps_page.dart';
 import 'app_routes.dart';
 import '../features/auth/presentation/bindings/auth_binding.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -38,7 +40,8 @@ import '../features/pairing/presentation/bindings/break_binding.dart';
 import '../features/pairing/presentation/pages/break_page.dart';
 import '../features/pairing/presentation/bindings/dashboard_binding.dart';
 import '../features/pairing/presentation/pages/dashboard_page.dart';
-
+import 'package:focus_key/features/notifications/presentation/binding/notification_binding.dart';
+import 'package:focus_key/features/settings/presentation/bindings/export_data_dinding.dart';
 import 'package:focus_key/features/settings/presentation/pages/personal_reminder_page.dart';
 import 'package:focus_key/features/settings/presentation/pages/focus_history_page.dart';
 import 'package:focus_key/features/settings/presentation/pages/export_data_page.dart';
@@ -159,13 +162,25 @@ class AppPages {
       name: Routes.personalReminder,
       page: () => const PersonalReminderPage(),
     ),
-    GetPage(name: Routes.focusHistory, page: () => const FocusHistoryPage()),
-    GetPage(name: Routes.exportData, page: () => const ExportDataPage()),
+    GetPage(name: Routes.focusHistory, page: () => FocusHistoryPage()),
+    GetPage(
+      name: Routes.exportData,
+      page: () => const ExportDataPage(),
+      binding: ExportDataBinding(),
+    ),
     GetPage(name: Routes.keyStatus, page: () => KeyStatusPage()),
     GetPage(name: Routes.addPartner, page: () => AddPartnerPage()),
     GetPage(name: Routes.friendDetails, page: () => const FriendDetailsPage()),
-    GetPage(name: Routes.notification, page: () => const NotificationPage()),
-    GetPage(name: Routes.joinFocus, page: () => const JoinFocusPage()),
+    GetPage(
+      name: Routes.notification,
+      page: () => const NotificationPage(),
+      binding: NotificationBinding(),
+    ),
+    GetPage(
+      name: Routes.joinFocus,
+      page: () => const JoinFocusPage(),
+      binding: NotificationBinding(),
+    ),
     GetPage(
       name: Routes.changePassword,
       page: () => const ChangePasswordPage(),
@@ -178,13 +193,19 @@ class AppPages {
       name: Routes.editInformation,
       page: () => const EditInformationPage(),
     ),
-    GetPage(
-      name: Routes.deleteAccount,
-      page: () => const DeleteAccountPage(),
-    ),
+    GetPage(name: Routes.deleteAccount, page: () => const DeleteAccountPage()),
     GetPage(
       name: Routes.legalInformation,
       page: () => const LegalInformationPage(),
     ),
+
+    GetPage(
+      name: Routes.totalFocusApps,
+      page: () => const TotalFocusAppsPage(),
+    ),
+
+
+
+    GetPage(name: Routes.nfcUidDebugPage, page: () => const NfcUidDebugPage()),
   ];
 }

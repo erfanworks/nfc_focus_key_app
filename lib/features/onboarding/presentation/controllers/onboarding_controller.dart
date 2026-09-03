@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../core/services/storage_service.dart';
 
@@ -19,7 +20,7 @@ class OnboardingController extends GetxController {
   }
 
   void finishOnboarding() {
-    StorageService.setCompletedOnboarding();
+    StorageServices.instance.setCompletedOnboarding();
     Get.offAllNamed(Routes.focusMessage);
   }
 }

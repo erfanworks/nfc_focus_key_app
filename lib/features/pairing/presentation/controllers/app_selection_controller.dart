@@ -1,73 +1,171 @@
+import 'dart:typed_data';
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
+import 'package:installed_apps/installed_apps.dart';
+import 'package:installed_apps/app_info.dart';
+
 import '../../../../routes/app_routes.dart';
-import '../controllers/modes_controller.dart';
 import '../../../../core/widgets/focus_icons.dart';
+import '../../../../core/services/api_service.dart';
+import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
+import '../controllers/modes_controller.dart';
 
 class AppItem {
+  final String packageName;
   final String name;
-  final String iconPath;
-  RxBool isSelected;
+  final Uint8List? icon;
 
-  AppItem({required this.name, required this.iconPath, bool isSelected = false})
-    : isSelected = isSelected.obs;
+  AppItem({required this.packageName, required this.name, this.icon});
 }
 
 class AppSelectionController extends GetxController {
-  final apps = <AppItem>[
-    AppItem(
-      name: 'TikTok',
-      iconPath: 'assets/icons/tiktok.svg',
-      isSelected: true,
-    ),
-    AppItem(
-      name: 'Instagram',
-      iconPath: 'assets/icons/instagram.svg',
-      isSelected: true,
-    ),
-    AppItem(name: 'YouTube', iconPath: 'assets/icons/youtube.svg'),
-    AppItem(name: 'X', iconPath: 'assets/icons/x.svg'),
-    AppItem(name: 'Reddit', iconPath: 'assets/icons/reddit.svg'),
-    AppItem(name: 'Snapchat', iconPath: 'assets/icons/snapchat.svg'),
-    AppItem(name: 'Telegram', iconPath: 'assets/icons/telegram.svg'),
-    AppItem(name: 'Facebook', iconPath: 'assets/icons/facebook.svg'),
-    AppItem(name: 'WhatsApp', iconPath: 'assets/icons/whatsapp.svg'),
-  ].obs;
+  final apps = <AppItem>[].obs;
+  final isLoading = true.obs;
+  final isSubmitting = false.obs;
+
+  final selectedForBlock = <String>{}.obs;
+  final selectedForAllowOnly = <String>{}.obs;
 
   final isBlockMode = true.obs;
 
-  int get selectedCount => apps.where((app) => app.isSelected.value).length;
+  Map<String, dynamic>? _args;
+  String? _modeId;
 
-  void toggleApp(int index) {
-    apps[index].isSelected.value = !apps[index].isSelected.value;
+  @override
+  void onInit() {
+    super.onInit();
+    _args = Get.arguments as Map<String, dynamic>?;
+    _modeId = _args?['modeId'] as String?;
+    _loadInstalledApps();
+  }
+
+  Future<void> _loadInstalledApps() async {
+    try {
+      isLoading.value = true;
+      final List<AppInfo> installed = await InstalledApps.getInstalledApps(
+        excludeSystemApps: true,
+        withIcon: true,
+      );
+
+      apps.value = installed
+          .map((a) => AppItem(
+        packageName: a.packageName,
+        name: a.name,
+        icon: a.icon,
+      ))
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "App Load Error",
+        message: "Failed to fetch installed apps from this device.",
+        isError: true,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  RxSet<String> get _activeSelection =>
+      isBlockMode.value ? selectedForBlock : selectedForAllowOnly;
+
+  bool isSelected(String packageName) =>
+      _activeSelection.contains(packageName);
+
+  int get selectedCount => _activeSelection.length;
+
+  void toggleApp(String packageName) {
+    if (_activeSelection.contains(packageName)) {
+      _activeSelection.remove(packageName);
+    } else {
+      _activeSelection.add(packageName);
+    }
   }
 
   void setBlockMode(bool val) {
     isBlockMode.value = val;
   }
 
-  void onDone() {
-    final args = Get.arguments as Map<String, dynamic>?;
-    final isEditMode = args?['isEditMode'] == true;
+  String _iconToString(FKIcon icon) => icon.name;
 
-    if (!isEditMode && args != null) {
-      try {
-        final modesController = Get.find<ModesController>();
-        modesController.addMode(
-          ModeItem(
-            args['modeName'] ?? 'Custom Mode',
-            args['description'] ?? 'Custom blocklist',
-            args['icon'] as FKIcon,
-          ),
-        );
-      } catch (_) {}
+  List<Map<String, String>> _computeLockedApps() {
+    if (isBlockMode.value) {
+      return apps
+          .where((a) => selectedForBlock.contains(a.packageName))
+          .map((a) => {"packageName": a.packageName, "appName": a.name})
+          .toList();
+    }
+    return apps
+        .where((a) => !selectedForAllowOnly.contains(a.packageName))
+        .map((a) => {"packageName": a.packageName, "appName": a.name})
+        .toList();
+  }
+
+  Future<void> onDone() async {
+    if (isSubmitting.value) return;
+
+    final isEditMode = _args?['isEditMode'] == true;
+    if (isEditMode && (_modeId == null || _modeId!.isEmpty)) {
+      CustomSnackbar.show(
+        title: "Update Error",
+        message: "Missing mode identifier. Please try again.",
+        isError: true,
+      );
+      return;
     }
 
-    if (isEditMode) {
-      // Get.until((route) => route.settings.name == Routes.lock);
+    try {
+      isSubmitting.value = true;
+
+      final body = {
+        "name": _args?['modeName'] ?? 'Custom Mode',
+        "description": _args?['description'] ?? 'Custom blocklist',
+        "icon": _iconToString(_args?['icon'] as FKIcon? ?? FKIcon.values.first),
+        "lockedApps": _computeLockedApps(),
+      };
+
+      final response = isEditMode
+          ? await ApiServices.instance.putServices(
+        url: AppApiUrl.instance.updateMoodById(_modeId!),
+        body: body,
+      )
+          : await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.createMood,
+        body: body,
+      );
+
+      if (response == null || response["success"] != true) {
+        CustomSnackbar.show(
+          title: "Save Failed",
+          message: response?["message"] ?? "Could not save focus mode details.",
+          isError: true,
+        );
+        return;
+      }
+
+      CustomSnackbar.show(
+        title: isEditMode ? "Mode Updated" : "Mode Created",
+        message: "\"${body['name']}\" is ready to use.",
+      );
+
+      // World-class experience: delay before closing
+      await Future.delayed(const Duration(milliseconds: 1200));
       Get.close(2);
-    } else {
-      // Get.until((route) => route.settings.name == Routes.modes);
-      Get.close(2);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          Get.find<ModesController>().fetchModes();
+        } catch (_) {}
+      });
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Connection Issue",
+        message: "Failed to save mode. Please check your internet.",
+        isError: true,
+      );
+    } finally {
+      isSubmitting.value = false;
     }
   }
 }

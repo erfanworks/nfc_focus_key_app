@@ -3,14 +3,43 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:focus_key/routes/app_routes.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
+import '../controller/notification_controller.dart';
+import '../../../friends/presentation/controllers/friends_controller.dart';
 
-class JoinFocusPage extends StatelessWidget {
+class JoinFocusPage extends StatefulWidget {
   const JoinFocusPage({super.key});
 
   @override
+  State<JoinFocusPage> createState() => _JoinFocusPageState();
+}
+
+class _JoinFocusPageState extends State<JoinFocusPage> {
+  bool _isJoining = false;
+
+  @override
   Widget build(BuildContext context) {
+    final args = Get.arguments as Map<String, dynamic>? ?? {};
+    final nudgeId = args['nudgeId'] as String?;
+    final modeId = args['modeId'] as String?;
+    final creatorId = args['creatorId'] as String?;
+    final breaksPerDay = args['breaksPerDay'] as int? ?? 3;
+    final breakDurationMinutes = args['breakDurationMinutes'] as int? ?? 10;
+    final participantIds = (args['participantIds'] as List?)?.cast<String>() ?? [];
+
+    String hostName = 'A friend';
+    String hostInitials = '?';
+    if (creatorId != null && Get.isRegistered<FriendsController>()) {
+      final friend = Get.find<FriendsController>()
+          .addedFriends
+          .firstWhereOrNull((f) => f.id == creatorId);
+      if (friend != null) {
+        hostName = friend.name;
+        hostInitials = friend.initials;
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -19,10 +48,10 @@ class JoinFocusPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildAvatar(),
+              _buildAvatar(hostInitials),
               SizedBox(height: 24.h),
               Text(
-                'Ethan is focusing.',
+                '$hostName is focusing.',
                 style: GoogleFonts.cormorantGaramond(
                   fontSize: 22.sp,
                   fontStyle: FontStyle.italic,
@@ -45,7 +74,7 @@ class JoinFocusPage extends StatelessWidget {
               ),
               SizedBox(height: 16.h),
               Text(
-                'Available for the next 8 minutes.',
+                'This focus session is active now.',
                 style: GoogleFonts.dmSans(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w300,
@@ -56,18 +85,44 @@ class JoinFocusPage extends StatelessWidget {
               ),
               SizedBox(height: 48.h),
               _buildPrimaryButton(
-                text: 'Tap to join',
-                onTap: () {
+                text: _isJoining ? 'Joining...' : 'Tap to join',
+                onTap: _isJoining
+                    ? null
+                    : () async {
+                  if (nudgeId == null || modeId == null) {
+                    CustomSnackbar.show(
+                      title: 'Error',
+                      message: 'Invalid nudge invitation',
+                      isError: true,
+                    );
+                    return;
+                  }
 
-                 Get.toNamed(Routes.modes);
+                  setState(() => _isJoining = true);
+                  final success = await Get.find<NotificationController>().joinNudge(
+                    nudgeId: nudgeId,
+                    modeId: modeId,
+                    breaksPerDay: breaksPerDay,
+                    breakDurationMinutes: breakDurationMinutes,
+                    participantIds: participantIds,
+                  );
+                  setState(() => _isJoining = false);
+
+                  if (success) {
+                    Get.toNamed(Routes.modes);
+                  } else {
+                    CustomSnackbar.show(
+                      title: 'Error',
+                      message: 'Failed to join focus session',
+                      isError: true,
+                    );
+                  }
                 },
               ),
               SizedBox(height: 16.h),
               _buildSecondaryButton(
                 text: 'Not now',
-                onTap: () {
-                  Get.back();
-                },
+                onTap: () => Get.back(),
               ),
             ],
           ),
@@ -76,7 +131,7 @@ class JoinFocusPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(String initials) {
     return SizedBox(
       width: 48.w,
       height: 48.w,
@@ -91,7 +146,7 @@ class JoinFocusPage extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                'JK',
+                initials,
                 style: GoogleFonts.dmSans(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w500,
@@ -120,7 +175,7 @@ class JoinFocusPage extends StatelessWidget {
 
   Widget _buildPrimaryButton({
     required String text,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return InkWell(
       onTap: onTap,

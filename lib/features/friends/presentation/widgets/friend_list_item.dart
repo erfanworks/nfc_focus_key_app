@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/widgets/custom_snackbar.dart';
 
 class FriendListItem extends StatelessWidget {
   final String name;
@@ -9,6 +10,9 @@ class FriendListItem extends StatelessWidget {
   final String status;
   final bool isFocusing;
   final VoidCallback? onTap;
+  final VoidCallback? onSelectToggle;
+  final bool isSelected;
+  final String? disabledMessage;
 
   const FriendListItem({
     super.key,
@@ -18,6 +22,9 @@ class FriendListItem extends StatelessWidget {
     required this.status,
     required this.isFocusing,
     this.onTap,
+    this.onSelectToggle,
+    this.isSelected = false,
+    this.disabledMessage,
   });
 
   @override
@@ -98,11 +105,66 @@ class FriendListItem extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: const Color(0xFFB5AFA5),
-              size: 20.sp,
-            ),
+            onSelectToggle != null
+                ? GestureDetector(
+                    onTap: () {
+                      if (disabledMessage != null) {
+                        CustomSnackbar.show(
+                          title: 'Focus session active',
+                          message: disabledMessage!,
+                          isError: true,
+                        );
+                        return;
+                      }
+                      if (isFocusing) {
+                        CustomSnackbar.show(
+                          title: 'Busy right now',
+                          message:
+                              '$name is in a focus session and can\'t be nudged yet.',
+                          isError: true,
+                        );
+                        return;
+                      }
+                      onSelectToggle!();
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      width: 22.w,
+                      height: 22.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected
+                            ? const Color(0xFF1A1814)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: (isFocusing || disabledMessage != null)
+                              ? const Color(0xFFE8E3DA)
+                              : isSelected
+                                  ? const Color(0xFF1A1814)
+                                  : const Color(0xFFB5AFA5),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check_rounded,
+                              size: 14.sp,
+                              color: const Color(0xFFF7F4EE),
+                            )
+                          : (isFocusing || disabledMessage != null)
+                              ? Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: 12.sp,
+                                  color: const Color(0xFFB5AFA5),
+                                )
+                              : null,
+                    ),
+                  )
+                : Icon(
+                    Icons.chevron_right_rounded,
+                    color: const Color(0xFFB5AFA5),
+                    size: 20.sp,
+                  ),
           ],
         ),
       ),
