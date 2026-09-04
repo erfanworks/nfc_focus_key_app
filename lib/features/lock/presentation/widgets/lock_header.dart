@@ -117,9 +117,8 @@ class LockHeader extends StatelessWidget {
 
     if (focusingFriendNames.isEmpty) return const SizedBox.shrink();
 
-    final String displayNames = focusingFriendNames.length > 1
-        ? '${focusingFriendNames[0]} and ${focusingFriendNames.length - 1} others'
-        : focusingFriendNames.first;
+    final String displayNames = _formatParticipantNames(focusingFriendNames);
+    final bool isPlural = focusingFriendNames.length > 1;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -148,7 +147,7 @@ class LockHeader extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Flexible(
                     child: Text(
-                      '$displayNames are also focusing',
+                      '$displayNames ${isPlural ? 'are' : 'is'} focusing',
                       style: GoogleFonts.dmSans(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,

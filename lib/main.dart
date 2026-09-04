@@ -18,9 +18,7 @@ import 'routes/app_routes.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Background/terminated-state FCM messages must be handled by a
   // top-level function registered before runApp().
@@ -45,7 +43,8 @@ Future<void> main() async {
 }
 
 Future<String> _resolveInitialRoute() async {
-  final hasCompletedOnboarding = await StorageServices.instance.hasCompletedOnboarding();
+  final hasCompletedOnboarding = await StorageServices.instance
+      .hasCompletedOnboarding();
   if (!hasCompletedOnboarding) return Routes.splash;
 
   final token = await StorageServices.instance.getToken();
@@ -57,6 +56,7 @@ Future<String> _resolveInitialRoute() async {
 
 class MyApp extends StatelessWidget {
   final String initialRoute;
+
   const MyApp({super.key, required this.initialRoute});
 
   @override
@@ -84,14 +84,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
 
 // import 'package:device_preview/device_preview.dart';
 // import 'package:firebase_core/firebase_core.dart';
