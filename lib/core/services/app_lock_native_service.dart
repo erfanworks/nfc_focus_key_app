@@ -83,10 +83,36 @@ class AppLockNativeService extends GetxService {
     }
   }
 
-  Future<int> presentIOSAppPicker(String modeId) async {
-    if (!Platform.isIOS) return 0;
-    final count = await _channel.invokeMethod<int>('presentAppPicker', {'modeId': modeId});
-    return count ?? 0;
+  Future<Map<String, int>> presentIOSAppPicker(String modeId) async {
+    if (!Platform.isIOS) return {"apps": 0, "categories": 0};
+    try {
+      final result = await _channel.invokeMapMethod<String, int>('presentAppPicker', {'modeId': modeId});
+      if (result != null) {
+        return {
+          "apps": result["apps"] ?? 0,
+          "categories": result["categories"] ?? 0,
+        };
+      }
+    } catch (e) {
+      print("Error presenting iOS app picker: $e");
+    }
+    return {"apps": 0, "categories": 0};
+  }
+
+  Future<Map<String, int>> getIOSSelectedCounts(String modeId) async {
+    if (!Platform.isIOS) return {"apps": 0, "categories": 0};
+    try {
+      final result = await _channel.invokeMapMethod<String, int>('getSelectedCounts', {'modeId': modeId});
+      if (result != null) {
+        return {
+          "apps": result["apps"] ?? 0,
+          "categories": result["categories"] ?? 0,
+        };
+      }
+    } catch (e) {
+      print("Error fetching iOS selection counts: $e");
+    }
+    return {"apps": 0, "categories": 0};
   }
 
   Future<void> applyIOSShield(String modeId) async {
