@@ -426,6 +426,39 @@ class LockController extends GetxController with WidgetsBindingObserver {
     }
   }
 
+  Future<void> stopBreak() async {
+    try {
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.breakCancel,
+      );
+
+      if (response == null || response["success"] != true) {
+        CustomSnackbar.show(
+          title: "Break Error",
+          message: response?["message"] ?? "Could not stop your break.",
+          isError: true,
+        );
+        return;
+      }
+
+      await endBreak();
+
+      CustomSnackbar.show(
+        title: "Break Stopped",
+        message: "Apps are now locked again.",
+      );
+
+      // Sync remaining breaks and state from server
+      fetchLockStatus();
+    } catch (e) {
+      CustomSnackbar.show(
+        title: "Error",
+        message: "A network error occurred. Please try again.",
+        isError: true,
+      );
+    }
+  }
+
   String get formattedBreakTime {
     final minutes = breakSeconds.value ~/ 60;
     final seconds = breakSeconds.value % 60;

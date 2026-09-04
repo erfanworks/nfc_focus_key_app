@@ -49,8 +49,9 @@ class AppApiUrl {
   final String breakStatus = "/breaks/status";
   final String breakRemaining = "/breaks/remaining";
   // new add
-  final String breakPause = "/breaks/pause"; // POST METHOD
-  final String breakResum = "/breaks/resume"; // POST METHOD
+  final String breakCancel = "/breaks/stop";
+
+
 
 
 
