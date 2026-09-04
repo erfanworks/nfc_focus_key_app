@@ -98,14 +98,23 @@ class NewModePage extends GetView<NewModeController> {
                                     ),
                                   ),
                                   child: Center(
-                                    child: Text(
-                                      'Delete mode',
-                                      style: GoogleFonts.dmSans(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFFC0392B),
-                                      ),
-                                    ),
+                                    child: Obx(() => controller.isDeleting.value
+                                        ? SizedBox(
+                                            width: 20.w,
+                                            height: 20.w,
+                                            child: const CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Color(0xFFC0392B),
+                                            ),
+                                          )
+                                        : Text(
+                                            'Delete mode',
+                                            style: GoogleFonts.dmSans(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: const Color(0xFFC0392B),
+                                            ),
+                                          )),
                                   ),
                                 ),
                               ),

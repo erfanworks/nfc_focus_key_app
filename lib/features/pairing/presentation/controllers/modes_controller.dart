@@ -111,7 +111,13 @@ class ModesController extends GetxController {
 
       final data = response["data"];
       final List<dynamic> modesJson = data?["modes"] ?? [];
-      if (modesJson.isEmpty) return;
+      
+      // If server returns empty list, update local state
+      if (modesJson.isEmpty) {
+        modes.clear();
+        _saveModes();
+        return;
+      }
 
       modes.value = modesJson
           .map((e) => ModeItem.fromApi(e as Map<String, dynamic>))

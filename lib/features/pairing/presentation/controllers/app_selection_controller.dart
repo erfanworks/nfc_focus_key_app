@@ -31,8 +31,9 @@ class AppSelectionController extends GetxController {
 
   final isBlockMode = true.obs;
 
-  // iOS-only state — FamilyActivityPicker returns a count, not names.
+  // iOS-only state
   final iosSelectedAppsCount = 0.obs;
+  final iosSelectedCategoriesCount = 0.obs;
   final isIOSBusy = false.obs;
 
   Map<String, dynamic>? _args;
@@ -47,16 +48,73 @@ class AppSelectionController extends GetxController {
     _modeId = _args?['modeId'] as String?;
 
     if (Platform.isIOS) {
-      isLoading.value = false;
-      iosSelectedAppsCount.value = (_args?['totalLockedApps'] as int?) ?? 0;
+      if (isEditMode && _modeId != null) {
+        _loadInitialDataIOS();
+      } else {
+        isLoading.value = false;
+        iosSelectedAppsCount.value = (_args?['totalLockedApps'] as int?) ?? 0;
+      }
     } else {
-      _loadInstalledApps();
+      /*
+      [START NEW CHANGE - Performance Optimization]
+      Calling _loadInitialData which handles parallel loading for better performance.
+      */
+      _loadInitialData();
+      /* [END NEW CHANGE] */
+    }
+  }
+
+  Future<void> _loadInitialDataIOS() async {
+    try {
+      isLoading.value = true;
+      await _fetchIOSSelectionCounts();
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _fetchIOSSelectionCounts() async {
+    if (_modeId == null) return;
+    final counts = await Get.find<AppLockNativeService>().getIOSSelectedCounts(_modeId!);
+    iosSelectedAppsCount.value = counts["apps"] ?? 0;
+    iosSelectedCategoriesCount.value = counts["categories"] ?? 0;
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      isLoading.value = true;
+      
+      // Parallel execution: Load apps and fetch selections at the same time
+      await Future.wait([
+        _loadInstalledApps(),
+        if (isEditMode && _modeId != null) _fetchExistingSelections(),
+      ]);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> _fetchExistingSelections() async {
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.updateMoodById(_modeId!),
+      );
+
+      if (response != null && response["success"] == true) {
+        final List? lockedApps = response["data"]?["lockedApps"];
+        if (lockedApps != null) {
+          final packageNames = lockedApps.map((e) => e["packageName"] as String).toList();
+          selectedForBlock.addAll(packageNames);
+        }
+      }
+    } catch (e) {
+      print("Error fetching existing selections: $e");
     }
   }
 
   Future<void> _loadInstalledApps() async {
     try {
-      isLoading.value = true;
+      // Fetching apps with icons is heavy, but we've parallelized it with the API call
       final List<AppInfo> installed = await InstalledApps.getInstalledApps(
         excludeSystemApps: true,
         withIcon: true,
@@ -76,8 +134,6 @@ class AppSelectionController extends GetxController {
         message: "Failed to fetch installed apps from this device.",
         isError: true,
       );
-    } finally {
-      isLoading.value = false;
     }
   }
 
@@ -142,8 +198,9 @@ class AppSelectionController extends GetxController {
         if (!created) return;
       }
 
-      final count = await native.presentIOSAppPicker(_modeId!);
-      iosSelectedAppsCount.value = count;
+      final counts = await native.presentIOSAppPicker(_modeId!);
+      iosSelectedAppsCount.value = counts["apps"] ?? 0;
+      iosSelectedCategoriesCount.value = counts["categories"] ?? 0;
     } finally {
       isIOSBusy.value = false;
     }
@@ -196,12 +253,14 @@ class AppSelectionController extends GetxController {
     try {
       isSubmitting.value = true;
 
+      final totalCount = iosSelectedAppsCount.value + iosSelectedCategoriesCount.value;
+
       final body = {
         "name": _args?['modeName'] ?? 'Custom Mode',
         "description": _args?['description'] ?? 'Custom blocklist',
         "icon": _iconToString(_args?['icon'] as FKIcon? ?? FKIcon.values.first),
         "lockedApps": [],
-        "totalLockedApps": iosSelectedAppsCount.value,
+        "totalLockedApps": totalCount,
       };
 
       final response = await ApiServices.instance.patchServices(

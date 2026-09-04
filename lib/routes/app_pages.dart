@@ -39,6 +39,7 @@ import '../features/pairing/presentation/bindings/customize_modes_binding.dart';
 import '../features/pairing/presentation/pages/new_mode_page.dart';
 import '../features/pairing/presentation/bindings/app_selection_binding.dart';
 import '../features/pairing/presentation/pages/app_selection_page.dart';
+import '../features/pairing/presentation/pages/select_mode_page.dart';
 import '../features/pairing/presentation/bindings/modes_binding.dart';
 import '../features/pairing/presentation/pages/modes_page.dart';
 import '../features/pairing/presentation/bindings/break_binding.dart';
@@ -155,6 +156,11 @@ class AppPages {
     GetPage(
       name: Routes.modes,
       page: () => const ModesPage(),
+      binding: ModesBinding(),
+    ),
+    GetPage(
+      name: Routes.selectMode,
+      page: () => const SelectModePage(),
       binding: ModesBinding(),
     ),
     GetPage(

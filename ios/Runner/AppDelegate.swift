@@ -60,9 +60,20 @@ import UIKit
           result(FlutterError(code: "MISSING_ARG", message: "modeId required", details: nil))
           return
         }
-        AppLockManager.shared.presentAppPicker(modeId: modeId, from: rootVC) { count in
-          result(count)
+        AppLockManager.shared.presentAppPicker(modeId: modeId, from: rootVC) { appsCount, categoriesCount in
+          result([
+            "apps": appsCount,
+            "categories": categoriesCount
+          ])
         }
+
+      case "getSelectedCounts":
+        guard let args = call.arguments as? [String: Any],
+              let modeId = args["modeId"] as? String else {
+          result(FlutterError(code: "MISSING_ARG", message: "modeId required", details: nil))
+          return
+        }
+        result(AppLockManager.shared.getSelectedCounts(modeId: modeId))
 
       case "applyShield":
         guard let args = call.arguments as? [String: Any],

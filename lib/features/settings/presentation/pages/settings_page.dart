@@ -74,6 +74,12 @@ class SettingsPage extends GetView<SettingsController> {
                       ],
                     ),
                   ),
+                  /*
+                  [START NEW CHANGE - Remove MODES from Settings]
+                  As per client request, modes are now managed directly from the Focus screen.
+                  Removed this section to simplify settings.
+                  */
+                  /*
                   SizedBox(height: 24.h),
                   _AnimatedEntrance(delay: 350, child: _buildSectionHeader('MODES')),
                   Builder(builder: (_) {
@@ -125,6 +131,8 @@ class SettingsPage extends GetView<SettingsController> {
                       );
                     });
                   }),
+                  */
+                  /* [END NEW CHANGE - MODES Section Removed] */
                   SizedBox(height: 24.h),
                   _AnimatedEntrance(delay: 500, child: _buildSectionHeader('FOCUS')),
                   Obx(() {

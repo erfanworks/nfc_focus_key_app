@@ -22,6 +22,7 @@ abstract class Routes {
   static const String appSelection = '/app-selection';
   static const String modes = '/modes';
   static const String takeBreak = '/take-break';
+  static const String selectMode = '/select-mode';
 
   static const String personalReminder = '/personal-reminder';
   static const String focusHistory = '/focus-history';

@@ -15,6 +15,10 @@ class AppLockManager {
         "locked_apps_selection_\(modeId)"
     }
 
+    private var defaults: UserDefaults {
+        UserDefaults(suiteName: appGroupId) ?? .standard
+    }
+
     func requestAuthorization(completion: @escaping (Bool, String?) -> Void) {
         Task {
             do {
@@ -30,17 +34,33 @@ class AppLockManager {
         AuthorizationCenter.shared.authorizationStatus == .approved
     }
 
-    func presentAppPicker(modeId: String, from rootViewController: UIViewController, completion: @escaping (Int) -> Void) {
+    func presentAppPicker(modeId: String, from rootViewController: UIViewController, completion: @escaping (Int, Int) -> Void) {
         let existingSelection = loadSelection(for: modeId)
+
+        var isDisposed = false
+
         let pickerView = AppPickerView(selection: existingSelection) { [weak self] newSelection in
-            guard let self = self else { return }
+            guard let self = self, !isDisposed else { return }
+            isDisposed = true
+
             self.saveSelection(newSelection, for: modeId)
-            rootViewController.dismiss(animated: true) {
-                completion(newSelection.applicationTokens.count + newSelection.categoryTokens.count)
-            }
+
+            // Return results immediately to Flutter so the loader stops
+            completion(newSelection.applicationTokens.count, newSelection.categoryTokens.count)
+
+            rootViewController.dismiss(animated: true)
         }
+
         let hostingController = UIHostingController(rootView: pickerView)
         rootViewController.present(hostingController, animated: true)
+    }
+
+    func getSelectedCounts(modeId: String) -> [String: Int] {
+        let selection = loadSelection(for: modeId)
+        return [
+            "apps": selection.applicationTokens.count,
+            "categories": selection.categoryTokens.count
+        ]
     }
 
     func applyShield(modeId: String) {
@@ -56,21 +76,19 @@ class AppLockManager {
         store.shield.applicationCategories = nil
     }
 
-        func cacheReminderMessage(_ message: String) {
-            let defaults = UserDefaults(suiteName: appGroupId)
-            defaults?.set(message, forKey: "cached_reminder_message")
-        }
+    func cacheReminderMessage(_ message: String) {
+        defaults.set(message, forKey: "cached_reminder_message")
+    }
 
     private func saveSelection(_ selection: FamilyActivitySelection, for modeId: String) {
-        let defaults = UserDefaults(suiteName: appGroupId)
         if let data = try? PropertyListEncoder().encode(selection) {
-            defaults?.set(data, forKey: selectionKey(for: modeId))
+            defaults.set(data, forKey: selectionKey(for: modeId))
+            defaults.synchronize()
         }
     }
 
     private func loadSelection(for modeId: String) -> FamilyActivitySelection {
-        let defaults = UserDefaults(suiteName: appGroupId)
-        if let data = defaults?.data(forKey: selectionKey(for: modeId)),
+        if let data = defaults.data(forKey: selectionKey(for: modeId)),
            let decoded = try? PropertyListDecoder().decode(FamilyActivitySelection.self, from: data) {
             return decoded
         }
