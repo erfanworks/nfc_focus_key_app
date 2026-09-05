@@ -47,6 +47,16 @@ class SelectModePage extends GetView<ModesController> {
       body: SafeArea(
         child: Column(
           children: [
+            Obx(() {
+              if (controller.isLoading.value && controller.modes.isNotEmpty) {
+                return const LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                );
+              }
+              return SizedBox(height: 2.h);
+            }),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value && controller.modes.isEmpty) {
@@ -156,45 +166,47 @@ class SelectModePage extends GetView<ModesController> {
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Get.toNamed(
-                  Routes.newMode,
-                  arguments: {
-                    'modeId': mode.id,
-                    'modeName': mode.title,
-                    'totalLockedApps': mode.totalLockedApps,
-                    'isEditMode': true,
-                  },
-                );
-              },
-              child: Container(
-                width: 36.w,
-                height: 36.w,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected ? const Color(0xFFC4A97D) : const Color(0xFFE8E3DA),
-                    width: 1.w,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1A1814).withOpacity(isSelected ? 0.08 : 0.04),
-                      blurRadius: isSelected ? 6 : 4,
-                      offset: const Offset(0, 2),
+            Obx(() {
+              final isNavigating = controller.navigatingEditModeId.value == mode.id;
+              return GestureDetector(
+                onTap: isNavigating ? null : () => controller.onEditMode(mode),
+                child: Container(
+                  width: 36.w,
+                  height: 36.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFFC4A97D) : const Color(0xFFE8E3DA),
+                      width: 1.w,
                     ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.edit_outlined,
-                    color: const Color(0xFFC4A97D),
-                    size: 16.sp,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF1A1814).withOpacity(isSelected ? 0.08 : 0.04),
+                        blurRadius: isSelected ? 6 : 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: isNavigating
+                        ? SizedBox(
+                            width: 16.w,
+                            height: 16.w,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                            ),
+                          )
+                        : Icon(
+                            Icons.edit_outlined,
+                            color: const Color(0xFFC4A97D),
+                            size: 16.sp,
+                          ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ],
         ),
       ),
@@ -257,32 +269,46 @@ class SelectModePage extends GetView<ModesController> {
   Widget _buildAddNewButton() {
     return Padding(
       padding: EdgeInsets.all(20.w),
-      child: GestureDetector(
-        onTap: () => Get.toNamed(Routes.newMode),
-        child: Container(
-          width: double.infinity,
-          height: 56.h,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1814),
-            borderRadius: BorderRadius.circular(28.r),
+      child: Obx(() {
+        final isNavigating = controller.isNavigatingNewMode.value;
+        return GestureDetector(
+          onTap: isNavigating ? null : controller.onAddNewMode,
+          child: Container(
+            width: double.infinity,
+            height: 56.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1814),
+              borderRadius: BorderRadius.circular(28.r),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isNavigating)
+                  SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Colors.white),
+                    ),
+                  )
+                else ...[
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20.sp),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Add new mode',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_rounded, color: Colors.white, size: 20.sp),
-              SizedBox(width: 8.w),
-              Text(
-                'Add new mode',
-                style: GoogleFonts.dmSans(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../../../core/services/nfc_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
+import '../../../../core/utils/log_print.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
@@ -74,10 +75,13 @@ class LockController extends GetxController with WidgetsBindingObserver {
             final start = DateTime.parse(startTimeStr);
             sessionSeconds.value = DateTime.now().difference(start).inSeconds;
             _startTimer();
-          } catch (_) {}
+          } catch (e) {
+      errorLog("LockController._ensureNativeLockApplied", e);
+    }
         }
       }
-    } catch (_) {
+    } catch (e) {
+      errorLog("LockController._hydrateFromLocalCache", e);
       // Hydration should never crash the app
     }
   }
@@ -147,7 +151,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
       if (response == null || response["success"] != true) return;
       personalBreakLengthMinutes.value =
           response["data"]?["breakDurationMinutes"] ?? 5;
-    } catch (_) {
+    } catch (e) {
+      errorLog("LockController._fetchPersonalBreakLength", e);
     } finally {
       isLoadingBreakSettings.value = false;
     }
@@ -207,7 +212,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
           } else {
             isOnBreak.value = false;
           }
-        } catch (_) {}
+        } catch (e) {
+      errorLog("LockController._ensureNativeLockApplied", e);
+    }
       } else {
         isOnBreak.value = false;
       }
@@ -222,6 +229,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
         unawaited(_stopTimer());
       }
     } catch (e) {
+      errorLog("LockController.fetchLockStatus", e);
       // Keep local state on error
     } finally {
       isLoadingStatus.value = false;
@@ -251,7 +259,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
             _startTimer();
             return;
           }
-        } catch (_) {}
+        } catch (e) {
+      errorLog("LockController._ensureNativeLockApplied", e);
+    }
       }
       final elapsedMinutes = activeSession['elapsedMinutes'];
       if (elapsedMinutes is int) {
@@ -380,7 +390,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
         final end = DateTime.parse(endTime);
         seconds = end.difference(start).inSeconds;
       }
-    } catch (_) {}
+    } catch (e) {
+      errorLog("LockController._ensureNativeLockApplied", e);
+    }
 
     isOnBreak.value = true;
     isBreakPaused.value = false;
@@ -563,7 +575,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
       if (response == null || response["success"] != true) return false;
       await StorageServices.instance.savePairedKeyId(tagId);
       return true;
-    } catch (_) {
+    } catch (e) {
+      errorLog("LockController._verifyKeyWithBackend", e);
       return false;
     }
   }
@@ -591,7 +604,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
         androidPackageNames: packageNames,
       );
       _nativeLockAppliedForModeId = modeId;
-    } catch (_) {}
+    } catch (e) {
+      errorLog("LockController._ensureNativeLockApplied", e);
+    }
   }
 
   Future<void> _activateMode(String modeId) async {
@@ -636,6 +651,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
         message: 'Your device is now locked. Scan your NFC key to unlock.',
       );
     } catch (e) {
+      errorLog("LockController._activateMode", e);
       // On network exception, we keep the local lock active (Offline Mode)
     } finally {
       isTogglingLock.value = false;
@@ -660,10 +676,30 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
     try {
       isTogglingLock.value = true;
-      // Background sync: Try to tell the server we unlocked
-      await ApiServices.instance.patchServices(
-        url: AppApiUrl.instance.toggleModeActivation(modeId),
-      );
+      
+      // Check if we are in a Nudge session
+      final friendsController = Get.find<FriendsController>();
+      final nudge = friendsController.currentNudge.value;
+      final isNudgeActive = nudge != null && nudge.isActive && nudge.nudgeId != null;
+
+      if (isNudgeActive) {
+        // If it's a nudge session, we need to leave/unlock the nudge
+        await friendsController.leaveNudge(nudge.nudgeId!);
+      } else {
+        // Regular session sync
+        final response = await ApiServices.instance.patchServices(
+          url: AppApiUrl.instance.toggleModeActivation(modeId),
+        );
+        
+        // Extra fallback: if server still says it's a nudge session via message
+        if (response != null && 
+            response["success"] == false && 
+            (response["message"]?.toString().contains("Nudge") ?? false)) {
+          if (nudge?.nudgeId != null) {
+            await friendsController.leaveNudge(nudge!.nudgeId!);
+          }
+        }
+      }
 
       CustomSnackbar.show(
         title: 'Session Ended',
@@ -672,6 +708,19 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
+      errorLog("LockController._deactivateMode", e);
+      
+      // If we got a 403 via exception, try to handle nudge exit as a last resort
+      if (e.toString().contains("403")) {
+        try {
+          final friendsController = Get.find<FriendsController>();
+          final nudgeId = friendsController.currentNudge.value?.nudgeId;
+          if (nudgeId != null) {
+            await friendsController.leaveNudge(nudgeId);
+          }
+        } catch (_) {}
+      }
+
       // Even if server sync fails, the user is already unlocked locally.
       CustomSnackbar.show(
         title: 'Unlocked',

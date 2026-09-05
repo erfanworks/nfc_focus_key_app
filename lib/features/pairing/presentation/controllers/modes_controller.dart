@@ -67,6 +67,8 @@ class ModesController extends GetxController {
   final modes = <ModeItem>[].obs;
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
+  final isNavigatingNewMode = false.obs;
+  final navigatingEditModeId = RxnString();
   final hasError = false.obs;
   bool _hadCache = false;
 
@@ -151,8 +153,32 @@ class ModesController extends GetxController {
     selectedIndex.value = index;
   }
 
-  void onAddNewMode() {
+  Future<void> onAddNewMode() async {
+    if (isNavigatingNewMode.value) return;
+    isNavigatingNewMode.value = true;
+    await Future.delayed(const Duration(milliseconds: 300));
     Get.toNamed(Routes.newMode);
+    await Future.delayed(const Duration(milliseconds: 500));
+    isNavigatingNewMode.value = false;
+  }
+
+  Future<void> onEditMode(ModeItem mode) async {
+    if (navigatingEditModeId.value != null) return;
+    navigatingEditModeId.value = mode.id;
+    
+    await Future.delayed(const Duration(milliseconds: 300));
+    Get.toNamed(
+      Routes.newMode,
+      arguments: {
+        'modeId': mode.id,
+        'modeName': mode.title,
+        'totalLockedApps': mode.totalLockedApps,
+        'isEditMode': true,
+      },
+    );
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    navigatingEditModeId.value = null;
   }
 
   void onStartMode() {

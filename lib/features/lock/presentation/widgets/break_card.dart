@@ -191,7 +191,13 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
 
       final friendsController = Get.find<FriendsController>();
       final nudge = friendsController.currentNudge.value;
-      final isNudge = nudge != null && nudge.isActive;
+      
+      // A nudge is only valid for UI interaction if it's active AND matches the user's current lock session mode
+      final bool isNudgeValid = nudge != null && 
+                               nudge.isActive && 
+                               widget.controller.activeModeId == nudge.modeId;
+      
+      final isNudge = isNudgeValid;
       final isLoadingSettings = !isNudge && widget.controller.isLoadingBreakSettings.value;
       final breaksLeft = isNudge
           ? nudge!.breaksRemaining
@@ -270,7 +276,12 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                           Obx(() {
                             final friendsController = Get.find<FriendsController>();
                             final nudge = friendsController.currentNudge.value;
-                            final isNudge = nudge != null && nudge.isActive;
+                            
+                            final bool isNudgeValid = nudge != null && 
+                                                     nudge.isActive && 
+                                                     widget.controller.activeModeId == nudge.modeId;
+                            
+                            final isNudge = isNudgeValid;
 
                             if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
                               return Text(

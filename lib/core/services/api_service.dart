@@ -119,7 +119,9 @@ class ApiServices {
 
       if (isSuccess) return response.data;
 
-      return _errorResult("Unexpected response ($code). Please try again.");
+      final errorMsg = "Unexpected response ($code). Please try again.";
+      appLog("API Error ► $errorMsg");
+      return _errorResult(errorMsg);
     } on SocketException catch (e) {
       errorLog('SocketException', e);
       return _errorResult("Check your internet connection.");

@@ -19,6 +19,7 @@ class NewModeController extends GetxController {
   
   final isEditMode = false.obs;
   final isDeleting = false.obs;
+  final isNavigating = false.obs;
   final originalModeName = ''.obs;
   String? _modeId;
   int _totalLockedApps = 0;
@@ -59,7 +60,14 @@ class NewModeController extends GetxController {
     selectedIconIndex.value = index;
   }
 
-  void onStartMode() {
+  void onStartMode() async {
+    if (isNavigating.value) return;
+    
+    isNavigating.value = true;
+    
+    // Brief delay to allow the loader to be seen and feel smooth
+    await Future.delayed(const Duration(milliseconds: 300));
+
     Get.toNamed(
       Routes.appSelection,
       arguments: {
@@ -71,6 +79,10 @@ class NewModeController extends GetxController {
         'totalLockedApps': _totalLockedApps,
       },
     );
+    
+    // Reset after a short delay so it's ready if they come back
+    await Future.delayed(const Duration(milliseconds: 500));
+    isNavigating.value = false;
   }
 
   Future<void> deleteMode() async {

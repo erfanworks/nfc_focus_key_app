@@ -234,23 +234,27 @@ class CurrentNudgeStatus {
       );
 
   factory CurrentNudgeStatus.fromJson(Map<String, dynamic> json) {
-    final breakStats = json['breakStats'] ?? {};
-    final focusStats = json['focusStats'] ?? {};
-    final currentMode = json['currentMode'];
     final joined = (json['joinedParticipants'] as List?) ?? [];
+
+    String formatMins(int mins) {
+      final h = mins ~/ 60;
+      final m = mins % 60;
+      if (h > 0) return '${h}h ${m}m';
+      return '${m}m';
+    }
 
     return CurrentNudgeStatus(
       isActive: json['isActive'] ?? false,
       nudgeId: json['nudgeId'],
       isLocked: json['isLocked'] ?? false,
-      modeId: currentMode != null ? currentMode['_id'] : null,
-      modeName: currentMode != null ? currentMode['name'] : null,
+      modeId: json['modeId'],
+      modeName: json['modeName'],
       participants: joined.map((e) => NudgeParticipant.fromJson(e as Map<String, dynamic>)).toList(),
-      breaksRemaining: breakStats['remaining'] ?? 0,
-      breaksPerDayTotal: breakStats['totalAllowed'] ?? 0,
-      breakDurationMinutes: breakStats['durationMinutes'] ?? 0,
-      todayFormatted: focusStats['todayFormatted'] ?? '0h 0m',
-      weekFormatted: focusStats['weekFormatted'] ?? '0h 0m',
+      breaksRemaining: json['remainingBreaks'] ?? 0,
+      breaksPerDayTotal: json['breaksPerDayTotal'] ?? 5,
+      breakDurationMinutes: json['breakDurationMinutes'] ?? 0,
+      todayFormatted: formatMins(json['todayFocusMinutes'] ?? 0),
+      weekFormatted: formatMins(json['weekFocusMinutes'] ?? 0),
     );
   }
 }

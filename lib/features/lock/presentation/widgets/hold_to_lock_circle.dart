@@ -9,6 +9,7 @@ class HoldToLockCircle extends StatefulWidget {
   final bool isLocked;
   final VoidCallback onTrigger;
   final bool isDisabled;
+  final bool isToggling;
   final VoidCallback? onDisabledTap;
 
   const HoldToLockCircle({
@@ -16,6 +17,7 @@ class HoldToLockCircle extends StatefulWidget {
     required this.isLocked,
     required this.onTrigger,
     this.isDisabled = false,
+    this.isToggling = false,
     this.onDisabledTap,
   });
 
@@ -191,15 +193,24 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
                               ],
                             ),
                             child: Center(
-                              child: SvgPicture.string(
-                                widget.isLocked ? _lockSvg : _unlockSvg,
-                                width: 28.45.w,
-                                height: 28.45.w,
-                                colorFilter: const ColorFilter.mode(
-                                  Color(0xFFC4A97D),
-                                  BlendMode.srcIn,
-                                ),
-                              ),
+                              child: widget.isToggling
+                                  ? SizedBox(
+                                      width: 40.w,
+                                      height: 40.w,
+                                      child: const CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                                      ),
+                                    )
+                                  : SvgPicture.string(
+                                      widget.isLocked ? _lockSvg : _unlockSvg,
+                                      width: 28.45.w,
+                                      height: 28.45.w,
+                                      colorFilter: const ColorFilter.mode(
+                                        Color(0xFFC4A97D),
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),

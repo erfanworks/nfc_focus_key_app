@@ -8,7 +8,7 @@ void errorLog(String message, dynamic e, {String title = "Error form"}) {
       // Don't log 401 unauthorized errors with emojis to keep console clean during logout
       if (e.toString().contains('401')) return;
 
-      log("👿😈😡😡😡😡 $title ➡️➡️➡️➡️➡️➡️ $message >>> 😭😭😭😭 ${e.toString()} 🔚🔚");
+      debugPrint("👿😈😡😡😡😡 $title ➡️➡️➡️➡️➡️➡️ $message >>> 😭😭😭😭 ${e.toString()} 🔚🔚");
     }
   } catch (e) {
     ///////
@@ -18,7 +18,7 @@ void errorLog(String message, dynamic e, {String title = "Error form"}) {
 void appLog(dynamic message) {
   try {
     if (kDebugMode) {
-      log("""
+      debugPrint("""
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 $message

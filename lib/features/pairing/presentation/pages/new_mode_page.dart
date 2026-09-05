@@ -226,41 +226,53 @@ class NewModePage extends GetView<NewModeController> {
   }
 
   Widget _buildStartButton() {
-    return GestureDetector(
-      onTap: controller.onStartMode,
-      child: Container(
-        width: double.infinity,
-        height: 56.h,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(28.r),
+    return Obx(() {
+      final isNavigating = controller.isNavigating.value;
+      return GestureDetector(
+        onTap: isNavigating ? null : controller.onStartMode,
+        child: Container(
+          width: double.infinity,
+          height: 56.h,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(28.r),
+          ),
+          child: Center(
+            child: isNavigating
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFFF7F4EE),
+                    ),
+                  )
+                : Builder(builder: (_) {
+                    if (controller.isEditMode.value) {
+                      return Text(
+                        'Continue',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF7F4EE),
+                        ),
+                      );
+                    }
+                    final modeNameText = controller.modeName.value.isEmpty
+                        ? 'Deep work'
+                        : controller.modeName.value;
+                    return Text(
+                      '${AppStrings.startWithMode}$modeNameText',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFF7F4EE),
+                      ),
+                    );
+                  }),
+          ),
         ),
-        child: Center(
-          child: Obx(() {
-            if (controller.isEditMode.value) {
-              return Text(
-                'Continue',
-                style: GoogleFonts.dmSans(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFFF7F4EE),
-                ),
-              );
-            }
-            final modeNameText = controller.modeName.value.isEmpty
-                ? 'Deep work'
-                : controller.modeName.value;
-            return Text(
-              '${AppStrings.startWithMode}$modeNameText',
-              style: GoogleFonts.dmSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFFF7F4EE),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
+      );
+    });
   }
 }

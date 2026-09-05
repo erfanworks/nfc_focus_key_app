@@ -185,7 +185,38 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                   ? _buildIOSAppPicker(context)
                   : Obx(() {
                       if (controller.isLoading.value) {
-                        return const Center(child: CircularProgressIndicator());
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 32.w,
+                                height: 32.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                                ),
+                              ),
+                              SizedBox(height: 20.h),
+                              Text(
+                                'Loading your apps...',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF8A8278),
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                'This may take a moment depending on your device.',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12.sp,
+                                  color: const Color(0xFFB5AFA5),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
                       }
                       if (controller.apps.isEmpty) {
                         return Center(
@@ -376,7 +407,30 @@ class AppSelectionPage extends GetView<AppSelectionController> {
   Widget _buildIOSAppPicker(BuildContext context) {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator(color: Color(0xFFC4A97D)));
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 32.w,
+                height: 32.w,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Text(
+                'Syncing with Screen Time...',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF8A8278),
+                ),
+              ),
+            ],
+          ),
+        );
       }
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w),

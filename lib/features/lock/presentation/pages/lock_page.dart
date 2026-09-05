@@ -43,6 +43,7 @@ class LockPage extends GetView<LockController> {
                         child: HoldToLockCircle(
                           isLocked: controller.isOnBreak.value ? false : isLocked,
                           isDisabled: !isLocked && controller.selectedModeId == null,
+                          isToggling: controller.isTogglingLock.value,
                           onDisabledTap: () => CustomSnackbar.show(
                             title: 'Select a mode',
                             message: 'Pick a focus mode before locking.',

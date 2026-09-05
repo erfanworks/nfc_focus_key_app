@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:installed_apps/installed_apps.dart';
 import 'package:installed_apps/app_info.dart';
-
-import '../../../../routes/app_routes.dart';
 import '../../../../core/widgets/focus_icons.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/app_lock_native_service.dart';
