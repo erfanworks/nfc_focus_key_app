@@ -150,8 +150,8 @@ class FriendsPage extends StatelessWidget {
   }
 
   Widget _buildAddFriendsOutlineButton() {
-    return InkWell(
-      onTap: () => Get.toNamed(Routes.addPartner),
+    return Obx(() => InkWell(
+      onTap: controller.isSubmitting.value ? null : () => Get.toNamed(Routes.addPartner),
       borderRadius: BorderRadius.circular(24.r),
       child: Container(
         width: double.infinity,
@@ -160,23 +160,34 @@ class FriendsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(24.r),
           border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, size: 18.sp, color: const Color(0xFF1A1814)),
-            SizedBox(width: 8.w),
-            Text(
-              'Add friends',
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF1A1814),
+        child: controller.isSubmitting.value
+            ? Center(
+                child: SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, size: 18.sp, color: const Color(0xFF1A1814)),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Add friends',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF1A1814),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
-    );
+    ));
   }
 
   Widget _buildSelectModeButton(LockController lockController) {
@@ -280,8 +291,8 @@ class FriendsPage extends StatelessWidget {
   Widget _buildAddPartnerButton() {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Get.toNamed(Routes.addPartner),
+      child: Obx(() => InkWell(
+        onTap: controller.isSubmitting.value ? null : () => Get.toNamed(Routes.addPartner),
         borderRadius: BorderRadius.circular(30.r),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 14.h),
@@ -289,18 +300,27 @@ class FriendsPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(30.r),
             border: Border.all(color: const Color(0xFF1A1814), width: 1.0),
           ),
-          child: Text(
-            'Add a friend',
-            style: GoogleFonts.dmSans(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF1A1814),
-              height: 19.5 / 13,
-              letterSpacing: 0,
-            ),
-          ),
+          child: controller.isSubmitting.value
+              ? SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                  ),
+                )
+              : Text(
+                  'Add a friend',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF1A1814),
+                    height: 19.5 / 13,
+                    letterSpacing: 0,
+                  ),
+                ),
         ),
-      ),
+      )),
     );
   }
 }
