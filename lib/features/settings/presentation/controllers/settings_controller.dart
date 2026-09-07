@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/app_lock_native_service.dart';
+import '../../../../core/utils/timezone_helper.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 class SettingsController extends GetxController {
@@ -10,11 +11,18 @@ class SettingsController extends GetxController {
   final userName = ''.obs;
   final userContact = ''.obs;
   final userEmail = ''.obs;
+  final userTimezone = 'Asia/Singapore'.obs;
   final isProfileLoading = false.obs;
   final isClearingData = false.obs;
 
   final totalFocusApps = <Map<String, dynamic>>[].obs;
   final isLoadingTotalFocusApps = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchProfile();
+  }
 
   Future<void> fetchProfile() async {
     isProfileLoading.value = true;
@@ -27,6 +35,17 @@ class SettingsController extends GetxController {
         final data = response["data"];
         userName.value = data["name"] ?? userName.value;
         userEmail.value = data["email"] ?? userEmail.value;
+        
+        String serverTimezone = data["timezone"] ?? "UTC";
+        
+        // If server timezone is UTC (default), we automatically set it to Asia/Singapore
+        if (serverTimezone == "UTC") {
+          userTimezone.value = "Asia/Singapore";
+          await updateTimezone("Asia/Singapore", silent: true);
+        } else {
+          userTimezone.value = serverTimezone;
+        }
+
         if (data["phone"] != null) {
           userContact.value = "${data["countryCode"] ?? ''} ${data["phone"]}".trim();
         }
@@ -45,6 +64,29 @@ class SettingsController extends GetxController {
       );
     } finally {
       isProfileLoading.value = false;
+    }
+  }
+
+  Future<bool> updateTimezone(String timezone, {bool silent = false}) async {
+    try {
+      final response = await ApiServices.instance.patchServices(
+        url: AppApiUrl.instance.updateProfile,
+        body: {"timezone": timezone},
+      );
+
+      if (response != null && response["success"] == true) {
+        userTimezone.value = timezone;
+        if (!silent) {
+          CustomSnackbar.show(
+            title: 'Timezone Updated',
+            message: 'Timezone set to $timezone',
+          );
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 

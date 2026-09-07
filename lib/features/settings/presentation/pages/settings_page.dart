@@ -11,6 +11,7 @@ import '../../../../routes/app_routes.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_row_item.dart';
+import '../../../../core/utils/timezone_helper.dart';
 
 import '../controllers/settings_controller.dart';
 
@@ -65,6 +66,11 @@ class SettingsPage extends GetView<SettingsController> {
                           title: 'Change Password',
                           onTap: () => Get.toNamed(Routes.changePassword),
                         ),
+                        Obx(() => SettingsRowItem(
+                              title: 'Timezone',
+                              trailingText: controller.userTimezone.value,
+                              onTap: () => _showTimezonePicker(context),
+                            )),
                         SettingsRowItem(
                           title: 'Delete account',
                           titleColor: const Color(0xFFC0392B),
@@ -357,6 +363,97 @@ class SettingsPage extends GetView<SettingsController> {
           ),
         );
       },
+    );
+  }
+
+  void _showTimezonePicker(BuildContext context) {
+    final TextEditingController searchController = TextEditingController();
+    final RxList<String> filteredTimezones = TimezoneHelper.timezones.obs;
+
+    Get.bottomSheet(
+      Container(
+        height: 0.8.sh,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F4EE),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8E3DA),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+              child: Text(
+                'Select Timezone',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF1A1814),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search timezone...',
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF8A8278)),
+                  filled: true,
+                  fillColor: const Color(0xFFE8E3DA).withOpacity(0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                onChanged: (value) {
+                  filteredTimezones.value = TimezoneHelper.timezones
+                      .where((tz) => tz.toLowerCase().contains(value.toLowerCase()))
+                      .toList();
+                },
+              ),
+            ),
+            Expanded(
+              child: Obx(() => ListView.separated(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                    itemCount: filteredTimezones.length,
+                    separatorBuilder: (context, index) => Divider(
+                      color: const Color(0xFFE8E3DA),
+                      height: 1.h,
+                    ),
+                    itemBuilder: (context, index) {
+                      final tz = filteredTimezones[index];
+                      return ListTile(
+                        title: Text(
+                          tz,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 15.sp,
+                            color: const Color(0xFF1A1814),
+                          ),
+                        ),
+                        trailing: controller.userTimezone.value == tz
+                            ? const Icon(Icons.check, color: Color(0xFFC4A97D))
+                            : null,
+                        onTap: () {
+                          controller.updateTimezone(tz);
+                          Get.back();
+                        },
+                      );
+                    },
+                  )),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 
