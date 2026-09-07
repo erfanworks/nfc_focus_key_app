@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,8 +20,8 @@ class BreakCard extends StatefulWidget {
 class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   late AnimationController _activateController;
   late AnimationController _cancelController;
+  late AnimationController _waveController;
   Timer? _vibrationTimer;
-
 
   @override
   void initState() {
@@ -33,6 +34,10 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     );
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
 
     _activateController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -72,6 +77,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
     _stopVibration();
     _activateController.dispose();
     _cancelController.dispose();
+    _waveController.dispose();
     super.dispose();
   }
 
@@ -82,106 +88,125 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         return Container(
           width: 337.w,
           height: 52.h,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
-          child: Row(
+          child: Stack(
             children: [
-              // No icon! (Removed coffee cup as per feedback)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        'Break ends in ',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF1A1814),
-                          letterSpacing: 0.5,
-                        ),
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _waveController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: _CardWavePainter(
+                        wavePhase: _waveController.value,
+                        color: const Color(0xFFC4A97D).withValues(alpha: 0.12),
                       ),
-                      Text(
-                        widget.controller.formattedBreakTime,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFC4A97D),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                ],
+                    );
+                  },
+                ),
               ),
-              const Spacer(),
-              GestureDetector(
-                onTapDown: (_) {
-                  widget.controller.isHoldingCancel.value = true;
-                  _startVibration();
-                  _cancelController.forward();
-                },
-                onTapUp: (_) {
-                  _stopVibration();
-                  widget.controller.isHoldingCancel.value = false;
-                  if (_cancelController.status != AnimationStatus.completed) {
-                    _cancelController.reverse();
-                  }
-                },
-                onTapCancel: () {
-                  _stopVibration();
-                  widget.controller.isHoldingCancel.value = false;
-                  if (_cancelController.status != AnimationStatus.completed) {
-                    _cancelController.reverse();
-                  }
-                },
-                child: SizedBox(
-                  width: 36.w,
-                  height: 36.w,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Row(
+                  children: [
+                    // No icon! (Removed coffee cup as per feedback)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              'Break ends in ',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFF1A1814),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              widget.controller.formattedBreakTime,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFC4A97D),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTapDown: (_) {
+                        widget.controller.isHoldingCancel.value = true;
+                        _startVibration();
+                        _cancelController.forward();
+                      },
+                      onTapUp: (_) {
+                        _stopVibration();
+                        widget.controller.isHoldingCancel.value = false;
+                        if (_cancelController.status != AnimationStatus.completed) {
+                          _cancelController.reverse();
+                        }
+                      },
+                      onTapCancel: () {
+                        _stopVibration();
+                        widget.controller.isHoldingCancel.value = false;
+                        if (_cancelController.status != AnimationStatus.completed) {
+                          _cancelController.reverse();
+                        }
+                      },
+                      child: SizedBox(
                         width: 36.w,
                         height: 36.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE8E3DA),
-                            width: 1.5.w,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 36.w,
+                              height: 36.w,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFE8E3DA),
+                                  width: 1.5.w,
+                                ),
+                              ),
+                            ),
+                            AnimatedBuilder(
+                              animation: _cancelController,
+                              builder: (context, child) {
+                                return CircularProgressIndicator(
+                                  value: widget.controller.isHoldingCancel.value
+                                      ? _cancelController.value
+                                      : 0.0,
+                                  strokeWidth: 1.5.w,
+                                  valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFC4A97D),
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                );
+                              },
+                            ),
+                            Icon(
+                              Icons.close_rounded,
+                              color: const Color(0xFFC4A97D),
+                              size: 18.sp,
+                            ),
+                          ],
                         ),
                       ),
-                      AnimatedBuilder(
-                        animation: _cancelController,
-                        builder: (context, child) {
-                          return CircularProgressIndicator(
-                            value: widget.controller.isHoldingCancel.value
-                                ? _cancelController.value
-                                : 0.0,
-                            strokeWidth: 1.5.w,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFFC4A97D),
-                            ),
-                            backgroundColor: Colors.transparent,
-                          );
-                        },
-                      ),
-                      Icon(
-                        Icons.close_rounded,
-                        color: const Color(0xFFC4A97D),
-                        size: 18.sp,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -227,110 +252,122 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         child: Container(
           width: 337.w,
           height: 52.h,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  child: AnimatedBuilder(
-                    animation: _activateController,
-                    builder: (context, child) {
-                      return FractionalTranslation(
-                        translation: Offset(_activateController.value - 1.0, 0.0),
-                        child: Container(
-                          color: const Color(0xFFE5DDD0),
-                        ),
-                      );
-                    },
-                  ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _waveController,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      painter: _CardWavePainter(
+                        wavePhase: _waveController.value,
+                        color: const Color(0xFFC4A97D).withValues(alpha: 0.10),
+                      ),
+                    );
+                  },
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Row(
-                    children: [
-                      // No icon! (Removed phone dotted line as per feedback)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Take a break',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF1A1814),
-                              height: 15.0 / 12.0,
-                              letterSpacing: 0.5,
-                            ),
+              ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: AnimatedBuilder(
+                  animation: _activateController,
+                  builder: (context, child) {
+                    return FractionalTranslation(
+                      translation: Offset(_activateController.value - 1.0, 0.0),
+                      child: Container(
+                        color: const Color(0xFFE5DDD0),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Row(
+                  children: [
+                    // No icon! (Removed phone dotted line as per feedback)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Take a break',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF1A1814),
+                            height: 15.0 / 12.0,
+                            letterSpacing: 0.5,
                           ),
-                          SizedBox(height: 2.h),
-                          Obx(() {
-                            final friendsController = Get.find<FriendsController>();
-                            final nudge = friendsController.currentNudge.value;
-                            
-                            final bool isNudgeValid = nudge != null && 
-                                                     nudge.isActive && 
-                                                     widget.controller.activeModeId == nudge.modeId;
-                            
-                            final isNudge = isNudgeValid;
+                        ),
+                        SizedBox(height: 2.h),
+                        Obx(() {
+                          final friendsController = Get.find<FriendsController>();
+                          final nudge = friendsController.currentNudge.value;
+                          
+                          final bool isNudgeValid = nudge != null && 
+                                                   nudge.isActive && 
+                                                   widget.controller.activeModeId == nudge.modeId;
+                          
+                          final isNudge = isNudgeValid;
 
-                            if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
-                              return Text(
-                                '— min • — left today',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFFB5AFA5),
-                                  height: 1.0,
-                                  letterSpacing: 0.55,
-                                ),
-                              );
-                            }
-
-                            final minutes = isNudge
-                                ? nudge!.breakDurationMinutes
-                                : widget.controller.personalBreakLengthMinutes.value;
-                            final left = isNudge
-                                ? nudge!.breaksRemaining
-                                : widget.controller.breaksLeft.value;
+                          if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
                             return Text(
-                              '$minutes min • $left left today',
+                              '— min • — left today',
                               style: GoogleFonts.dmSans(
                                 fontSize: 10.sp,
                                 fontWeight: FontWeight.w400,
-                                color: const Color(0xFF8A8278),
+                                color: const Color(0xFFB5AFA5),
                                 height: 1.0,
                                 letterSpacing: 0.55,
                               ),
                             );
-                          }),
-                        ],
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: const Color(0xFF8A8278),
-                        size: 18.sp,
-                      ),
-                    ],
-                  ),
+                          }
+
+                          final minutes = isNudge
+                              ? nudge!.breakDurationMinutes
+                              : widget.controller.personalBreakLengthMinutes.value;
+                          final left = isNudge
+                              ? nudge!.breaksRemaining
+                              : widget.controller.breaksLeft.value;
+                          return Text(
+                            '$minutes min • $left left today',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF8A8278),
+                              height: 1.0,
+                              letterSpacing: 0.55,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: const Color(0xFF8A8278),
+                      size: 18.sp,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     });
   }
+
   Widget _buildNoBreaksLeftCard() {
     return Container(
       width: 337.w,
@@ -379,5 +416,48 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+}
+
+class _CardWavePainter extends CustomPainter {
+  final double wavePhase;
+  final Color color;
+
+  _CardWavePainter({
+    required this.wavePhase,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final yOffset = size.height * 0.65; // Cover more area
+    const waveHeight = 6.0; // Taller waves
+    const waveFrequency = 1.0;
+
+    path.moveTo(0, yOffset);
+
+    for (double x = 0; x <= size.width; x++) {
+      final y = yOffset +
+          math.sin((x / size.width * 2 * math.pi * waveFrequency) +
+                  (wavePhase * 2 * math.pi)) *
+              waveHeight;
+      path.lineTo(x, y);
+    }
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CardWavePainter oldDelegate) {
+    return oldDelegate.wavePhase != wavePhase;
   }
 }
