@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:focus_key/routes/app_routes.dart';
 import 'package:get/get.dart';
@@ -193,42 +194,54 @@ class FriendsPage extends StatelessWidget {
   Widget _buildSelectModeButton(LockController lockController) {
     return Obx(() {
       final isBlocked = lockController.isLocked.value;
+      final isSubmitting = controller.isSubmitting.value;
+      
       return InkWell(
-        onTap: () {
-          if (isBlocked) {
-            CustomSnackbar.show(
-              title: 'Focus session active',
-              message: 'End your focus session first to start a nudge.',
-              isError: true,
-            );
-            return;
-          }
-          Get.toNamed(
-            Routes.modes,
-            arguments: {
-              'isNudgeFlow': true,
-              'participantIds': controller.selectedForNudge.toList(),
-            },
-          );
-        },
+        onTap: (isBlocked || isSubmitting)
+            ? null
+            : () async {
+                controller.isSubmitting.value = true;
+                await HapticFeedback.lightImpact();
+                
+                Get.toNamed(
+                  Routes.modes,
+                  arguments: {
+                    'isNudgeFlow': true,
+                    'participantIds': controller.selectedForNudge.toList(),
+                  },
+                );
+                
+                // Reset loader after navigation starts to ensure it's ready if they come back
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  controller.isSubmitting.value = false;
+                });
+              },
         borderRadius: BorderRadius.circular(24.r),
         child: Container(
           width: double.infinity,
           height: 48.h,
           decoration: BoxDecoration(
-            color:
-                isBlocked ? const Color(0xFFCCC8C0) : const Color(0xFF1A1814),
+            color: isBlocked ? const Color(0xFFCCC8C0) : const Color(0xFF1A1814),
             borderRadius: BorderRadius.circular(24.r),
           ),
           child: Center(
-            child: Text(
-              'Select Mood',
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFFF7F4EE),
-              ),
-            ),
+            child: isSubmitting
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
+                    ),
+                  )
+                : Text(
+                    'Select Mood',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFF7F4EE),
+                    ),
+                  ),
           ),
         ),
       );
