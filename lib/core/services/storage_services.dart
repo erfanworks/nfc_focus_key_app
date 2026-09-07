@@ -37,6 +37,8 @@ class StorageKey {
   final String lockedApps            = "locked_apps";
   final String cachedReminderMessage = "cached_reminder_message";
   final String completedInitialSetup = "completedInitialSetup";
+  final String lastSelectedModeId    = "last_selected_mode_id";
+  final String lastSelectedModeName  = "last_selected_mode_name";
 }
 
 class StorageServices {
@@ -467,6 +469,30 @@ class StorageServices {
     } catch (e) {
       errorLog("getCachedReminderMessage", e);
       return "";
+    }
+  }
+
+  // ==================== Selection Persistence ====================
+  Future<void> setLastSelectedMode(String id, String name) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.lastSelectedModeId, id);
+      await pref.setString(StorageKey.instance.lastSelectedModeName, name);
+    } catch (e) {
+      errorLog("setLastSelectedMode", e);
+    }
+  }
+
+  Future<Map<String, String?>> getLastSelectedMode() async {
+    try {
+      final pref = await _pref;
+      return {
+        "id": pref.getString(StorageKey.instance.lastSelectedModeId),
+        "name": pref.getString(StorageKey.instance.lastSelectedModeName),
+      };
+    } catch (e) {
+      errorLog("getLastSelectedMode", e);
+      return {"id": null, "name": null};
     }
   }
 

@@ -53,7 +53,9 @@ class LockModeSelector extends StatelessWidget {
       final selectedItem = modesController.modes.firstWhereOrNull((m) => m.title == modeTitle) ??
           ModeItem(modeTitle, '', FKIcon.deepwork);
 
-      if (controller.selectedModeId == null && modesController.modes.isNotEmpty) {
+      if (controller.selectedModeId == null && 
+          modesController.modes.isNotEmpty && 
+          !controller.isLocked.value) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           controller.selectMode(modesController.modes.first);
         });
