@@ -68,6 +68,7 @@ class ModesController extends GetxController {
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
   final isNavigatingNewMode = false.obs;
+  final isStartingMode = false.obs;
   final navigatingEditModeId = RxnString();
   final hasError = false.obs;
   bool _hadCache = false;
@@ -181,7 +182,9 @@ class ModesController extends GetxController {
     navigatingEditModeId.value = null;
   }
 
-  void onStartMode() {
+  Future<void> onStartMode() async {
+    if (isStartingMode.value) return;
+    
     final args = Get.arguments as Map<String, dynamic>?;
     final isNudgeFlow = args?['isNudgeFlow'] == true;
     final selectedMode = modes[selectedIndex.value];
@@ -195,18 +198,27 @@ class ModesController extends GetxController {
       return;
     }
 
-    if (isNudgeFlow) {
-      Get.toNamed(
-        Routes.takeBreak,
-        arguments: {
-          'isNudgeFlow': true,
-          'modeId': selectedMode.id,
-          'participantIds': args?['participantIds'],
-        },
-      );
-    } else {
-      StorageServices.instance.setCompletedInitialSetup();
-      Get.offAllNamed(Routes.lock);
+    try {
+      isStartingMode.value = true;
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (isNudgeFlow) {
+        Get.toNamed(
+          Routes.takeBreak,
+          arguments: {
+            'isNudgeFlow': true,
+            'modeId': selectedMode.id,
+            'participantIds': args?['participantIds'],
+          },
+        );
+      } else {
+        StorageServices.instance.setCompletedInitialSetup();
+        Get.offAllNamed(Routes.lock);
+      }
+      
+      await Future.delayed(const Duration(milliseconds: 500));
+    } finally {
+      isStartingMode.value = false;
     }
   }
 }

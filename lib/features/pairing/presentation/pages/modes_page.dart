@@ -53,7 +53,7 @@ class ModesPage extends GetView<ModesController> {
                     ),
                   ),
                   SizedBox(height: 24.h),
-                  GestureDetector(
+                  Obx(() => GestureDetector(
                     onTap: controller.onAddNewMode,
                     child: Container(
                       width: double.infinity,
@@ -66,17 +66,26 @@ class ModesPage extends GetView<ModesController> {
                         ),
                       ),
                       child: Center(
-                        child: Text(
-                          AppStrings.addNewMode,
-                          style: GoogleFonts.dmSans(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFFC4A97D),
-                          ),
-                        ),
+                        child: controller.isNavigatingNewMode.value
+                            ? SizedBox(
+                                width: 18.w,
+                                height: 18.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC4A97D)),
+                                ),
+                              )
+                            : Text(
+                                AppStrings.addNewMode,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(0xFFC4A97D),
+                                ),
+                              ),
                       ),
                     ),
-                  ),
+                  )),
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -183,8 +192,8 @@ class ModesPage extends GetView<ModesController> {
   }
 
   Widget _buildStartButton() {
-    return GestureDetector(
-      onTap: controller.onStartMode,
+    return Obx(() => GestureDetector(
+      onTap: controller.isStartingMode.value ? null : controller.onStartMode,
       child: Container(
         width: double.infinity,
         height: 56.h,
@@ -193,24 +202,33 @@ class ModesPage extends GetView<ModesController> {
           borderRadius: BorderRadius.circular(28.r),
         ),
         child: Center(
-          child: Obx(() {
-            if (controller.modes.isEmpty) return const SizedBox.shrink();
+          child: controller.isStartingMode.value
+              ? SizedBox(
+                  width: 24.w,
+                  height: 24.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
+                  ),
+                )
+              : Obx(() {
+                  if (controller.modes.isEmpty) return const SizedBox.shrink();
 
-            final selectedMode = controller
-                .modes[controller.selectedIndex.value]
-                .title
-                .replaceAll('.', '');
-            return Text(
-              'Start with $selectedMode',
-              style: GoogleFonts.dmSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFFF7F4EE),
-              ),
-            );
-          }),
+                  final selectedMode = controller
+                      .modes[controller.selectedIndex.value]
+                      .title
+                      .replaceAll('.', '');
+                  return Text(
+                    'Start with $selectedMode',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFF7F4EE),
+                    ),
+                  );
+                }),
         ),
       ),
-    );
+    ));
   }
 }
