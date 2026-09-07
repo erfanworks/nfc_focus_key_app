@@ -54,66 +54,87 @@ class AddPartnerPage extends StatelessWidget {
                   return const SizedBox.shrink();
                 }
 
-                return ListView.builder(
-                  padding: EdgeInsets.only(
-                    left: 20.w,
-                    right: 20.w,
-                    bottom: controller.addedFriends.isNotEmpty ? 80.h : 20.h,
+                return RefreshIndicator(
+                  onRefresh: () => controller.fetchAppUsers(),
+                  color: const Color(0xFF1A1814),
+                  backgroundColor: AppColors.background,
+                  child: ListView.builder(
+                    padding: EdgeInsets.only(
+                      left: 20.w,
+                      right: 20.w,
+                      bottom: controller.addedFriends.isNotEmpty ? 80.h : 20.h,
+                    ),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    itemCount: controller.appUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = controller.appUsers[index];
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        child: _buildUserItem(
+                          user.name,
+                          user.userName,
+                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                          user.id.hashCode.isEven,
+                          user.id,
+                        ),
+                      );
+                    },
                   ),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: controller.appUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = controller.appUsers[index];
-                    return _buildUserItem(
-                      user.name,
-                      user.userName,
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                      user.id.hashCode.isEven,
-                      user.id,
-                    );
-                  },
                 );
               }),
             ),
             Obx(() {
               if (controller.addedFriends.isEmpty) return SizedBox(height: MediaQuery.of(context).padding.bottom + 10.h);
+              
+              final isSubmitting = controller.isSubmitting.value && controller.loadingUserId.value.isEmpty;
+              
               return Container(
                 padding: EdgeInsets.only(
-                  top: 5.h,
-                  bottom: MediaQuery.of(context).padding.bottom + 5.h,
+                  left: 20.w,
+                  right: 20.w,
+                  top: 12.h,
+                  bottom: MediaQuery.of(context).padding.bottom + 12.h,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.background,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.background.withAlpha(50),
-                      offset: const Offset(0, -20),
-                      blurRadius: 20,
+                  border: Border(
+                    top: BorderSide(
+                      color: const Color(0xFFE8E3DA),
+                      width: 1.0,
                     ),
-                  ],
+                  ),
                 ),
-                child: Center(
-                  child: GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: const Color(0xFF1A1814).withAlpha(20),
-                            width: 0.5,
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        'See your friends list',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF1A1814),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
+                child: InkWell(
+                  onTap: isSubmitting ? null : () => Get.back(),
+                  borderRadius: BorderRadius.circular(24.r),
+                  child: Container(
+                    width: double.infinity,
+                    height: 48.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1814),
+                      borderRadius: BorderRadius.circular(24.r),
+                    ),
+                    child: Center(
+                      child: isSubmitting
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
+                              ),
+                            )
+                          : Text(
+                              'See your friends list',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFFF7F4EE),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -258,9 +279,11 @@ class AddPartnerPage extends StatelessWidget {
           ),
           Obx(() {
             final isAdded = controller.isFriendAdded(userId);
+            final isLoading = controller.loadingUserId.value == userId;
+            
             return InkWell(
               onTap: () {
-                if (!isAdded) {
+                if (!isAdded && !isLoading) {
                   controller.addFriend(userId);
                 }
               },
@@ -276,18 +299,27 @@ class AddPartnerPage extends StatelessWidget {
                     width: 1.0,
                   ),
                 ),
-                child: Text(
-                  isAdded ? 'Added' : 'Add',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w400,
-                    color: isAdded
-                        ? const Color(0xFF8A8278)
-                        : const Color(0xFF1A1814),
-                    height: 15 / 10,
-                    letterSpacing: 0,
-                  ),
-                ),
+                child: isLoading
+                    ? SizedBox(
+                        width: 10.w,
+                        height: 10.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                        ),
+                      )
+                    : Text(
+                        isAdded ? 'Added' : 'Add',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w400,
+                          color: isAdded
+                              ? const Color(0xFF8A8278)
+                              : const Color(0xFF1A1814),
+                          height: 15 / 10,
+                          letterSpacing: 0,
+                        ),
+                      ),
               ),
             );
           }),
