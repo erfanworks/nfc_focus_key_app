@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/app_api_url.dart';
@@ -268,6 +269,7 @@ class FriendsController extends GetxController {
   final isLoadingFriends = false.obs;
   final isLoadingAppUsers = false.obs;
   final isSubmitting = false.obs;
+  final loadingUserId = ''.obs;
 
   final Rxn<CurrentNudgeStatus> currentNudge = Rxn<CurrentNudgeStatus>();
   final isLoadingNudgeStatus = false.obs;
@@ -379,8 +381,9 @@ class FriendsController extends GetxController {
   bool isFriendAdded(String id) => addedFriends.any((f) => f.id == id);
 
   Future<void> addFriend(String friendId) async {
-    if (isSubmitting.value) return;
+    if (isSubmitting.value || loadingUserId.value.isNotEmpty) return;
     try {
+      loadingUserId.value = friendId;
       isSubmitting.value = true;
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.addFriend,
@@ -399,6 +402,10 @@ class FriendsController extends GetxController {
       CustomSnackbar.show(title: "Friend Added", message: "Successfully added to your list.");
       await Future.delayed(const Duration(milliseconds: 800));
       await fetchFriendsList();
+      
+      // Remove from search list after a short delay for feedback
+      await Future.delayed(const Duration(milliseconds: 500));
+      appUsers.removeWhere((user) => user.id == friendId);
     } catch (e) {
       CustomSnackbar.show(
         title: "Connection Error",
@@ -407,6 +414,7 @@ class FriendsController extends GetxController {
       );
     } finally {
       isSubmitting.value = false;
+      loadingUserId.value = '';
     }
   }
 
@@ -447,8 +455,11 @@ class FriendsController extends GetxController {
     required int breaksPerDay,
     required int breakDurationMinutes,
   }) async {
+    if (isSubmitting.value) return null;
     try {
       isSubmitting.value = true;
+      await HapticFeedback.lightImpact();
+      
       final initResponse = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.initiateNudge,
         body: {
@@ -502,8 +513,11 @@ class FriendsController extends GetxController {
   }
 
   Future<bool> confirmNudge(String previewId) async {
+    if (isSubmitting.value) return false;
     try {
       isSubmitting.value = true;
+      await HapticFeedback.mediumImpact();
+      
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.midgeConfirmById(previewId),
       );
@@ -518,7 +532,8 @@ class FriendsController extends GetxController {
       }
       
       CustomSnackbar.show(title: "Nudge Sent", message: "Your friends have been notified.");
-      await Future.delayed(const Duration(milliseconds: 1200));
+      await HapticFeedback.vibrate();
+      await Future.delayed(const Duration(milliseconds: 1000));
       return true;
     } catch (e) {
       CustomSnackbar.show(
@@ -534,6 +549,7 @@ class FriendsController extends GetxController {
 
   Future<void> leaveNudge(String nudgeId) async {
     try {
+      isSubmitting.value = true;
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.leaveNudgeBYID(nudgeId),
       );
@@ -553,6 +569,8 @@ class FriendsController extends GetxController {
         message: "Failed to leave nudge session.",
         isError: true,
       );
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
@@ -660,6 +678,7 @@ class FriendsController extends GetxController {
 
   Future<void> takeNudgeBreak(String nudgeId) async {
     try {
+      isSubmitting.value = true;
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
       );
@@ -679,6 +698,8 @@ class FriendsController extends GetxController {
         message: "Failed to start break. Check your connection.",
         isError: true,
       );
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
