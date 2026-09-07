@@ -270,6 +270,7 @@ class FriendsController extends GetxController {
   final isLoadingAppUsers = false.obs;
   final isLoadingNudgeHistory = false.obs;
   final isSubmitting = false.obs;
+  final isInitiatingNudge = false.obs;
   final loadingUserId = ''.obs;
 
   final Rxn<CurrentNudgeStatus> currentNudge = Rxn<CurrentNudgeStatus>();
@@ -456,12 +457,13 @@ class FriendsController extends GetxController {
     required int breaksPerDay,
     required int breakDurationMinutes,
   }) async {
-    if (isSubmitting.value) return null;
+    if (isInitiatingNudge.value) return null;
     try {
-      // Small delay to prevent "markNeedsBuild() called during build" error
-      // if this is called from initState
+      // Clear previous errors to ensure fresh state
+      lastError.value = '';
+
       await Future.delayed(Duration.zero);
-      isSubmitting.value = true;
+      isInitiatingNudge.value = true;
       await HapticFeedback.lightImpact();
       
       final initResponse = await ApiServices.instance.postServices(
@@ -512,7 +514,7 @@ class FriendsController extends GetxController {
       );
       return null;
     } finally {
-      isSubmitting.value = false;
+      isInitiatingNudge.value = false;
     }
   }
 
