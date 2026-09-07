@@ -23,7 +23,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
   final sessionSeconds = 0.obs;
   final totalBlockedApps = 0.obs;
 
-  String? activeModeId;
+  final activeModeIdRx = RxnString();
+  String? get activeModeId => activeModeIdRx.value;
+  set activeModeId(String? value) => activeModeIdRx.value = value;
   List<String> _activePackageNames = [];
   String? _nativeLockAppliedForModeId;
   final Rxn<String> selectedModeIdRx = Rxn<String>();

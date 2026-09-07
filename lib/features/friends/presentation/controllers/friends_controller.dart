@@ -536,6 +536,7 @@ class FriendsController extends GetxController {
       
       CustomSnackbar.show(title: "Nudge Sent", message: "Your friends have been notified.");
       await HapticFeedback.vibrate();
+      await fetchCurrentNudgeStatus(); // Ensure latest status is fetched immediately
       await Future.delayed(const Duration(milliseconds: 1000));
       return true;
     } catch (e) {
