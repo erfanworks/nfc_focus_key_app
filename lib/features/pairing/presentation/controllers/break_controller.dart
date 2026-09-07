@@ -60,15 +60,24 @@ class BreakController extends GetxController {
     final isNudgeFlow = args?['isNudgeFlow'] == true;
 
     if (isNudgeFlow) {
-      Get.toNamed(
-        Routes.friendDetails,
-        arguments: {
-          'selectedFriends': args?['participantIds'],
-          'modeId': args?['modeId'],
-          'breaksPerDay': breaksPerDay.value ?? 0,
-          'breakDurationMinutes': breakLengthMinutes.value,
-        },
-      );
+      try {
+        isSaving.value = true;
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        Get.toNamed(
+          Routes.friendDetails,
+          arguments: {
+            'selectedFriends': args?['participantIds'],
+            'modeId': args?['modeId'],
+            'breaksPerDay': breaksPerDay.value ?? 0,
+            'breakDurationMinutes': breakLengthMinutes.value,
+          },
+        );
+        
+        await Future.delayed(const Duration(milliseconds: 500));
+      } finally {
+        isSaving.value = false;
+      }
       return;
     }
 

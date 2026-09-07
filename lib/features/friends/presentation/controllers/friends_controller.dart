@@ -457,6 +457,9 @@ class FriendsController extends GetxController {
   }) async {
     if (isSubmitting.value) return null;
     try {
+      // Small delay to prevent "markNeedsBuild() called during build" error
+      // if this is called from initState
+      await Future.delayed(Duration.zero);
       isSubmitting.value = true;
       await HapticFeedback.lightImpact();
       
