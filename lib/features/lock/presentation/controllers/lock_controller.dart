@@ -65,6 +65,15 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final localModeId = await StorageServices.instance.getActiveModeId();
       final localModeName = await StorageServices.instance.getActiveModeName();
 
+      // Load last selected mode regardless of lock status
+      final lastSelected = await StorageServices.instance.getLastSelectedMode();
+      if (lastSelected["id"] != null) {
+        selectedModeIdRx.value = lastSelected["id"];
+      }
+      if (lastSelected["name"] != null) {
+        selectedMode.value = lastSelected["name"]!;
+      }
+
       if (localLockActive) {
         isLocked.value = true;
         if (localModeId != null) activeModeId = localModeId;
@@ -792,6 +801,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
   void selectMode(ModeItem mode) {
     selectedMode.value = mode.title;
     selectedModeIdRx.value = mode.id;
+    if (mode.id != null) {
+      StorageServices.instance.setLastSelectedMode(mode.id!, mode.title);
+    }
   }
 
   @override
