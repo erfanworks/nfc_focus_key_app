@@ -299,6 +299,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   Future<void> startBreak() async {
     if (!isLocked.value) return;
+    await HapticFeedback.lightImpact();
 
     final friendsController = Get.find<FriendsController>();
     final nudge = friendsController.currentNudge.value;
@@ -315,10 +316,14 @@ class LockController extends GetxController with WidgetsBindingObserver {
   Future<void> _startPersonalBreak() async {
     if (activeModeId == null) return;
     try {
+      isLoadingStatus.value = true;
+      await HapticFeedback.mediumImpact();
+      
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.breakStart,
         body: {"modeId": activeModeId},
       );
+      // ... rest of logic
 
       if (response == null || response["success"] != true) {
         CustomSnackbar.show(
