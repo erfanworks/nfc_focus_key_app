@@ -29,6 +29,8 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
   int _breakDurationMinutes = 10;
   NudgePreview? _preview;
   bool _isLoadingPreview = false;
+  bool _isRemovingParticipant = false;
+  String? _removingParticipantId;
   String? _loadError;
   bool _isSending = false;
 
@@ -94,14 +96,25 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
   }
 
   Future<void> _removeParticipant(PreviewParticipant participant) async {
-    if (_preview == null) return;
-    await controller.removeParticipant(
-      previewId: _preview!.previewId,
-      participantId: participant.id,
-    );
+    if (_preview == null || _isRemovingParticipant) return;
     setState(() {
-      _preview!.participants.remove(participant);
+      _isRemovingParticipant = true;
+      _removingParticipantId = participant.id;
     });
+    try {
+      await controller.removeParticipant(
+        previewId: _preview!.previewId,
+        participantId: participant.id,
+      );
+      setState(() {
+        _preview!.participants.remove(participant);
+      });
+    } finally {
+      setState(() {
+        _isRemovingParticipant = false;
+        _removingParticipantId = null;
+      });
+    }
   }
 
   Future<void> _sendNudge() async {
@@ -407,8 +420,20 @@ class _FriendDetailsPageState extends State<FriendDetailsPage> {
                 child: Container(
                   width: 18.w,
                   height: 18.w,
-                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF1A1814)),
-                  child: Icon(Icons.close_rounded, size: 12.sp, color: const Color(0xFFF7F4EE)),
+                  decoration: const BoxDecoration(
+                      shape: BoxShape.circle, color: Color(0xFF1A1814)),
+                  child: (_isRemovingParticipant &&
+                          _removingParticipantId == participant.id)
+                      ? Padding(
+                          padding: EdgeInsets.all(4.w),
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFFF7F4EE)),
+                          ),
+                        )
+                      : Icon(Icons.close_rounded,
+                          size: 12.sp, color: const Color(0xFFF7F4EE)),
                 ),
               ),
             ),

@@ -167,37 +167,49 @@ class _EditInformationPageState extends State<EditInformationPage> {
   Widget _buildSaveButton() {
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-      child: InkWell(
-        onTap: () {
-          _settingsController.userName.value = _nameController.text.trim();
-          _settingsController.userContact.value = _contactController.text.trim();
-          _settingsController.userEmail.value = _emailController.text.trim();
-          Get.back();
-          CustomSnackbar.show(
-            title: 'Success',
-            message: 'Information updated successfully.',
-          );
-        },
-        borderRadius: BorderRadius.circular(90.r),
-        child: Container(
-          width: double.infinity,
-          height: 52.h,
-          decoration: BoxDecoration(
-            color: const Color(0xFF141210),
-            borderRadius: BorderRadius.circular(90.r),
-          ),
-          child: Center(
-            child: Text(
-              'Save Change',
-              style: GoogleFonts.dmSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFFF7F4EE),
-              ),
+      child: Obx(() {
+        final isLoading = _settingsController.isProfileLoading.value;
+        return InkWell(
+          onTap: isLoading
+              ? null
+              : () async {
+                  final success = await _settingsController.updateProfile(
+                    _nameController.text.trim(),
+                  );
+                  if (success) {
+                    Get.back();
+                  }
+                },
+          borderRadius: BorderRadius.circular(90.r),
+          child: Container(
+            width: double.infinity,
+            height: 52.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFF141210),
+              borderRadius: BorderRadius.circular(90.r),
+            ),
+            child: Center(
+              child: isLoading
+                  ? SizedBox(
+                      width: 20.w,
+                      height: 20.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
+                      ),
+                    )
+                  : Text(
+                      'Save Change',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFFF7F4EE),
+                      ),
+                    ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

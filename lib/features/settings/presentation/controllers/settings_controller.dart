@@ -14,6 +14,7 @@ class SettingsController extends GetxController {
   final userTimezone = 'Asia/Singapore'.obs;
   final isProfileLoading = false.obs;
   final isClearingData = false.obs;
+  final isLoggingOut = false.obs;
 
   final totalFocusApps = <Map<String, dynamic>>[].obs;
   final isLoadingTotalFocusApps = false.obs;
@@ -69,6 +70,7 @@ class SettingsController extends GetxController {
 
   Future<bool> updateTimezone(String timezone, {bool silent = false}) async {
     try {
+      if (!silent) isProfileLoading.value = true;
       final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.updateProfile,
         body: {"timezone": timezone},
@@ -87,6 +89,8 @@ class SettingsController extends GetxController {
       return false;
     } catch (e) {
       return false;
+    } finally {
+      if (!silent) isProfileLoading.value = false;
     }
   }
 
@@ -162,6 +166,7 @@ class SettingsController extends GetxController {
 
   Future<void> fetchPersonalReminder() async {
     try {
+      isProfileLoading.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.getPersonalReminders,
       );
@@ -170,7 +175,10 @@ class SettingsController extends GetxController {
         personalReminder.value = response["data"]?["message"] ?? personalReminder.value;
         await Get.find<AppLockNativeService>().cacheReminderMessage(personalReminder.value);
       }
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      isProfileLoading.value = false;
+    }
   }
 
   Future<bool> savePersonalReminder(String message) async {

@@ -268,6 +268,7 @@ class FriendsController extends GetxController {
 
   final isLoadingFriends = false.obs;
   final isLoadingAppUsers = false.obs;
+  final isLoadingNudgeHistory = false.obs;
   final isSubmitting = false.obs;
   final loadingUserId = ''.obs;
 
@@ -665,6 +666,7 @@ class FriendsController extends GetxController {
 
   Future<void> fetchNudgeHistory({int page = 1}) async {
     try {
+      isLoadingNudgeHistory.value = true;
       final token = await StorageServices.instance.getToken();
       if (token.isEmpty) return;
 
@@ -675,6 +677,8 @@ class FriendsController extends GetxController {
       if (response == null || response["success"] != true) return;
       nudgeHistoryRaw.value = List<Map<String, dynamic>>.from(response["data"] ?? []);
     } catch (e) {
+    } finally {
+      isLoadingNudgeHistory.value = false;
     }
   }
 
@@ -712,6 +716,7 @@ class FriendsController extends GetxController {
     required String participantId,
   }) async {
     try {
+      isSubmitting.value = true;
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.removeParticipant,
         body: {"previewId": previewId, "participantId": participantId},
@@ -731,6 +736,8 @@ class FriendsController extends GetxController {
         message: "Connection failed. Please try again.",
         isError: true,
       );
+    } finally {
+      isSubmitting.value = false;
     }
   }
 }

@@ -318,30 +318,49 @@ class SettingsPage extends GetView<SettingsController> {
                   ),
                 ),
                 SizedBox(height: 22.h),
-                InkWell(
-                  onTap: () async {
-                    await ApiServices.instance.logoutAndRedirect();
-                  },
-                  borderRadius: BorderRadius.circular(90.r),
-                  child: Container(
-                    width: double.infinity,
-                    height: 52.h,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC0392B),
-                      borderRadius: BorderRadius.circular(90.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Log out',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                        ),
+                Obx(() {
+                  final isLoading = controller.isLoggingOut.value;
+                  return InkWell(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            controller.isLoggingOut.value = true;
+                            try {
+                              await ApiServices.instance.logoutAndRedirect();
+                            } finally {
+                              controller.isLoggingOut.value = false;
+                            }
+                          },
+                    borderRadius: BorderRadius.circular(90.r),
+                    child: Container(
+                      width: double.infinity,
+                      height: 52.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC0392B),
+                        borderRadius: BorderRadius.circular(90.r),
+                      ),
+                      child: Center(
+                        child: isLoading
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'Log out',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
                 SizedBox(height: 22.h),
                 GestureDetector(
                   onTap: () => Get.back(),
@@ -422,33 +441,45 @@ class SettingsPage extends GetView<SettingsController> {
               ),
             ),
             Expanded(
-              child: Obx(() => ListView.separated(
-                    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                    itemCount: filteredTimezones.length,
-                    separatorBuilder: (context, index) => Divider(
-                      color: const Color(0xFFE8E3DA),
-                      height: 1.h,
+              child: Obx(() {
+                if (controller.isProfileLoading.value) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFC4A97D),
                     ),
-                    itemBuilder: (context, index) {
-                      final tz = filteredTimezones[index];
-                      return ListTile(
-                        title: Text(
-                          tz,
-                          style: GoogleFonts.dmSans(
-                            fontSize: 15.sp,
-                            color: const Color(0xFF1A1814),
-                          ),
+                  );
+                }
+                return ListView.separated(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                  itemCount: filteredTimezones.length,
+                  separatorBuilder: (context, index) => Divider(
+                    color: const Color(0xFFE8E3DA),
+                    height: 1.h,
+                  ),
+                  itemBuilder: (context, index) {
+                    final tz = filteredTimezones[index];
+                    return ListTile(
+                      title: Text(
+                        tz,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15.sp,
+                          color: const Color(0xFF1A1814),
                         ),
-                        trailing: controller.userTimezone.value == tz
-                            ? const Icon(Icons.check, color: Color(0xFFC4A97D))
-                            : null,
-                        onTap: () {
-                          controller.updateTimezone(tz);
+                      ),
+                      trailing: controller.userTimezone.value == tz
+                          ? const Icon(Icons.check, color: Color(0xFFC4A97D))
+                          : null,
+                      onTap: () async {
+                        final success = await controller.updateTimezone(tz);
+                        if (success) {
                           Get.back();
-                        },
-                      );
-                    },
-                  )),
+                        }
+                      },
+                    );
+                  },
+                );
+              }),
             ),
           ],
         ),
