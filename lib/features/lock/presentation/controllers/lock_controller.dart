@@ -359,6 +359,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
         message: "A network error occurred. Please try again.",
         isError: true,
       );
+    } finally {
+      isLoadingStatus.value = false;
     }
   }
 
@@ -484,6 +486,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
         message: "A network error occurred. Please try again.",
         isError: true,
       );
+    } finally {
+      isLoadingStatus.value = false;
     }
   }
 
