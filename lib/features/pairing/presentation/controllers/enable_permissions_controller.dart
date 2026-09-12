@@ -10,12 +10,14 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
   final overlayGranted = false.obs;
   final batteryOptimizationIgnored = false.obs;
   final usageAccessGranted = false.obs;
+  final deviceAdminActive = false.obs;
 
   bool get allGranted =>
       accessibilityGranted.value &&
       overlayGranted.value &&
       batteryOptimizationIgnored.value &&
-      usageAccessGranted.value;
+      usageAccessGranted.value &&
+      deviceAdminActive.value;
 
   AppLockNativeService get _native => Get.find<AppLockNativeService>();
 
@@ -37,12 +39,14 @@ class EnablePermissionsController extends GetxController with WidgetsBindingObse
     overlayGranted.value = await _native.isOverlayPermissionGranted();
     batteryOptimizationIgnored.value = await _native.isBatteryOptimizationIgnored();
     usageAccessGranted.value = await _native.isUsageAccessPermissionGranted();
+    deviceAdminActive.value = await _native.isDeviceAdminActive();
   }
 
   Future<void> enableAccessibility() => _native.requestAccessibilityPermission();
   Future<void> enableOverlay() => _native.requestOverlayPermission();
   Future<void> enableBatteryOptimization() => _native.requestIgnoreBatteryOptimization();
   Future<void> enableUsageAccess() => _native.requestUsageAccessPermission();
+  Future<void> enableDeviceAdmin() => _native.requestDeviceAdminActivation();
 
   Future<void> continueToApp() async {
     final isInitialSetupComplete = await StorageServices.instance.hasCompletedInitialSetup();
