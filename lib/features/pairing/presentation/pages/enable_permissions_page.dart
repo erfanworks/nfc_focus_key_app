@@ -64,6 +64,13 @@ class EnablePermissionsPage extends GetView<EnablePermissionsController> {
                 granted: controller.usageAccessGranted.value,
                 onTap: controller.enableUsageAccess,
               )),
+              SizedBox(height: 12.h),
+              Obx(() => _PermissionRow(
+                title: 'Prevent Accidental Removal',
+                subtitle: 'Blocks uninstalling Focus Key by mistake',
+                granted: controller.deviceAdminActive.value,
+                onTap: controller.enableDeviceAdmin,
+              )),
               const Spacer(),
               Obx(() => GestureDetector(
                 onTap: controller.allGranted ? controller.continueToApp : null,
