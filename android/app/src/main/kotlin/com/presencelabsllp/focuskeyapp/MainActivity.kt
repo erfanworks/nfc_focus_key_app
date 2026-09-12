@@ -1,6 +1,7 @@
 package com.presencelabsllp.focuskeyapp
 
 import android.app.AppOpsManager
+import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -77,6 +78,13 @@ class MainActivity : FlutterActivity() {
                 }
                 "requestAutoStartPermission" -> {
                     openAutoStartSettings()
+                    result.success(null)
+                }
+                "isDeviceAdminActive" -> {
+                    result.success(isDeviceAdminActive())
+                }
+                "requestDeviceAdminActivation" -> {
+                    requestDeviceAdminActivation()
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -188,6 +196,24 @@ class MainActivity : FlutterActivity() {
             }
         }
         Log.e("!!!FOCUS_LOCK!!!", "❌ AUTO_START: No working intent found for brand=$brand")
+    }
+
+    private fun isDeviceAdminActive(): Boolean {
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val adminComponent = ComponentName(this, FocusKeyDeviceAdminReceiver::class.java)
+        return dpm.isAdminActive(adminComponent)
+    }
+
+    private fun requestDeviceAdminActivation() {
+        val adminComponent = ComponentName(this, FocusKeyDeviceAdminReceiver::class.java)
+        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+            putExtra(
+                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                "Prevents Focus Key from being accidentally removed."
+            )
+        }
+        startActivity(intent)
     }
 
     private fun requestNotificationPermissionIfNeeded() {
