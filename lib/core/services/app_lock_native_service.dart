@@ -67,6 +67,17 @@ class AppLockNativeService extends GetxService {
     await _channel.invokeMethod('requestUsageAccessPermission');
   }
 
+  Future<bool> isDeviceAdminActive() async {
+    if (!Platform.isAndroid) return true;
+    final result = await _channel.invokeMethod<bool>('isDeviceAdminActive');
+    return result ?? false;
+  }
+
+  Future<void> requestDeviceAdminActivation() async {
+    if (!Platform.isAndroid) return;
+    await _channel.invokeMethod('requestDeviceAdminActivation');
+  }
+
   Future<bool> isIOSAuthorized() async {
     if (!Platform.isIOS) return false;
     final result = await _channel.invokeMethod<bool>('isAuthorized');
