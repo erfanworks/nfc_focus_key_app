@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="accessibility_service_description">Focus Key needs this to detect and lock apps you have selected.</string>
+    <string name="device_admin_description">Focus Key uses this to prevent accidental removal while installed.</string>
 </resources>
