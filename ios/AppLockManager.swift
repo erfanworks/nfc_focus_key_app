@@ -63,18 +63,20 @@ class AppLockManager {
         ]
     }
 
-    func applyShield(modeId: String) {
-        let selection = loadSelection(for: modeId)
-        store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
-        store.shield.applicationCategories = selection.categoryTokens.isEmpty
-            ? nil
-            : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
-    }
+        func applyShield(modeId: String) {
+            let selection = loadSelection(for: modeId)
+            store.shield.applications = selection.applicationTokens.isEmpty ? nil : selection.applicationTokens
+            store.shield.applicationCategories = selection.categoryTokens.isEmpty
+                ? nil
+                : ShieldSettings.ActivityCategoryPolicy.specific(selection.categoryTokens)
+            store.application.denyAppRemoval = true
+        }
 
-    func removeShield() {
-        store.shield.applications = nil
-        store.shield.applicationCategories = nil
-    }
+        func removeShield() {
+            store.shield.applications = nil
+            store.shield.applicationCategories = nil
+            store.application.denyAppRemoval = false
+        }
 
     func cacheReminderMessage(_ message: String) {
         defaults.set(message, forKey: "cached_reminder_message")
