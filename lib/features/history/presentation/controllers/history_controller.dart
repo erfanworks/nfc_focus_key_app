@@ -86,9 +86,13 @@ class HistoryGroup {
     
     // Sort sessions within the group by startTime/createdAt descending (most recent first)
     sessionList.sort((a, b) {
-      final aStart = a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? '';
-      final bStart = b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? '';
-      return bStart.toString().compareTo(aStart.toString());
+      try {
+        final aTime = DateTime.parse(a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? DateTime.now().toIso8601String());
+        final bTime = DateTime.parse(b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? DateTime.now().toIso8601String());
+        return bTime.compareTo(aTime); // Latest session first
+      } catch (_) {
+        return 0;
+      }
     });
 
     return HistoryGroup(
@@ -137,10 +141,14 @@ class HistoryController extends GetxController {
             .map((e) => HistoryGroup.fromJson(e))
             .toList();
             
-        // Sorting groups by date might be complex because 'date' is a string like "Today", "Yesterday" or "Oct 25"
-        // Usually the backend returns them in order. But within groups, we can't easily sort without a real date.
-        // Assuming backend sends groups in correct order, we just assign.
-        historyGroups.value = groups;
+        // Final sanity check: If the first group is older than the last group (e.g. Yesterday before Today), 
+        // we reverse them to ensure Newest First.
+        if (groups.length > 1 && groups.first.date.toLowerCase().contains('yesterday') && 
+            groups.any((g) => g.date.toLowerCase().contains('today'))) {
+          historyGroups.value = groups.reversed.toList();
+        } else {
+          historyGroups.value = groups;
+        }
       } else if (response != null) {
         CustomSnackbar.show(
           title: "Update Failed",
