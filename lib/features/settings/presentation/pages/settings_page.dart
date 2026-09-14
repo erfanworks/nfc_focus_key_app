@@ -387,7 +387,8 @@ class SettingsPage extends GetView<SettingsController> {
 
   void _showTimezonePicker(BuildContext context) {
     final TextEditingController searchController = TextEditingController();
-    final RxList<String> filteredTimezones = TimezoneHelper.timezones.obs;
+    final List<String> allTz = TimezoneHelper.allTimezones;
+    final RxList<String> filteredTimezones = allTz.obs;
 
     Get.bottomSheet(
       Container(
@@ -423,7 +424,7 @@ class SettingsPage extends GetView<SettingsController> {
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search timezone...',
+                  hintText: 'Search city or country...',
                   prefixIcon: const Icon(Icons.search, color: Color(0xFF8A8278)),
                   filled: true,
                   fillColor: const Color(0xFFE8E3DA).withOpacity(0.3),
@@ -434,7 +435,7 @@ class SettingsPage extends GetView<SettingsController> {
                   contentPadding: EdgeInsets.symmetric(vertical: 12.h),
                 ),
                 onChanged: (value) {
-                  filteredTimezones.value = TimezoneHelper.timezones
+                  filteredTimezones.value = allTz
                       .where((tz) => tz.toLowerCase().contains(value.toLowerCase()))
                       .toList();
                 },
