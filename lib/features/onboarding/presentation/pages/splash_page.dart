@@ -25,20 +25,30 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1800),
     );
     
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.2, 0.8, curve: Curves.easeOut),
-    );
+    _fadeAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeIn)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween<double>(1.0),
+        weight: 20,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 40,
+      ),
+    ]).animate(_controller);
     
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.05), 
+      begin: const Offset(0, 0.02), 
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.2, 1.0, curve: Curves.easeOutQuart),
+      curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
     ));
 
     _controller.forward();

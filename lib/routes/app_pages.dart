@@ -74,21 +74,21 @@ class AppPages {
       page: () => const OnboardingPage(),
       binding: OnboardingBinding(),
       transition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.focusMessage,
       page: () => const FocusMessagePage(),
       binding: FocusMessageBinding(),
       transition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.login,
       page: () => const LoginPage(),
       binding: AuthBinding(),
       transition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.forgotPassword,
@@ -120,7 +120,7 @@ class AppPages {
       page: () => const PairingPage(),
       binding: PairingBinding(),
       transition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.pairingScanner,
@@ -177,7 +177,7 @@ class AppPages {
       page: () => const DashboardPage(),
       binding: DashboardBinding(),
       transition: Transition.fade,
-      transitionDuration: const Duration(milliseconds: 800),
+      transitionDuration: const Duration(milliseconds: 500),
     ),
 
     GetPage(
