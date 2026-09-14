@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -20,7 +19,6 @@ class BreakCard extends StatefulWidget {
 class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   late AnimationController _activateController;
   late AnimationController _cancelController;
-  late AnimationController _waveController;
   Timer? _vibrationTimer;
 
   @override
@@ -34,10 +32,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat();
 
     _activateController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -77,7 +71,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
     _stopVibration();
     _activateController.dispose();
     _cancelController.dispose();
-    _waveController.dispose();
     super.dispose();
   }
 
@@ -94,122 +87,104 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: AnimatedBuilder(
-                  animation: _waveController,
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: _CardWavePainter(
-                        wavePhase: _waveController.value,
-                        color: const Color(0xFFC4A97D).withValues(alpha: 0.12),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Row(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // No icon! (Removed coffee cup as per feedback)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              'Break ends in ',
-                              style: GoogleFonts.dmSans(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w400,
-                                color: const Color(0xFF1A1814),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            Text(
-                              widget.controller.formattedBreakTime,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFFC4A97D),
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Break ends in ',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF1A1814),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          widget.controller.formattedBreakTime,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFC4A97D),
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ],
                     ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTapDown: (_) {
-                        widget.controller.isHoldingCancel.value = true;
-                        _startVibration();
-                        _cancelController.forward();
-                      },
-                      onTapUp: (_) {
-                        _stopVibration();
-                        widget.controller.isHoldingCancel.value = false;
-                        if (_cancelController.status != AnimationStatus.completed) {
-                          _cancelController.reverse();
-                        }
-                      },
-                      onTapCancel: () {
-                        _stopVibration();
-                        widget.controller.isHoldingCancel.value = false;
-                        if (_cancelController.status != AnimationStatus.completed) {
-                          _cancelController.reverse();
-                        }
-                      },
-                      child: SizedBox(
-                        width: 36.w,
-                        height: 36.w,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 36.w,
-                              height: 36.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFE8E3DA),
-                                  width: 1.5.w,
-                                ),
-                              ),
-                            ),
-                            AnimatedBuilder(
-                              animation: _cancelController,
-                              builder: (context, child) {
-                                return CircularProgressIndicator(
-                                  value: widget.controller.isHoldingCancel.value
-                                      ? _cancelController.value
-                                      : 0.0,
-                                  strokeWidth: 1.5.w,
-                                  valueColor: const AlwaysStoppedAnimation<Color>(
-                                    Color(0xFFC4A97D),
-                                  ),
-                                  backgroundColor: Colors.transparent,
-                                );
-                              },
-                            ),
-                            Icon(
-                              Icons.close_rounded,
-                              color: const Color(0xFFC4A97D),
-                              size: 18.sp,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            ],
+                const Spacer(),
+                GestureDetector(
+                  onTapDown: (_) {
+                    widget.controller.isHoldingCancel.value = true;
+                    _startVibration();
+                    _cancelController.forward();
+                  },
+                  onTapUp: (_) {
+                    _stopVibration();
+                    widget.controller.isHoldingCancel.value = false;
+                    if (_cancelController.status != AnimationStatus.completed) {
+                      _cancelController.reverse();
+                    }
+                  },
+                  onTapCancel: () {
+                    _stopVibration();
+                    widget.controller.isHoldingCancel.value = false;
+                    if (_cancelController.status != AnimationStatus.completed) {
+                      _cancelController.reverse();
+                    }
+                  },
+                  child: SizedBox(
+                    width: 36.w,
+                    height: 36.w,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 36.w,
+                          height: 36.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFE8E3DA),
+                              width: 1.5.w,
+                            ),
+                          ),
+                        ),
+                        AnimatedBuilder(
+                          animation: _cancelController,
+                          builder: (context, child) {
+                            return CircularProgressIndicator(
+                              value: widget.controller.isHoldingCancel.value
+                                  ? _cancelController.value
+                                  : 0.0,
+                              strokeWidth: 1.5.w,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFFC4A97D),
+                              ),
+                              backgroundColor: Colors.transparent,
+                            );
+                          },
+                        ),
+                        Icon(
+                          Icons.close_rounded,
+                          color: const Color(0xFFC4A97D),
+                          size: 18.sp,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
@@ -217,7 +192,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
       final friendsController = Get.find<FriendsController>();
       final nudge = friendsController.currentNudge.value;
       
-      // A nudge is only valid for UI interaction if it's active AND matches the user's current lock session mode
       final bool isNudgeValid = nudge != null && 
                                nudge.isActive && 
                                widget.controller.activeModeId == nudge.modeId;
@@ -260,19 +234,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
           ),
           child: Stack(
             children: [
-              Positioned.fill(
-                child: AnimatedBuilder(
-                  animation: _waveController,
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: _CardWavePainter(
-                        wavePhase: _waveController.value,
-                        color: const Color(0xFFC4A97D).withValues(alpha: 0.10),
-                      ),
-                    );
-                  },
-                ),
-              ),
               Positioned(
                 left: 0,
                 top: 0,
@@ -294,7 +255,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Row(
                   children: [
-                    // No icon! (Removed phone dotted line as per feedback)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -416,48 +376,5 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-}
-
-class _CardWavePainter extends CustomPainter {
-  final double wavePhase;
-  final Color color;
-
-  _CardWavePainter({
-    required this.wavePhase,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final yOffset = size.height * 0.65; // Cover more area
-    const waveHeight = 6.0; // Taller waves
-    const waveFrequency = 1.0;
-
-    path.moveTo(0, yOffset);
-
-    for (double x = 0; x <= size.width; x++) {
-      final y = yOffset +
-          math.sin((x / size.width * 2 * math.pi * waveFrequency) +
-                  (wavePhase * 2 * math.pi)) *
-              waveHeight;
-      path.lineTo(x, y);
-    }
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CardWavePainter oldDelegate) {
-    return oldDelegate.wavePhase != wavePhase;
   }
 }
