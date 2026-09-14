@@ -29,7 +29,6 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _splashController;
-  late AnimationController _waveController;
   late Animation<double> _splashScale;
   late Animation<double> _splashOpacity;
   Timer? _vibrationTimer;
@@ -56,11 +55,6 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     );
-
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat();
 
     _splashController = AnimationController(
       vsync: this,
@@ -108,7 +102,6 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
   void dispose() {
     _stopVibration();
     _controller.dispose();
-    _waveController.dispose();
     _splashController.dispose();
     super.dispose();
   }
@@ -140,7 +133,7 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
         }
       },
       child: AnimatedBuilder(
-        animation: Listenable.merge([_controller, _splashController, _waveController]),
+        animation: Listenable.merge([_controller, _splashController]),
         builder: (context, child) {
           return Opacity(
               opacity: widget.isDisabled ? 0.5 : 1.0,
@@ -202,16 +195,6 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
                             child: ClipOval(
                               child: Stack(
                                 children: [
-                                  if (_controller.value > 0 && !widget.isLocked)
-                                    Positioned.fill(
-                                      child: CustomPaint(
-                                        painter: _WaterFillingPainter(
-                                          progress: _controller.value,
-                                          wavePhase: _waveController.value,
-                                          color: const Color(0xFFC4A97D).withValues(alpha: 0.15),
-                                        ),
-                                      ),
-                                    ),
                                   Center(
                                     child: widget.isToggling
                                         ? SizedBox(
@@ -245,48 +228,6 @@ class _HoldToLockCircleState extends State<HoldToLockCircle>
         },
       ),
     );
-  }
-}
-
-class _WaterFillingPainter extends CustomPainter {
-  final double progress;
-  final double wavePhase;
-  final Color color;
-
-  _WaterFillingPainter({
-    required this.progress,
-    required this.wavePhase,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final yOffset = size.height * (1 - progress);
-    const waveHeight = 8.0;
-    const waveFrequency = 1.5;
-
-    path.moveTo(0, yOffset);
-
-    for (double x = 0; x <= size.width; x++) {
-      final y = yOffset + math.sin((x / size.width * 2 * math.pi * waveFrequency) + (wavePhase * 2 * math.pi)) * waveHeight;
-      path.lineTo(x, y);
-    }
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _WaterFillingPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.wavePhase != wavePhase;
   }
 }
 
