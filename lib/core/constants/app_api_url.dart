@@ -38,6 +38,8 @@ class AppApiUrl {
       "/modes/$modeId/toggle-activation";
   final String lockStatus = "/modes/lock-status";
   final String lock = "/modes/lock-status";
+  final String reconcile = "/focus-sessions/reconcile"; //POST METHOD
+  final String breakReconcile = "/breaks/reconcile"; //POST METHOD
 
   // String updateLockUnlock(String modeId) =>
   //     "/modes/$modeId/toggle-activation";
