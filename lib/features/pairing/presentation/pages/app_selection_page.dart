@@ -370,7 +370,7 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                   } else if (apps > 0 && cats > 0) {
                     text = 'Block $apps app${apps == 1 ? '' : 's'} & $cats cat';
                   } else if (cats > 0) {
-                    text = 'Block $cats category${cats == 1 ? '' : 'ies'}';
+                    text = 'Block $cats ${cats == 1 ? 'category' : 'categories'}';
                   } else {
                     text = 'Block $apps app${apps == 1 ? '' : 's'}';
                   }
@@ -477,7 +477,7 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                         } else if (apps > 0 && cats > 0) {
                           text = '$apps app${apps == 1 ? '' : 's'} & $cats cat selected';
                         } else if (cats > 0) {
-                          text = '$cats category${cats == 1 ? '' : 'ies'} selected';
+                          text = '$cats ${cats == 1 ? 'category' : 'categories'} selected';
                         } else {
                           text = '$apps app${apps == 1 ? '' : 's'} selected';
                         }
