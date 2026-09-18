@@ -559,3 +559,5 @@ class AppSelectionPage extends GetView<AppSelectionController> {
     });
   }
 }
+
+

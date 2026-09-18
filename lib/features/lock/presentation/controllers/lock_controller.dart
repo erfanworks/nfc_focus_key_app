@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -34,7 +35,6 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   final isOnBreak = false.obs;
   final breakSeconds = 150.obs;
-  final isBreakPaused = false.obs;
   final breaksLeft = 1.obs;
   final personalBreakLengthMinutes = 5.obs;
   final isLoadingBreakSettings = true.obs;
@@ -54,7 +54,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
     _hydrateFromLocalCache();
 
     // Phase 2: Background sync with server
-    fetchLockStatus();
+    unawaited(_syncPendingStateOnResume());
     _fetchPersonalBreakLength();
     _checkPermissionsOnResume();
   }
@@ -87,8 +87,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
             sessionSeconds.value = DateTime.now().difference(start).inSeconds;
             _startTimer();
           } catch (e) {
-      errorLog("LockController._ensureNativeLockApplied", e);
-    }
+            errorLog("LockController._ensureNativeLockApplied", e);
+          }
         }
       }
     } catch (e) {
@@ -100,8 +100,122 @@ class LockController extends GetxController with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      fetchLockStatus();
+      unawaited(_syncPendingStateOnResume());
       _checkPermissionsOnResume();
+    }
+  }
+
+  Future<void> _syncPendingStateOnResume() async {
+    // Must run strictly in sequence — parallel calls let a lock-status
+    // GET race ahead of the session reconcile, see activeSession: null
+    // (session not yet created server-side), and wrongly wipe the timer.
+    await _attemptPendingReconcile();
+    await _attemptPendingBreakReconcile();
+    await fetchLockStatus();
+  }
+
+  /// Pushes a lock session that was started/ended while offline to the
+  /// backend via POST /focus-sessions/reconcile. Safe to call anytime —
+  /// no-ops if there's nothing pending, and idempotent per clientSessionId
+  /// on the backend side, so calling this more than once (app resume +
+  /// onInit both firing) can never create duplicate sessions.
+  Future<void> _attemptPendingReconcile() async {
+    try {
+      final pending = await StorageServices.instance.getPendingReconcileSession();
+      if (pending == null) return;
+
+      final body = {
+        "clientSessionId": pending["clientSessionId"],
+        "modeId": pending["modeId"],
+        "startedAt": pending["startedAt"],
+        "status": pending["status"],
+        if (pending["endedAt"] != null) "endedAt": pending["endedAt"],
+      };
+
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.reconcile,
+        body: body,
+      );
+
+      final bool isNetworkError = response is Map && response["isNetworkError"] == true;
+      if (isNetworkError) {
+        // Still offline — leave the pending record as-is, try again on
+        // the next resume/init.
+        return;
+      }
+
+      if (response == null || response["success"] != true) {
+        // Server actively rejected this reconcile attempt (e.g. the
+        // session/mode no longer exists). Nothing local to safely retry
+        // with — drop it rather than retry forever.
+        errorLog(
+          "LockController._attemptPendingReconcile",
+          "Reconcile rejected: ${response?["message"]}",
+        );
+        await StorageServices.instance.clearPendingReconcileSession();
+        return;
+      }
+
+      // Reconciled successfully — pull the server's authoritative state
+      // (breaksLeft, isLocked, active mode) through the existing,
+      // already-tested fetchLockStatus() path rather than duplicating
+      // its parsing logic here.
+      await fetchLockStatus();
+      await StorageServices.instance.clearPendingReconcileSession();
+    } catch (e) {
+      errorLog("LockController._attemptPendingReconcile", e);
+      // Leave the pending record in place — will retry on next
+      // resume/init rather than losing the offline session's data.
+    }
+  }
+
+  /// Break equivalent of _attemptPendingReconcile() — pushes a personal
+  /// break that was started/cancelled while offline to the backend via
+  /// POST /breaks/reconcile. Same idempotent, safe-to-call-anytime
+  /// contract as the lock reconcile above.
+  Future<void> _attemptPendingBreakReconcile() async {
+    try {
+      final pending = await StorageServices.instance.getPendingReconcileBreak();
+      if (pending == null) return;
+
+      final body = {
+        "clientBreakId": pending["clientBreakId"],
+        "modeId": pending["modeId"],
+        "startedAt": pending["startedAt"],
+        "status": pending["status"],
+        if (pending["endedAt"] != null) "endedAt": pending["endedAt"],
+      };
+
+      final response = await ApiServices.instance.postServices(
+        url: AppApiUrl.instance.breakReconcile,
+        body: body,
+      );
+
+      final bool isNetworkError = response is Map && response["isNetworkError"] == true;
+      if (isNetworkError) {
+        // Still offline — retry on the next resume/init.
+        return;
+      }
+
+      if (response == null || response["success"] != true) {
+        // Server actively rejected this reconcile attempt — nothing
+        // local to safely retry with, drop it rather than retry forever.
+        errorLog(
+          "LockController._attemptPendingBreakReconcile",
+          "Reconcile rejected: ${response?["message"]}",
+        );
+        await StorageServices.instance.clearPendingReconcileBreak();
+        return;
+      }
+
+      // Reconciled (or already-synced, per the backend's own dedup) —
+      // pull the authoritative breaksLeft/state through the existing
+      // fetchLockStatus() path rather than parsing it out here.
+      await fetchLockStatus();
+      await StorageServices.instance.clearPendingReconcileBreak();
+    } catch (e) {
+      errorLog("LockController._attemptPendingBreakReconcile", e);
+      // Leave the pending record in place — retried on next resume/init.
     }
   }
 
@@ -193,6 +307,12 @@ class LockController extends GetxController with WidgetsBindingObserver {
       final breakStats = data["breakStats"] ?? {};
 
       final activeSessionData = data["activeSession"];
+      // isLocked here means "focus session is active" (persists through a
+      // break), not "apps are physically locked at this instant" — the
+      // backend's own isLocked field means the latter (it's false while on
+      // a break) and must NOT be used to drive this. Deriving from
+      // activeSession presence (the FocusSession stays "active" in the DB
+      // for the whole session, break included) is correct.
       final serverLocked = activeSessionData != null;
       isLocked.value = serverLocked;
 
@@ -224,8 +344,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
             isOnBreak.value = false;
           }
         } catch (e) {
-      errorLog("LockController._ensureNativeLockApplied", e);
-    }
+          errorLog("LockController._ensureNativeLockApplied", e);
+        }
       } else {
         isOnBreak.value = false;
       }
@@ -258,8 +378,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
     if (activeSession is Map<String, dynamic>) {
       final raw =
           activeSession['startTime'] ??
-          activeSession['startedAt'] ??
-          activeSession['createdAt'];
+              activeSession['startedAt'] ??
+              activeSession['createdAt'];
       if (raw != null) {
         try {
           final start = DateTime.parse(raw.toString());
@@ -271,8 +391,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
             return;
           }
         } catch (e) {
-      errorLog("LockController._ensureNativeLockApplied", e);
-    }
+          errorLog("LockController._ensureNativeLockApplied", e);
+        }
       }
       final elapsedMinutes = activeSession['elapsedMinutes'];
       if (elapsedMinutes is int) {
@@ -326,17 +446,65 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
   Future<void> _startPersonalBreak() async {
     if (activeModeId == null) return;
+    if (breaksLeft.value <= 0) {
+      CustomSnackbar.show(
+        title: "Break Error",
+        message: "You have no breaks left today.",
+        isError: true,
+      );
+      return;
+    }
+
+    final modeId = activeModeId!;
+    final clientBreakId = _generateUuidV4();
+    final startedAt = DateTime.now().toIso8601String();
+
     try {
       isLoadingStatus.value = true;
       await HapticFeedback.mediumImpact();
-      
+
+      // Recorded before the network call so an offline start (or a kill
+      // mid-flight) still has enough info for the next reconcile pass.
+      await StorageServices.instance.savePendingReconcileBreak(
+        clientBreakId: clientBreakId,
+        modeId: modeId,
+        startedAt: startedAt,
+        status: "active",
+      );
+
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.breakStart,
-        body: {"modeId": activeModeId},
+        body: {
+          "modeId": modeId,
+          "clientBreakId": clientBreakId,
+          "startedAt": startedAt,
+        },
       );
-      // ... rest of logic
+
+      final bool isNetworkError = response is Map && response["isNetworkError"] == true;
 
       if (response == null || response["success"] != true) {
+        if (isNetworkError) {
+          // Offline — start the break locally using the cached break
+          // length, since the server can't tell us startTime/endTime
+          // right now. _attemptPendingBreakReconcile() will true-up
+          // breaksLeft with the server once connectivity returns.
+          final durationSeconds = personalBreakLengthMinutes.value * 60;
+          final start = DateTime.parse(startedAt);
+          final end = start.add(Duration(seconds: durationSeconds));
+          await _applyBreakDuration(start.toIso8601String(), end.toIso8601String());
+          breaksLeft.value -= 1;
+
+          CustomSnackbar.show(
+            title: "Break Started",
+            message: "Your apps are now available.",
+          );
+          return;
+        }
+
+        // Real rejection from the server (e.g. quota already exhausted
+        // server-side) — nothing local was changed, just surface it.
+        await StorageServices.instance.clearPendingReconcileBreak();
         CustomSnackbar.show(
           title: "Break Error",
           message: response?["message"] ?? "Could not start your break.",
@@ -347,13 +515,14 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
       final data = response["data"];
       await _applyBreakDuration(data["startTime"], data["endTime"]);
-      if (breaksLeft.value > 0) breaksLeft.value -= 1;
+      breaksLeft.value -= 1;
 
       CustomSnackbar.show(
         title: "Break Started",
         message: "Your apps are now available.",
       );
     } catch (e) {
+      errorLog("LockController._startPersonalBreak", e);
       CustomSnackbar.show(
         title: "Error",
         message: "A network error occurred. Please try again.",
@@ -365,9 +534,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _startNudgeBreak(
-    FriendsController friendsController,
-    String nudgeId,
-  ) async {
+      FriendsController friendsController,
+      String nudgeId,
+      ) async {
     try {
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
@@ -413,22 +582,11 @@ class LockController extends GetxController with WidgetsBindingObserver {
     }
 
     isOnBreak.value = true;
-    isBreakPaused.value = false;
     breakSeconds.value = seconds;
-
 
     _startBreakTimer();
 
     await Get.find<AppLockNativeService>().deactivateLock();
-  }
-
-  void toggleBreakPause() {
-    isBreakPaused.value = !isBreakPaused.value;
-    if (isBreakPaused.value) {
-      _breakTimer?.cancel();
-    } else {
-      _startBreakTimer();
-    }
   }
 
   void _startBreakTimer() {
@@ -446,7 +604,6 @@ class LockController extends GetxController with WidgetsBindingObserver {
     _breakTimer?.cancel();
     _breakTimer = null;
     isOnBreak.value = false;
-    isBreakPaused.value = false;
     if (isLocked.value) {
       _startTimer();
       await Get.find<AppLockNativeService>().activateLock(
@@ -457,38 +614,59 @@ class LockController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> stopBreak() async {
+    // Optimistic cancel — apps must go back to locked immediately, without
+    // waiting on the network. This mirrors _deactivateMode()'s pattern and
+    // fixes the "stuck on break" bug: previously endBreak() only ran after
+    // the breakCancel API call resolved, so any network hiccup left the
+    // user's apps unlocked with no way to cancel.
+    final endedAt = DateTime.now().toIso8601String();
+    await endBreak();
+
+    // Mark the pending break record completed BEFORE attempting the
+    // network call, so that if breakCancel fails (offline or otherwise)
+    // there's already a ready-to-sync "completed" record for the next
+    // reconcile pass.
+    final pendingBreak = await StorageServices.instance.getPendingReconcileBreak();
+    if (pendingBreak != null) {
+      await StorageServices.instance.savePendingReconcileBreak(
+        clientBreakId: pendingBreak["clientBreakId"],
+        modeId: pendingBreak["modeId"],
+        startedAt: pendingBreak["startedAt"],
+        status: "completed",
+        endedAt: endedAt,
+      );
+    }
+
+    CustomSnackbar.show(
+      title: "Break Stopped",
+      message: "Apps are now locked again.",
+    );
+
     try {
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.breakCancel,
       );
 
-      if (response == null || response["success"] != true) {
-        CustomSnackbar.show(
-          title: "Break Error",
-          message: response?["message"] ?? "Could not stop your break.",
-          isError: true,
+      if (response != null && response["success"] == true) {
+        await StorageServices.instance.clearPendingReconcileBreak();
+      } else {
+        errorLog(
+          "LockController.stopBreak",
+          "breakCancel API did not confirm success: ${response?["message"]}",
         );
-        return;
+        // Apps are already re-locked locally (fail-safe default). The
+        // "completed" pending record saved above will sync via
+        // _attemptPendingBreakReconcile() once connectivity allows.
       }
-
-      await endBreak();
-
-      CustomSnackbar.show(
-        title: "Break Stopped",
-        message: "Apps are now locked again.",
-      );
-
-      // Sync remaining breaks and state from server
-      fetchLockStatus();
     } catch (e) {
-      CustomSnackbar.show(
-        title: "Error",
-        message: "A network error occurred. Please try again.",
-        isError: true,
-      );
-    } finally {
-      isLoadingStatus.value = false;
+      errorLog("LockController.stopBreak", e);
+      // Same fail-safe reasoning: local state already correct, server
+      // sync will catch up on the next reconcile pass.
     }
+
+    // Sync remaining breaks and state from server (best-effort, non-blocking
+    // for the user's already-completed local cancel).
+    unawaited(fetchLockStatus());
   }
 
   String get formattedBreakTime {
@@ -636,11 +814,24 @@ class LockController extends GetxController with WidgetsBindingObserver {
     sessionSeconds.value = 0;
     _startTimer();
 
+    final startedAt = DateTime.now().toIso8601String();
+    final clientSessionId = _generateUuidV4();
+
     // Persist for offline resilience and lag-free loading
     await StorageServices.instance.setLockActive(true);
     await StorageServices.instance.setActiveModeId(modeId);
     await StorageServices.instance.setActiveModeName(selectedMode.value);
-    await StorageServices.instance.setValue("session_start_time", DateTime.now().toIso8601String());
+    await StorageServices.instance.setValue("session_start_time", startedAt);
+
+    // Recorded up front so that even if the app is killed before the
+    // network call below resolves, the next launch's reconcile pass can
+    // still push this session to the backend.
+    await StorageServices.instance.savePendingReconcileSession(
+      clientSessionId: clientSessionId,
+      modeId: modeId,
+      startedAt: startedAt,
+      status: "active",
+    );
 
     try {
       isTogglingLock.value = true;
@@ -648,21 +839,34 @@ class LockController extends GetxController with WidgetsBindingObserver {
         url: AppApiUrl.instance.toggleModeActivation(modeId),
       );
 
+      final bool isNetworkError = response is Map && response["isNetworkError"] == true;
+
       if (response == null || response["success"] != true) {
-        // If not a network error (e.g. invalid mode), revert.
-        if (response != null && response["message"] != "Check your internet connection.") {
+        if (!isNetworkError) {
+          // The server actually responded and rejected this — revert.
           isLocked.value = false;
           activeModeId = null;
           unawaited(_stopTimer());
           await StorageServices.instance.setLockActive(false);
+          await StorageServices.instance.clearPendingReconcileSession();
           CustomSnackbar.show(
             title: 'Session Failed',
-            message: response["message"] ?? 'Could not start focus session.',
+            message: response?["message"] ?? 'Could not start focus session.',
             isError: true,
           );
           return;
         }
+        // Network error — keep the optimistic local lock. The pending
+        // reconcile record saved above will sync this once connectivity
+        // returns (see _attemptPendingReconcile()).
       }
+      // Note: pendingReconcileSession is intentionally NOT cleared here
+      // even on a successful online activation. It must stay alive for
+      // the lifetime of the session so that if the user later unlocks
+      // while offline, _deactivateMode() has a record to mark
+      // "completed" and reconcile once connectivity returns. It's only
+      // cleared once the session is confirmed ended (see
+      // _deactivateMode()'s success branch and _attemptPendingReconcile()).
 
       unawaited(_ensureNativeLockApplied(modeId));
 
@@ -672,7 +876,8 @@ class LockController extends GetxController with WidgetsBindingObserver {
       );
     } catch (e) {
       errorLog("LockController._activateMode", e);
-      // On network exception, we keep the local lock active (Offline Mode)
+      // On network exception, we keep the local lock active (Offline Mode).
+      // pendingReconcileSession is already saved above.
     } finally {
       isTogglingLock.value = false;
     }
@@ -696,7 +901,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
 
     try {
       isTogglingLock.value = true;
-      
+
       // Check if we are in a Nudge session
       final friendsController = Get.find<FriendsController>();
       final nudge = friendsController.currentNudge.value;
@@ -705,15 +910,35 @@ class LockController extends GetxController with WidgetsBindingObserver {
       if (isNudgeActive) {
         // If it's a nudge session, we need to leave/unlock the nudge
         await friendsController.leaveNudge(nudge.nudgeId!);
+        await StorageServices.instance.clearPendingReconcileSession();
       } else {
         // Regular session sync
         final response = await ApiServices.instance.patchServices(
           url: AppApiUrl.instance.toggleModeActivation(modeId),
         );
-        
+
+        final bool isNetworkError = response is Map && response["isNetworkError"] == true;
+
+        if (response != null && response["success"] == true) {
+          await StorageServices.instance.clearPendingReconcileSession();
+        } else if (isNetworkError) {
+          // Couldn't reach the server — record this unlock so the next
+          // reconcile pass tells the backend the session is over.
+          final pending = await StorageServices.instance.getPendingReconcileSession();
+          if (pending != null && pending["modeId"] == modeId) {
+            await StorageServices.instance.savePendingReconcileSession(
+              clientSessionId: pending["clientSessionId"],
+              modeId: modeId,
+              startedAt: pending["startedAt"],
+              status: "completed",
+              endedAt: DateTime.now().toIso8601String(),
+            );
+          }
+        }
+
         // Extra fallback: if server still says it's a nudge session via message
-        if (response != null && 
-            response["success"] == false && 
+        if (response != null &&
+            response["success"] == false &&
             (response["message"]?.toString().contains("Nudge") ?? false)) {
           if (nudge?.nudgeId != null) {
             await friendsController.leaveNudge(nudge!.nudgeId!);
@@ -729,7 +954,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       errorLog("LockController._deactivateMode", e);
-      
+
       // If we got a 403 via exception, try to handle nudge exit as a last resort
       if (e.toString().contains("403")) {
         try {
@@ -819,3 +1044,18 @@ class LockController extends GetxController with WidgetsBindingObserver {
     super.onClose();
   }
 }
+
+/// Minimal RFC-4122 v4 UUID generator — avoids pulling in the `uuid`
+/// package just for client-generated session IDs used by the offline
+/// lock reconciliation flow.
+String _generateUuidV4() {
+  final rand = Random.secure();
+  final bytes = List<int>.generate(16, (_) => rand.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0F) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3F) | 0x80; // variant 10
+  String hex(int start, int end) =>
+      bytes.sublist(start, end).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
+}
+
+// latest lock controller

@@ -68,6 +68,8 @@ class AppPages {
       name: Routes.splash,
       page: () => const SplashPage(),
       binding: SplashBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.onboarding,

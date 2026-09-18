@@ -39,6 +39,18 @@ class StorageKey {
   final String completedInitialSetup = "completedInitialSetup";
   final String lastSelectedModeId    = "last_selected_mode_id";
   final String lastSelectedModeName  = "last_selected_mode_name";
+
+  // ==================== Offline lock reconciliation ====================
+  // A single JSON blob (clientSessionId, modeId, startedAt, status, endedAt)
+  // for whichever lock session hasn't been confirmed-synced with the
+  // backend yet. Cleared once /focus-sessions/reconcile confirms it.
+  final String pendingReconcileSession = "pending_reconcile_session";
+
+  // Same idea as pendingReconcileSession, but for a personal break that
+  // was started/ended while offline.
+  // Personal breaks only — nudge (shared) breaks are inherently real-time
+  // and are not supported offline.
+  final String pendingReconcileBreak = "pending_reconcile_break";
 }
 
 class StorageServices {
@@ -493,6 +505,97 @@ class StorageServices {
     } catch (e) {
       errorLog("getLastSelectedMode", e);
       return {"id": null, "name": null};
+    }
+  }
+
+  // ==================== Offline lock reconciliation ====================
+  Future<void> savePendingReconcileSession({
+    required String clientSessionId,
+    required String modeId,
+    required String startedAt,
+    required String status, // "active" | "completed"
+    String? endedAt,
+  }) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(
+        StorageKey.instance.pendingReconcileSession,
+        jsonEncode({
+          "clientSessionId": clientSessionId,
+          "modeId": modeId,
+          "startedAt": startedAt,
+          "status": status,
+          if (endedAt != null) "endedAt": endedAt,
+        }),
+      );
+    } catch (e) {
+      errorLog("savePendingReconcileSession", e);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPendingReconcileSession() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.pendingReconcileSession);
+      if (raw == null || raw.isEmpty) return null;
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (e) {
+      errorLog("getPendingReconcileSession", e);
+      return null;
+    }
+  }
+
+  Future<void> clearPendingReconcileSession() async {
+    try {
+      final pref = await _pref;
+      await pref.remove(StorageKey.instance.pendingReconcileSession);
+    } catch (e) {
+      errorLog("clearPendingReconcileSession", e);
+    }
+  }
+
+  Future<void> savePendingReconcileBreak({
+    required String clientBreakId,
+    required String modeId,
+    required String startedAt,
+    required String status, // "active" | "completed"
+    String? endedAt,
+  }) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(
+        StorageKey.instance.pendingReconcileBreak,
+        jsonEncode({
+          "clientBreakId": clientBreakId,
+          "modeId": modeId,
+          "startedAt": startedAt,
+          "status": status,
+          if (endedAt != null) "endedAt": endedAt,
+        }),
+      );
+    } catch (e) {
+      errorLog("savePendingReconcileBreak", e);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPendingReconcileBreak() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.pendingReconcileBreak);
+      if (raw == null || raw.isEmpty) return null;
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (e) {
+      errorLog("getPendingReconcileBreak", e);
+      return null;
+    }
+  }
+
+  Future<void> clearPendingReconcileBreak() async {
+    try {
+      final pref = await _pref;
+      await pref.remove(StorageKey.instance.pendingReconcileBreak);
+    } catch (e) {
+      errorLog("clearPendingReconcileBreak", e);
     }
   }
 

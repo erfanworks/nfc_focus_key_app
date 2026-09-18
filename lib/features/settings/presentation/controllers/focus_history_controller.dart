@@ -60,22 +60,16 @@ class FocusHistorySession {
       final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
       final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
 
+      // Backend already sends these in the user's selected timezone
+      // (no Z / offset suffix), so parse as-is — do NOT append 'Z' or call .toLocal()
       if (startRaw != null) {
-        String startStrRaw = startRaw.toString();
-        if (!startStrRaw.contains('Z') && !startStrRaw.contains('+')) {
-          startStrRaw += 'Z';
-        }
-        final start = DateTime.parse(startStrRaw).toLocal();
+        final start = DateTime.parse(startRaw.toString());
         final startStr = _formatTime(start);
 
         if (json['status'] == 'active') {
           displayTimeRange = 'Started at $startStr';
         } else if (endRaw != null) {
-          String endStrRaw = endRaw.toString();
-          if (!endStrRaw.contains('Z') && !endStrRaw.contains('+')) {
-            endStrRaw += 'Z';
-          }
-          final end = DateTime.parse(endStrRaw).toLocal();
+          final end = DateTime.parse(endRaw.toString());
           final endStr = _formatTime(end);
           displayTimeRange = '$startStr - $endStr';
         }
