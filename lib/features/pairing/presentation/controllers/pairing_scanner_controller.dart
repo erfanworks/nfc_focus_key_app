@@ -77,7 +77,7 @@ class PairingScannerController extends GetxController {
       
       // Professional transition delay
       await Future.delayed(const Duration(milliseconds: 1500));
-      Get.offNamed(Routes.paired);
+      Get.offNamed(Routes.paired, arguments: Get.arguments);
     } catch (e) {
       _resetAfterFailure("Connection error. Could not verify key with server.");
     } finally {

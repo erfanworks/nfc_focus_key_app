@@ -236,8 +236,9 @@ class KeyStatusPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14.r),
-          onTap: () {
-            Get.toNamed(Routes.pairing);
+          onTap: () async {
+            await Get.toNamed(Routes.pairing, arguments: {'fromSettings': true});
+            controller.loadPairedStatus();
           },
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
