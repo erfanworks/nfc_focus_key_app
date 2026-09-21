@@ -88,6 +88,10 @@ class AppApiUrl {
       "/friends/nudge/confirm/$previewId";
 
   String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";
+  // new
+  String friendDetails(String friendId) => "/friends/details/$friendId"; // GET METHOD
+  String sendNudge(String friendId) => "/friends/send-nudge/$friendId"; // POST METHOD
+  final String friendsFocusingStatus = "/friends/focusing-status"; // GET METHOD
 
   // ==================== Settings ====================
   final String refreshToken = "/refreshToken";

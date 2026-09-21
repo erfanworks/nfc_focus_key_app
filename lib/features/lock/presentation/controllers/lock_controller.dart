@@ -542,16 +542,9 @@ class LockController extends GetxController with WidgetsBindingObserver {
     if (!isLocked.value) return;
     await HapticFeedback.lightImpact();
 
-    final friendsController = Get.find<FriendsController>();
-    final nudge = friendsController.currentNudge.value;
-    final isNudgeSession =
-        nudge != null && nudge.isActive && nudge.nudgeId != null;
-
-    if (isNudgeSession) {
-      await _startNudgeBreak(friendsController, nudge.nudgeId!);
-    } else {
-      await _startPersonalBreak();
-    }
+    // Focusing Together / shared nudge sessions have been removed —
+    // every break is now a personal break tied to the user's own session.
+    await _startPersonalBreak();
   }
 
   Future<void> _startPersonalBreak() async {
@@ -603,6 +596,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
           final durationSeconds = personalBreakLengthMinutes.value * 60;
           final start = DateTime.parse(startedAt);
           final end = start.add(Duration(seconds: durationSeconds));
+          await StorageServices.instance.clearPendingReconcileBreak();
           await _applyBreakDuration(
             start.toIso8601String(),
             end.toIso8601String(),
@@ -647,41 +641,41 @@ class LockController extends GetxController with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _startNudgeBreak(
-      FriendsController friendsController,
-      String nudgeId,
-      ) async {
-    try {
-      final response = await ApiServices.instance.postServices(
-        url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
-      );
-
-      if (response == null || response["success"] != true) {
-        CustomSnackbar.show(
-          title: "Break Error",
-          message: response?["message"] ?? "Could not start nudge break.",
-          isError: true,
-        );
-        return;
-      }
-
-      final data = response["data"];
-      final breakInfo = data["break"] ?? {};
-      await _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
-      await friendsController.fetchCurrentNudgeStatus();
-
-      CustomSnackbar.show(
-        title: "Shared Break",
-        message: "Focus session paused for the team.",
-      );
-    } catch (e) {
-      CustomSnackbar.show(
-        title: "Error",
-        message: "Failed to sync shared break. Check your connection.",
-        isError: true,
-      );
-    }
-  }
+  // Future<void> _startNudgeBreak(
+  //     FriendsController friendsController,
+  //     String nudgeId,
+  //     ) async {
+  //   try {
+  //     final response = await ApiServices.instance.postServices(
+  //       url: AppApiUrl.instance.takeNudgeBreak(nudgeId),
+  //     );
+  //
+  //     if (response == null || response["success"] != true) {
+  //       CustomSnackbar.show(
+  //         title: "Break Error",
+  //         message: response?["message"] ?? "Could not start nudge break.",
+  //         isError: true,
+  //       );
+  //       return;
+  //     }
+  //
+  //     final data = response["data"];
+  //     final breakInfo = data["break"] ?? {};
+  //     await _applyBreakDuration(breakInfo["startTime"], breakInfo["endTime"]);
+  //     await friendsController.fetchCurrentNudgeStatus();
+  //
+  //     CustomSnackbar.show(
+  //       title: "Shared Break",
+  //       message: "Focus session paused for the team.",
+  //     );
+  //   } catch (e) {
+  //     CustomSnackbar.show(
+  //       title: "Error",
+  //       message: "Failed to sync shared break. Check your connection.",
+  //       isError: true,
+  //     );
+  //   }
+  // }
 
   Future<void> _applyBreakDuration(String? startTime, String? endTime) async {
     int seconds = 150;
@@ -1045,50 +1039,30 @@ class LockController extends GetxController with WidgetsBindingObserver {
     try {
       isTogglingLock.value = true;
 
-      // Check if we are in a Nudge session
-      final friendsController = Get.find<FriendsController>();
-      final nudge = friendsController.currentNudge.value;
-      final isNudgeActive =
-          nudge != null && nudge.isActive && nudge.nudgeId != null;
+      // Regular session sync — Focusing Together / shared nudge sessions
+      // have been removed, so this is now the single, always-used path.
+      final response = await ApiServices.instance.patchServices(
+        url: AppApiUrl.instance.toggleModeActivation(modeId),
+      );
 
-      if (isNudgeActive) {
-        // If it's a nudge session, we need to leave/unlock the nudge
-        await friendsController.leaveNudge(nudge.nudgeId!);
+      final bool isNetworkError =
+          response is Map && response["isNetworkError"] == true;
+
+      if (response != null && response["success"] == true) {
         await StorageServices.instance.clearPendingReconcileSession();
-      } else {
-        // Regular session sync
-        final response = await ApiServices.instance.patchServices(
-          url: AppApiUrl.instance.toggleModeActivation(modeId),
-        );
-
-        final bool isNetworkError =
-            response is Map && response["isNetworkError"] == true;
-
-        if (response != null && response["success"] == true) {
-          await StorageServices.instance.clearPendingReconcileSession();
-        } else if (isNetworkError) {
-          // Couldn't reach the server — record this unlock so the next
-          // reconcile pass tells the backend the session is over.
-          final pending = await StorageServices.instance
-              .getPendingReconcileSession();
-          if (pending != null && pending["modeId"] == modeId) {
-            await StorageServices.instance.savePendingReconcileSession(
-              clientSessionId: pending["clientSessionId"],
-              modeId: modeId,
-              startedAt: pending["startedAt"],
-              status: "completed",
-              endedAt: DateTime.now().toUtc().toIso8601String(),
-            );
-          }
-        }
-
-        // Extra fallback: if server still says it's a nudge session via message
-        if (response != null &&
-            response["success"] == false &&
-            (response["message"]?.toString().contains("Nudge") ?? false)) {
-          if (nudge?.nudgeId != null) {
-            await friendsController.leaveNudge(nudge!.nudgeId!);
-          }
+      } else if (isNetworkError) {
+        // Couldn't reach the server — record this unlock so the next
+        // reconcile pass tells the backend the session is over.
+        final pending = await StorageServices.instance
+            .getPendingReconcileSession();
+        if (pending != null && pending["modeId"] == modeId) {
+          await StorageServices.instance.savePendingReconcileSession(
+            clientSessionId: pending["clientSessionId"],
+            modeId: modeId,
+            startedAt: pending["startedAt"],
+            status: "completed",
+            endedAt: DateTime.now().toUtc().toIso8601String(),
+          );
         }
       }
 
@@ -1100,17 +1074,6 @@ class LockController extends GetxController with WidgetsBindingObserver {
       await Future.delayed(const Duration(milliseconds: 1000));
     } catch (e) {
       errorLog("LockController._deactivateMode", e);
-
-      // If we got a 403 via exception, try to handle nudge exit as a last resort
-      if (e.toString().contains("403")) {
-        try {
-          final friendsController = Get.find<FriendsController>();
-          final nudgeId = friendsController.currentNudge.value?.nudgeId;
-          if (nudgeId != null) {
-            await friendsController.leaveNudge(nudgeId);
-          }
-        } catch (_) {}
-      }
 
       // Even if server sync fails, the user is already unlocked locally.
       CustomSnackbar.show(

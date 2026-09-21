@@ -200,11 +200,11 @@ class AppPages {
       page: () => const NotificationPage(),
       binding: NotificationBinding(),
     ),
-    GetPage(
-      name: Routes.joinFocus,
-      page: () => const JoinFocusPage(),
-      binding: NotificationBinding(),
-    ),
+    // GetPage(
+    //   name: Routes.joinFocus,
+    //   page: () => const JoinFocusPage(),
+    //   binding: NotificationBinding(),
+    // ),
     GetPage(
       name: Routes.changePassword,
       page: () => const ChangePasswordPage(),

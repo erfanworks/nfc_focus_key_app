@@ -3,7 +3,6 @@ import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
-import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class NotificationModel {
   final String id;
@@ -57,77 +56,20 @@ class NotificationModel {
 
   // --- World Class Text Formatting ---
   String get displayMessage {
-    final lowTitle = title.toLowerCase();
-    final lowText = text.toLowerCase();
-    final isAccepted = lowTitle.contains('accepted') || lowText.contains('accepted');
-    final isJoined = lowTitle.contains('joined') || lowText.contains('joined');
-
     if (text.isEmpty || text.contains('/') || text.contains('http') || text.contains('_id')) {
       switch (referenceModel) {
         case 'Nudge':
-          if (isAccepted || isJoined) {
-            return "Great news! Your focus invitation was accepted. Get ready to dive in!";
-          }
-          return "Invited you to a shared focus session. Join now to stay productive together!";
+          return "Sent you a nudge to focus!";
         case 'FriendRequest':
           return "Sent you a friend request. Connect to build focus habits together.";
         default:
           return "You have a new update from Focus Key. Tap to see details.";
       }
     }
-    
-    // If text is not empty but contains "accepted", ensure it's clean
-    if (isAccepted && !text.contains('accepted')) {
-       return "Focus session accepted! Your friend is ready.";
-    }
 
     return text;
   }
 
-  bool get isJoinableNudge {
-    if (referenceModel != 'Nudge' || referenceId == null) return false;
-
-    final isActive = referenceId?['status'] == 'active';
-
-    // --- Logic Fix: Hide Join button for Acceptance/Status updates ---
-    final lowTitle = title.toLowerCase();
-    final lowText = text.toLowerCase();
-
-    final isStatusUpdate = lowTitle.contains('accepted') ||
-                           lowText.contains('accepted') ||
-                           lowTitle.contains('joined') ||
-                           lowText.contains('joined');
-
-    return isActive && !isStatusUpdate;
-  }
-
-  bool get isExpiredNudge =>
-      referenceModel == 'Nudge' &&
-          referenceId != null &&
-          referenceId!['status'] == 'completed';
-
-  String? get nudgeCreatorId => referenceModel == 'Nudge'
-      ? (referenceId?['creatorId'] as String?)
-      : null;
-
-  int get nudgeBreaksPerDay =>
-      (referenceId?['breakConfig']?['breaksPerDay'] as int?) ?? 3;
-
-  int get nudgeBreakDurationMinutes =>
-      (referenceId?['breakConfig']?['breakDurationMinutes'] as int?) ?? 10;
-
-  List<String> get nudgeParticipantIds {
-    try {
-      final list = referenceId?['participants'] as List<dynamic>?;
-      if (list == null) return [];
-      return list
-          .map((p) => (p as Map<String, dynamic>)['userId'] as String?)
-          .whereType<String>()
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
 }
 
 class NotificationGroup {
@@ -290,57 +232,5 @@ class NotificationController extends GetxController {
         url: AppApiUrl.instance.markNotificationAsRead(id),
       );
     } catch (_) {}
-  }
-
-  Future<bool> joinNudge({
-    required String nudgeId,
-    required String modeId,
-    required int breaksPerDay,
-    required int breakDurationMinutes,
-    required List<String> participantIds,
-  }) async {
-    try {
-      isLoading.value = true;
-      final response = await ApiServices.instance.postServices(
-        url: AppApiUrl.instance.joinNudge(nudgeId),
-        body: {
-          "participants": participantIds,
-          "modeId": modeId,
-          "breakConfig": {
-            "breaksPerDay": breaksPerDay,
-            "breakDurationMinutes": breakDurationMinutes,
-          },
-        },
-      );
-      
-      if (response != null && response["success"] == true) {
-        if (Get.isRegistered<FriendsController>()) {
-          Get.find<FriendsController>().fetchCurrentNudgeStatus();
-        }
-        
-        CustomSnackbar.show(
-          title: "Focus Started!",
-          message: "You have successfully joined the session. Getting everything ready...",
-        );
-        await Future.delayed(const Duration(milliseconds: 1500));
-        return true;
-      } else {
-        CustomSnackbar.show(
-          title: "Session Unavailable",
-          message: response?["message"] ?? "This session may have already ended or reached capacity.",
-          isError: true,
-        );
-        return false;
-      }
-    } catch (e) {
-      CustomSnackbar.show(
-        title: "Connection Error",
-        message: "Failed to join session. Please check your internet.",
-        isError: true,
-      );
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
   }
 }

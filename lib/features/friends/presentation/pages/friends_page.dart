@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:focus_key/routes/app_routes.dart';
 import 'package:get/get.dart';
@@ -7,8 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/friend_list_item.dart';
 import '../controllers/friends_controller.dart';
-import '../../../lock/presentation/controllers/lock_controller.dart';
-import '../../../../core/widgets/custom_snackbar.dart';
 
 class FriendsPage extends StatelessWidget {
   FriendsPage({super.key});
@@ -74,44 +71,12 @@ class FriendsPage extends StatelessWidget {
   }
 
   Widget _buildFriendsList() {
-    final lockController = Get.find<LockController>();
     return Obx(
       () => ListView(
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         children: [
-          if (lockController.isLocked.value)
-            _AnimatedEntrance(
-              delay: 150,
-              child: Container(
-                width: double.infinity,
-                margin: EdgeInsets.only(bottom: 12.h),
-                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0EBE2),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border:
-                      Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.lock_outline_rounded,
-                        size: 16.sp, color: const Color(0xFF8A8278)),
-                    SizedBox(width: 10.w),
-                    Expanded(
-                      child: Text(
-                        "You're focusing right now. End your session to start a nudge.",
-                        style: GoogleFonts.dmSans(
-                            fontSize: 12.sp,
-                            color: const Color(0xFF8A8278),
-                            height: 1.3),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           ...controller.addedFriends.asMap().entries.map(
             (entry) {
               final index = entry.key;
@@ -124,12 +89,6 @@ class FriendsPage extends StatelessWidget {
                   isDarkAvatar: friend.isDarkAvatar,
                   status: friend.status,
                   isFocusing: friend.isFocusing,
-                  isSelected: controller.isSelectedForNudge(friend.id),
-                  onSelectToggle: () =>
-                      controller.toggleNudgeSelection(friend.id),
-                  disabledMessage: lockController.isLocked.value
-                      ? "End your focus session first."
-                      : null,
                   onTap: () {
                     Get.toNamed(Routes.friendDetails, arguments: friend);
                   },
@@ -140,9 +99,7 @@ class FriendsPage extends StatelessWidget {
           SizedBox(height: 16.h),
           _AnimatedEntrance(
             delay: 250 + (controller.addedFriends.length * 50),
-            child: controller.selectedForNudge.isEmpty
-                ? _buildAddFriendsOutlineButton()
-                : _buildSelectModeButton(lockController),
+            child: _buildAddFriendsOutlineButton(),
           ),
           SizedBox(height: 24.h),
         ],
@@ -189,63 +146,6 @@ class FriendsPage extends StatelessWidget {
               ),
       ),
     ));
-  }
-
-  Widget _buildSelectModeButton(LockController lockController) {
-    return Obx(() {
-      final isBlocked = lockController.isLocked.value;
-      final isSubmitting = controller.isSubmitting.value;
-      
-      return InkWell(
-        onTap: (isBlocked || isSubmitting)
-            ? null
-            : () async {
-                controller.isSubmitting.value = true;
-                await HapticFeedback.lightImpact();
-                
-                Get.toNamed(
-                  Routes.modes,
-                  arguments: {
-                    'isNudgeFlow': true,
-                    'participantIds': controller.selectedForNudge.toList(),
-                  },
-                );
-                
-                // Reset loader after navigation starts to ensure it's ready if they come back
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  controller.isSubmitting.value = false;
-                });
-              },
-        borderRadius: BorderRadius.circular(24.r),
-        child: Container(
-          width: double.infinity,
-          height: 48.h,
-          decoration: BoxDecoration(
-            color: isBlocked ? const Color(0xFFCCC8C0) : const Color(0xFF1A1814),
-            borderRadius: BorderRadius.circular(24.r),
-          ),
-          child: Center(
-            child: isSubmitting
-                ? SizedBox(
-                    width: 20.w,
-                    height: 20.w,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
-                    ),
-                  )
-                : Text(
-                    'Select Mood',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFFF7F4EE),
-                    ),
-                  ),
-          ),
-        ),
-      );
-    });
   }
 
   Widget _buildEmptyState() {

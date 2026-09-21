@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:focus_key/routes/app_routes.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/custom_snackbar.dart';
 import '../controller/notification_controller.dart';
 import '../widgets/notification_item.dart';
 
@@ -153,13 +151,6 @@ class NotificationPage extends GetView<NotificationController> {
         ),
         itemBuilder: (context, index) {
           final n = group.items[index];
-          
-          // Logic to hide Join button if the user is the creator of the nudge
-          final isCreator = n.nudgeCreatorId != null && 
-                           controller.currentUserId != null && 
-                           n.nudgeCreatorId == controller.currentUserId;
-                           
-          final showJoinButton = n.isJoinableNudge && !isCreator;
 
           return NotificationItem(
             data: NotificationItemModel(
@@ -167,78 +158,12 @@ class NotificationPage extends GetView<NotificationController> {
               title: n.title,
               subtitle: n.displayMessage,
               hasUnreadDot: !n.read,
-              trailingWidget: showJoinButton ? _buildJoinButton(n) : null,
-              trailingText: showJoinButton
-                  ? null
-                  : n.isExpiredNudge
-                  ? 'Expired'
-                  : null,
-              isExpired: n.isExpiredNudge,
             ),
-            onTap: () {
-              controller.markAsRead(n.id);
-              if (n.isJoinableNudge) {
-                _navigateToJoin(n);
-              }
-            },
+            onTap: () => controller.markAsRead(n.id),
           );
         },
       ),
     );
   }
 
-  void _navigateToJoin(NotificationModel n) {
-    final nudgeId = n.referenceId?['_id'] as String?;
-    final modeId = n.referenceId?['modeId'] as String?;
-
-    if (nudgeId == null || modeId == null) {
-      CustomSnackbar.show(
-        title: 'Session Ended',
-        message: 'This invitation has already expired.',
-        isError: true,
-      );
-      return;
-    }
-
-    Get.toNamed(
-      Routes.joinFocus,
-      arguments: {
-        'nudgeId': nudgeId,
-        'modeId': modeId,
-        'creatorId': n.nudgeCreatorId,
-        'breaksPerDay': n.nudgeBreaksPerDay,
-        'breakDurationMinutes': n.nudgeBreakDurationMinutes,
-        'participantIds': n.nudgeParticipantIds,
-      },
-    );
-  }
-
-  Widget _buildJoinButton(NotificationModel n) {
-    return GestureDetector(
-      onTap: () => _navigateToJoin(n),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1814),
-          borderRadius: BorderRadius.circular(20.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          'Join Focus',
-          style: GoogleFonts.dmSans(
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFFF7F4EE),
-            letterSpacing: 0.2,
-          ),
-        ),
-      ),
-    );
-  }
 }

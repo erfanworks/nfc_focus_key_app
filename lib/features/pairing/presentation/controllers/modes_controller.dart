@@ -184,9 +184,7 @@ class ModesController extends GetxController {
 
   Future<void> onStartMode() async {
     if (isStartingMode.value) return;
-    
-    final args = Get.arguments as Map<String, dynamic>?;
-    final isNudgeFlow = args?['isNudgeFlow'] == true;
+
     final selectedMode = modes[selectedIndex.value];
 
     if (selectedMode.id == null || selectedMode.id!.isEmpty) {
@@ -201,21 +199,10 @@ class ModesController extends GetxController {
     try {
       isStartingMode.value = true;
       await Future.delayed(const Duration(milliseconds: 300));
-      
-      if (isNudgeFlow) {
-        Get.toNamed(
-          Routes.takeBreak,
-          arguments: {
-            'isNudgeFlow': true,
-            'modeId': selectedMode.id,
-            'participantIds': args?['participantIds'],
-          },
-        );
-      } else {
-        StorageServices.instance.setCompletedInitialSetup();
-        Get.offAllNamed(Routes.lock);
-      }
-      
+
+      StorageServices.instance.setCompletedInitialSetup();
+      Get.offAllNamed(Routes.lock);
+
       await Future.delayed(const Duration(milliseconds: 500));
     } finally {
       isStartingMode.value = false;

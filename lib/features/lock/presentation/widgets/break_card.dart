@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/lock_controller.dart';
-import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class BreakCard extends StatefulWidget {
   final LockController controller;
@@ -189,18 +188,8 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         );
       }
 
-      final friendsController = Get.find<FriendsController>();
-      final nudge = friendsController.currentNudge.value;
-      
-      final bool isNudgeValid = nudge != null && 
-                               nudge.isActive && 
-                               widget.controller.activeModeId == nudge.modeId;
-      
-      final isNudge = isNudgeValid;
-      final isLoadingSettings = !isNudge && widget.controller.isLoadingBreakSettings.value;
-      final breaksLeft = isNudge
-          ? nudge!.breaksRemaining
-          : widget.controller.breaksLeft.value;
+      final isLoadingSettings = widget.controller.isLoadingBreakSettings.value;
+      final breaksLeft = widget.controller.breaksLeft.value;
 
       if (!isLoadingSettings && breaksLeft <= 0) {
         return _buildNoBreaksLeftCard();
@@ -271,16 +260,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                         ),
                         SizedBox(height: 2.h),
                         Obx(() {
-                          final friendsController = Get.find<FriendsController>();
-                          final nudge = friendsController.currentNudge.value;
-                          
-                          final bool isNudgeValid = nudge != null && 
-                                                   nudge.isActive && 
-                                                   widget.controller.activeModeId == nudge.modeId;
-                          
-                          final isNudge = isNudgeValid;
-
-                          if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
+                          if (widget.controller.isLoadingBreakSettings.value) {
                             return Text(
                               '— min • — left today',
                               style: GoogleFonts.dmSans(
@@ -293,12 +273,8 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                             );
                           }
 
-                          final minutes = isNudge
-                              ? nudge!.breakDurationMinutes
-                              : widget.controller.personalBreakLengthMinutes.value;
-                          final left = isNudge
-                              ? nudge!.breaksRemaining
-                              : widget.controller.breaksLeft.value;
+                          final minutes = widget.controller.personalBreakLengthMinutes.value;
+                          final left = widget.controller.breaksLeft.value;
                           return Text(
                             '$minutes min • $left left today',
                             style: GoogleFonts.dmSans(

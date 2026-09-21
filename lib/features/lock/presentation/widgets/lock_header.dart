@@ -7,13 +7,6 @@ import '../controllers/lock_controller.dart';
 import '../../../friends/presentation/controllers/friends_controller.dart';
 import '../../../notifications/presentation/controller/notification_controller.dart';
 
-String _formatParticipantNames(List<String> names) {
-  if (names.isEmpty) return '';
-  if (names.length == 1) return names.first;
-  if (names.length == 2) return '${names[0]} and ${names[1]}';
-  return '${names[0]} and ${names.length - 1} others';
-}
-
 class LockHeader extends StatelessWidget {
   final LockController controller;
 
@@ -109,16 +102,10 @@ class LockHeader extends StatelessWidget {
         ? Get.find<FriendsController>()
         : Get.put(FriendsController());
 
-    // Filter friends who are currently focusing based on real status
-    final List<String> focusingFriendNames = friendsController.addedFriends
-        .where((friend) => friend.isFocusing)
-        .map((friend) => friend.name.split(' ').first) // Use first names for a cleaner look
-        .toList();
+    // Read-only informational status from the backend — no shared/joint session involved.
+    final String? displayMessage = friendsController.focusingDisplayMessage.value;
 
-    if (focusingFriendNames.isEmpty) return const SizedBox.shrink();
-
-    final String displayNames = _formatParticipantNames(focusingFriendNames);
-    final bool isPlural = focusingFriendNames.length > 1;
+    if (displayMessage == null || displayMessage.isEmpty) return const SizedBox.shrink();
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
@@ -147,7 +134,7 @@ class LockHeader extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Flexible(
                     child: Text(
-                      '$displayNames ${isPlural ? 'are' : 'is'} focusing',
+                      displayMessage,
                       style: GoogleFonts.dmSans(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
