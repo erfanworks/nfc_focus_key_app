@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 
+import '../../features/notifications/presentation/controller/notification_controller.dart';
 import '../constants/app_api_url.dart';
 import '../utils/log_print.dart';
 import 'api_service.dart';
@@ -102,6 +103,14 @@ class PushNotificationService extends GetxService {
     FirebaseMessaging.onMessage.listen((message) {
       appLog("FCM foreground message ► ${message.messageId}: ${message.data}");
       _showForegroundBanner(message);
+
+      try {
+        if (Get.isRegistered<NotificationController>()) {
+          Get.find<NotificationController>().fetchNotifications();
+        }
+      } catch (e) {
+        errorLog("PushNotificationService._bindForegroundMessages.refreshBadge", e);
+      }
     });
   }
 
