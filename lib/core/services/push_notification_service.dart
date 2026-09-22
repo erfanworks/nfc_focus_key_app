@@ -66,6 +66,14 @@ class PushNotificationService extends GetxService {
       appLog(
         "FCM permission status ► ${settings.authorizationStatus}",
       );
+
+      if (Platform.isIOS) {
+        await _messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      }
     } catch (e) {
       errorLog("PushNotificationService._requestPermission", e);
     }
@@ -105,9 +113,10 @@ class PushNotificationService extends GetxService {
       _showForegroundBanner(message);
 
       try {
-        if (Get.isRegistered<NotificationController>()) {
-          Get.find<NotificationController>().fetchNotifications();
-        }
+        final controller = Get.isRegistered<NotificationController>()
+            ? Get.find<NotificationController>()
+            : Get.put(NotificationController());
+        controller.fetchNotifications();
       } catch (e) {
         errorLog("PushNotificationService._bindForegroundMessages.refreshBadge", e);
       }
@@ -178,6 +187,16 @@ class PushNotificationService extends GetxService {
   // ==================== Token lifecycle ====================
   Future<void> _bindTokenLifecycle() async {
     try {
+      if (Platform.isIOS) {
+        String? apnsToken = await _messaging.getAPNSToken();
+        int retry = 0;
+        while (apnsToken == null && retry < 3) {
+          await Future.delayed(const Duration(seconds: 2));
+          apnsToken = await _messaging.getAPNSToken();
+          retry++;
+        }
+      }
+
       final token = await _messaging.getToken();
       if (token != null) {
         await _syncToken(token);

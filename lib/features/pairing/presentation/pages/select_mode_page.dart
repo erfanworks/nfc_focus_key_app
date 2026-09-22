@@ -249,7 +249,7 @@ class SelectModePage extends GetView<ModesController> {
         } else if (apps > 0 && cats > 0) {
           text = '$apps app${apps == 1 ? '' : 's'} & $cats cat locked';
         } else if (cats > 0) {
-          text = '$cats category${cats == 1 ? '' : 'ies'} locked';
+          text = '$cats ${cats == 1 ? 'category' : 'categories'} locked';
         } else {
           text = '$apps app${apps == 1 ? '' : 's'} locked';
         }
