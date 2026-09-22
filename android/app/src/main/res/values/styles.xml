@@ -22,6 +22,6 @@
 
     <style name="ShieldTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowFullscreen">true</item>
-        <item name="android:windowBackground">#F0EBE2</item>
+        <item name="android:windowBackground">#18181A</item>
     </style>
 </resources>
