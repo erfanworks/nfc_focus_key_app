@@ -257,7 +257,14 @@ class LockController extends GetxController with WidgetsBindingObserver {
       // already-tested fetchLockStatus() path rather than duplicating
       // its parsing logic here.
       await fetchLockStatus();
-      await StorageServices.instance.clearPendingReconcileSession();
+      // FIX: শুধু "completed" status এ clear করবো। "active" থাকলে
+      // clear করা যাবে না — কারণ session তখনো চলমান, আর পরে offline
+      // unlock হলে _deactivateMode() এই pending record খুঁজে পেয়ে
+      // "completed" এ update করবে। এখানে clear হয়ে গেলে সেই update
+      // আর হবে না, session server-এ চিরকাল "active" থেকে যাবে।
+      if (pending["status"] == "completed") {
+        await StorageServices.instance.clearPendingReconcileSession();
+      }
     } catch (e) {
       errorLog("LockController._attemptPendingReconcile", e);
       // Leave the pending record in place — will retry on next
@@ -309,7 +316,16 @@ class LockController extends GetxController with WidgetsBindingObserver {
       // pull the authoritative breaksLeft/state through the existing
       // fetchLockStatus() path rather than parsing it out here.
       await fetchLockStatus();
-      await StorageServices.instance.clearPendingReconcileBreak();
+      // FIX: শুধু "completed" status এ clear করবো। "active" break চলাকালীন
+      // resume হলে এই reconcile call টা re-fire হয় (breaks এর reconcile
+      // idempotent হওয়ায় duplicate তৈরি হয় না ঠিকই), কিন্তু success এ
+      // এখানে clear করে দিলে break শেষ হওয়ার সময় (endBreak()) pending
+      // record খুঁজে পাবে না, ফলে "completed" reconcile কখনো পাঠানোই
+      // হবে না — backend-এ break চিরকাল "active" থেকে যাবে (ঠিক lock
+      // এর bug-টার মতোই)।
+      if (pending["status"] == "completed") {
+        await StorageServices.instance.clearPendingReconcileBreak();
+      }
     } catch (e) {
       errorLog("LockController._attemptPendingBreakReconcile", e);
       // Leave the pending record in place — retried on next resume/init.
@@ -548,6 +564,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> _startPersonalBreak() async {
+    if (isLoadingStatus.value) return;
     if (activeModeId == null) return;
     if (breaksLeft.value <= 0) {
       CustomSnackbar.show(
@@ -596,7 +613,6 @@ class LockController extends GetxController with WidgetsBindingObserver {
           final durationSeconds = personalBreakLengthMinutes.value * 60;
           final start = DateTime.parse(startedAt);
           final end = start.add(Duration(seconds: durationSeconds));
-          await StorageServices.instance.clearPendingReconcileBreak();
           await _applyBreakDuration(
             start.toIso8601String(),
             end.toIso8601String(),
@@ -622,6 +638,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       }
 
       final data = response["data"];
+      await StorageServices.instance.clearPendingReconcileBreak();
       await _applyBreakDuration(data["startTime"], data["endTime"]);
       breaksLeft.value -= 1;
 
@@ -973,6 +990,7 @@ class LockController extends GetxController with WidgetsBindingObserver {
       isTogglingLock.value = true;
       final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.toggleModeActivation(modeId),
+        body: {"clientSessionId": clientSessionId}, // ADD THIS LINE
       );
 
       final bool isNetworkError =
