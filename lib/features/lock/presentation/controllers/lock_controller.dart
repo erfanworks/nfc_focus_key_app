@@ -728,6 +728,12 @@ class LockController extends GetxController with WidgetsBindingObserver {
     _startBreakTimer();
 
     await Get.find<AppLockNativeService>().deactivateLock();
+
+    // iOS: let the OS re-lock at break end even if the app gets suspended.
+    unawaited(Get.find<AppLockNativeService>().scheduleIOSBreakEnd(
+      modeId: activeModeId ?? '',
+      endUtc: resolvedEnd,
+    ));
   }
 
   void _startBreakTimer() {

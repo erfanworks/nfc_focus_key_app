@@ -170,4 +170,21 @@ class AppLockNativeService extends GetxService {
       await removeIOSShield();
     }
   }
+
+  /// iOS only. Asks the OS (DeviceActivity extension) to re-apply the shield at
+  /// [endUtc] even if the app is suspended. Best-effort: never throws.
+  Future<void> scheduleIOSBreakEnd({
+    required String modeId,
+    required DateTime endUtc,
+  }) async {
+    if (!Platform.isIOS || modeId.isEmpty) return;
+    try {
+      await _channel.invokeMethod<bool>('scheduleBreakEnd', {
+        'modeId': modeId,
+        'endEpochMs': endUtc.millisecondsSinceEpoch,
+      });
+    } catch (e) {
+      print("scheduleIOSBreakEnd failed (non-fatal): $e");
+    }
+  }
 }

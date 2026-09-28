@@ -95,6 +95,15 @@ import UIKit
         }
         result(nil)
 
+      case "scheduleBreakEnd":
+        guard let args = call.arguments as? [String: Any],
+              let modeId = args["modeId"] as? String,
+              let endMs = (args["endEpochMs"] as? NSNumber)?.doubleValue else {
+          result(FlutterError(code: "MISSING_ARG", message: "modeId/endEpochMs required", details: nil))
+          return
+        }
+        result(AppLockManager.shared.scheduleBreakEnd(modeId: modeId, endEpochMs: endMs))
+
       default:
         result(FlutterMethodNotImplemented)
       }
