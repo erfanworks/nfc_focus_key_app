@@ -45,6 +45,12 @@ class AppLockAccessibilityService : AccessibilityService() {
 
     private var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 
+    // [BREAK-END-FIX] Tracks whatever package is on screen right now, updated by
+    // both the event path and the polling path, independent of whether it changed.
+    // Needed so that when a break ends while the user never left the locked app,
+    // we have something to immediately re-check against.
+    @Volatile private var currentForegroundPackage: String = ""
+
     // ---- UsageStats polling (fallback mechanism) ----
     private val handler = Handler(Looper.getMainLooper())
     private var lastPolledPackage: String = ""
@@ -54,6 +60,11 @@ class AppLockAccessibilityService : AccessibilityService() {
         override fun run() {
             try {
                 val foreground = getForegroundPackage()
+                if (foreground != null) {
+                    // [BREAK-END-FIX] Keep this fresh every tick (not just on
+                    // change) — existing change-detection below is untouched.
+                    currentForegroundPackage = foreground
+                }
                 if (foreground != null && foreground != lastPolledPackage) {
                     lastPolledPackage = foreground
                     Log.e(TAG, "📊 USAGE_POLL: Foreground app changed → $foreground")
@@ -88,6 +99,16 @@ class AppLockAccessibilityService : AccessibilityService() {
         val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
             updateCache()
+            // [BREAK-END-FIX] A pref change (e.g. break ending -> is_lock_active/
+            // locked_apps updated) must be re-checked against whatever app is on
+            // screen RIGHT NOW, not just the next time the user switches apps.
+            // This listener can fire off the main thread, so post to the service's
+            // own main-looper handler before touching WindowManager.
+            handler.post {
+                if (currentForegroundPackage.isNotEmpty()) {
+                    processLockCheck(currentForegroundPackage)
+                }
+            }
         }
         prefs.registerOnSharedPreferenceChangeListener(prefsListener)
         updateCache()
@@ -171,6 +192,9 @@ class AppLockAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
         val type = event.eventType
+
+        // [BREAK-END-FIX] Same reasoning as the polling path above.
+        currentForegroundPackage = pkg
 
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             type == AccessibilityEvent.TYPE_WINDOWS_CHANGED
