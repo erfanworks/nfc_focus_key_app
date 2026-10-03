@@ -262,7 +262,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                         Obx(() {
                           if (widget.controller.isLoadingBreakSettings.value) {
                             return Text(
-                              '— min • — left today',
+                              '— min • — left',
                               style: GoogleFonts.dmSans(
                                 fontSize: 10.sp,
                                 fontWeight: FontWeight.w400,
@@ -276,7 +276,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
                           final minutes = widget.controller.personalBreakLengthMinutes.value;
                           final left = widget.controller.breaksLeft.value;
                           return Text(
-                            '$minutes min • $left left today',
+                            '$minutes min • $left left',
                             style: GoogleFonts.dmSans(
                               fontSize: 10.sp,
                               fontWeight: FontWeight.w400,
