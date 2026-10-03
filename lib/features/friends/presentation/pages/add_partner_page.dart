@@ -7,7 +7,8 @@ import '../controllers/friends_controller.dart';
 
 class AddPartnerPage extends StatelessWidget {
   AddPartnerPage({super.key}) {
-    controller.fetchAppUsers();
+    controller.appUsers.clear();
+    controller.isLoadingAppUsers.value = false;
   }
 
   final FriendsController controller = Get.find<FriendsController>();

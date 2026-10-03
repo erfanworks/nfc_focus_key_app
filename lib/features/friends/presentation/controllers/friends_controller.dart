@@ -141,29 +141,92 @@ class FriendsController extends GetxController {
     }
   }
 
+  Timer? _searchDebounce;
+  String _activeSearchQuery = '';
+
+  @override
+  void onClose() {
+    _searchDebounce?.cancel();
+    super.onClose();
+  }
+
   // ==================== Browse / Search Users ====================
   Future<void> fetchAppUsers({String? search, int page = 1}) async {
+    _searchDebounce?.cancel();
+
+    final query = search?.trim() ?? '';
+    _activeSearchQuery = query;
+
+    if (query.isEmpty) {
+      appUsers.clear();
+      isLoadingAppUsers.value = false;
+      return;
+    }
+
+    isLoadingAppUsers.value = true;
+
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () async {
+      if (_activeSearchQuery != query) return;
+      await _executeSearchAppUsers(query, page);
+    });
+  }
+
+  Future<void> _executeSearchAppUsers(String query, int page) async {
     try {
-      isLoadingAppUsers.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.seeAppUsers,
         queryParameters: {
           'page': page,
-          if (search != null && search.isNotEmpty) 'searchTerm': search,
+          'searchTerm': query,
         },
       );
+
+      // Race condition check: discard stale response if query changed
+      if (_activeSearchQuery != query) return;
+
       if (response == null || response["success"] != true) return;
 
       final List<dynamic> data = response["data"] ?? [];
-      appUsers.value = data.map((e) => AppUserModel.fromJson(e as Map<String, dynamic>)).toList();
+      final list = data.map((e) => AppUserModel.fromJson(e as Map<String, dynamic>)).toList();
+
+      final q = query.toLowerCase().trim();
+      list.sort((a, b) {
+        final aUser = a.userName.toLowerCase();
+        final aName = a.name.toLowerCase();
+        final bUser = b.userName.toLowerCase();
+        final bName = b.name.toLowerCase();
+
+        final aExact = aUser == q || aName == q;
+        final bExact = bUser == q || bName == q;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+
+        final aUserStarts = aUser.startsWith(q);
+        final bUserStarts = bUser.startsWith(q);
+        if (aUserStarts && !bUserStarts) return -1;
+        if (!aUserStarts && bUserStarts) return 1;
+
+        final aNameStarts = aName.startsWith(q);
+        final bNameStarts = bName.startsWith(q);
+        if (aNameStarts && !bNameStarts) return -1;
+        if (!aNameStarts && bNameStarts) return 1;
+
+        return 0;
+      });
+
+      appUsers.value = list;
     } catch (e) {
-      CustomSnackbar.show(
-        title: "Search Error",
-        message: "Could not find users. Check your connection.",
-        isError: true,
-      );
+      if (_activeSearchQuery == query) {
+        CustomSnackbar.show(
+          title: "Search Error",
+          message: "Could not find users. Check your connection.",
+          isError: true,
+        );
+      }
     } finally {
-      isLoadingAppUsers.value = false;
+      if (_activeSearchQuery == query) {
+        isLoadingAppUsers.value = false;
+      }
     }
   }
 
