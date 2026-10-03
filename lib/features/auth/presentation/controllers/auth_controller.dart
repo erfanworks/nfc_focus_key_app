@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/services/storage_services.dart';
+import '../../../../core/services/push_notification_service.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 import '../../../../routes/app_routes.dart';
@@ -31,7 +33,7 @@ class AuthController extends GetxController {
     isLoading.value = false;
 
     result.fold(
-      (failure) {
+          (failure) {
         CustomSnackbar.show(
           title: 'Error',
           message: failure.message,
@@ -46,8 +48,17 @@ class AuthController extends GetxController {
           );
         }
       },
-      (user) async {
+          (user) async {
         final isPaired = await StorageServices.instance.hasPairedKey();
+
+        // [NUDGE-FIX] Retry FCM token sync now that an auth token exists.
+        // init() at app startup runs before login, so its first attempt
+        // may have failed silently without this.
+        if (Get.isRegistered<PushNotificationService>()) {
+          unawaited(
+            Get.find<PushNotificationService>().resyncTokenAfterLogin(),
+          );
+        }
 
         CustomSnackbar.show(title: 'Success', message: 'Welcome ${user.name}');
 

@@ -68,6 +68,11 @@ class PushNotificationService extends GetxService {
       );
 
       if (Platform.isIOS) {
+        // Keep true: this is what makes iOS auto-display the push banner
+        // while in foreground. (The duplicate-banner fix lives in
+        // _bindForegroundMessages below, not here — this option governs
+        // ALL foreground notifications, local ones included, so setting it
+        // false had silently suppressed our own local banner too.)
         await _messaging.setForegroundNotificationPresentationOptions(
           alert: true,
           badge: true,
@@ -110,7 +115,15 @@ class PushNotificationService extends GetxService {
   void _bindForegroundMessages() {
     FirebaseMessaging.onMessage.listen((message) {
       appLog("FCM foreground message ► ${message.messageId}: ${message.data}");
-      _showForegroundBanner(message);
+
+      // [NUDGE-FIX] iOS already auto-displays the push as a native banner
+      // (see setForegroundNotificationPresentationOptions above). Only
+      // Android needs this manual local-notification call, since Android's
+      // FCM does not auto-display a banner while the app is foregrounded.
+      // Calling it on both platforms was producing two banners on iOS.
+      if (Platform.isAndroid) {
+        _showForegroundBanner(message);
+      }
 
       try {
         final controller = Get.isRegistered<NotificationController>()
@@ -213,7 +226,6 @@ class PushNotificationService extends GetxService {
 
   Future<void> _syncToken(String token) async {
     if (_cachedToken == token) return; // avoid redundant network calls
-    _cachedToken = token;
 
     try {
       final deviceId = await _resolveDeviceId();
@@ -228,6 +240,11 @@ class PushNotificationService extends GetxService {
       );
 
       if (response is Map && response["success"] == true) {
+        // [NUDGE-FIX] Only remember this token as "synced" once the backend
+        // actually confirms it. Previously this was set before the network
+        // call, so a pre-login failure (no auth token yet) permanently
+        // blocked all future retries since the token itself never changes.
+        _cachedToken = token;
         appLog("FCM token synced with backend successfully");
       } else {
         final message = response is Map ? response["message"] : response;
@@ -235,6 +252,20 @@ class PushNotificationService extends GetxService {
       }
     } catch (e) {
       errorLog("PushNotificationService._syncToken", e);
+    }
+  }
+
+  /// [NUDGE-FIX] Call this right after a successful login. `init()` runs at
+  /// app startup before any user is authenticated, so the very first
+  /// `_syncToken` call can fail silently (no Authorization header yet).
+  /// This re-fetches the current FCM token and retries the sync now that a
+  /// valid auth token exists. Safe to call even if already synced.
+  Future<void> resyncTokenAfterLogin() async {
+    try {
+      final token = await _messaging.getToken();
+      if (token != null) await _syncToken(token);
+    } catch (e) {
+      errorLog("PushNotificationService.resyncTokenAfterLogin", e);
     }
   }
 
@@ -276,7 +307,7 @@ class PushNotificationService extends GetxService {
       if (Platform.isAndroid) {
         await _localNotifications
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
             ?.createNotificationChannel(_androidChannel);
       }
 
