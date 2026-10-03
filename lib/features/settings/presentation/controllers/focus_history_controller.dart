@@ -122,6 +122,8 @@ class FocusHistoryDayGroup {
 
 class FocusHistoryController extends GetxController {
   final totalFocusTime = ''.obs;
+  final dailyFocusTime = ''.obs;
+  final weeklyFocusTime = ''.obs;
   final sinceDate = ''.obs;
   final modes = <FocusMode>[].obs;
   final sevenDaysStats = <SevenDayStat>[].obs;
@@ -172,6 +174,16 @@ class FocusHistoryController extends GetxController {
         }
         sinceDate.value = summary?['sinceDate']?.toString() ?? '';
 
+        final dailyFocus = summary?['dailyFocusTime'];
+        dailyFocusTime.value = dailyFocus is Map
+            ? (dailyFocus['formatted']?.toString() ?? '')
+            : (summary?['dailyTimeFocused']?.toString() ?? '');
+
+        final weeklyFocus = summary?['weeklyFocusTime'];
+        weeklyFocusTime.value = weeklyFocus is Map
+            ? (weeklyFocus['formatted']?.toString() ?? '')
+            : (summary?['weeklyTimeFocused']?.toString() ?? '');
+
         if (data['modes'] is List) {
           modes.assignAll((data['modes'] as List)
               .map((e) => FocusMode.fromJson(e as Map<String, dynamic>))
@@ -188,7 +200,7 @@ class FocusHistoryController extends GetxController {
           final List<FocusHistoryDayGroup> fetchedGroups = (data['history'] as List)
               .map((e) => FocusHistoryDayGroup.fromJson(e as Map<String, dynamic>))
               .toList();
-          
+
           // Reverse groups if the first group seems older than the last one 
           // to ensure latest days are shown at the top.
           if (fetchedGroups.length > 1) {
