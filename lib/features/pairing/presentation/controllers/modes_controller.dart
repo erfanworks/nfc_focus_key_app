@@ -175,6 +175,7 @@ class ModesController extends GetxController {
         'modeName': mode.title,
         'totalLockedApps': mode.totalLockedApps,
         'isEditMode': true,
+        'icon': mode.icon,
       },
     );
     

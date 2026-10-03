@@ -110,6 +110,7 @@ class ModesPage extends GetView<ModesController> {
                               'modeName': mode.title,
                               'totalLockedApps': mode.totalLockedApps,
                               'isEditMode': true,
+                              'icon': mode.icon,
                             },
                           );
                         } else {
