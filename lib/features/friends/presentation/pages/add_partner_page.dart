@@ -51,7 +51,51 @@ class AddPartnerPage extends StatelessWidget {
                 }
 
                 if (controller.appUsers.isEmpty) {
-                  return const SizedBox.shrink();
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32.w),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 64.w,
+                            height: 64.w,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF0EBE2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.person_search_outlined,
+                              size: 28.sp,
+                              color: const Color(0xFF8A8278),
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'Find your friends',
+                            style: GoogleFonts.cormorantGaramond(
+                              fontSize: 20.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF1A1814),
+                              letterSpacing: 0.2.w,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 6.h),
+                          Text(
+                            "Search by name, handle, or email above to connect.",
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF8A8278),
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
 
                 return RefreshIndicator(
@@ -190,7 +234,7 @@ class AddPartnerPage extends StatelessWidget {
               onChanged: (value) => controller.fetchAppUsers(search: value),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: 'Search by email or handle...',
+                hintText: 'Search by name, handle, or email...',
                 hintStyle: GoogleFonts.dmSans(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
