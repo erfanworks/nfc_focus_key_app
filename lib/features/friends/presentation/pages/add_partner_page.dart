@@ -226,14 +226,18 @@ class AddPartnerPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(width: 12.w),
           Icon(Icons.search, size: 20.sp, color: const Color(0xFF8A8278)),
           SizedBox(width: 8.w),
           Expanded(
             child: TextField(
+              textAlignVertical: TextAlignVertical.center,
               onChanged: (value) => controller.fetchAppUsers(search: value),
               decoration: InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
                 border: InputBorder.none,
                 hintText: 'Search by name, handle, or email...',
                 hintStyle: GoogleFonts.dmSans(
