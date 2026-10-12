@@ -52,24 +52,24 @@ class HistoryPage extends GetView<HistoryController> {
                     totalTime: controller.totalFocusTime.value,
                     sinceDate: controller.sinceDate.value,
                   ),
-                  // SizedBox(height: 8.h),
-                  // Row(
-                  //   children: [
-                  //     Expanded(
-                  //       child: LockStatCard(
-                  //         title: 'TODAY',
-                  //         value: controller.todayTime,
-                  //       ),
-                  //     ),
-                  //     SizedBox(width: 8.w),
-                  //     Expanded(
-                  //       child: LockStatCard(
-                  //         title: 'THIS WEEK',
-                  //         value: controller.thisWeekTime,
-                  //       ),
-                  //     ),
-                  //   ],
-                  // ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatBox(
+                          'DAILY',
+                          controller.dailyFocusTime.value,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: _buildStatBox(
+                          'WEEKLY',
+                          controller.weeklyFocusTime.value,
+                        ),
+                      ),
+                    ],
+                  ),
                   SizedBox(height: 16.h),
                   if (controller.historyGroups.isEmpty)
                     Padding(
@@ -101,6 +101,39 @@ class HistoryPage extends GetView<HistoryController> {
             );
           }),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EBE2),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8A8278),
+              letterSpacing: 0.6.w,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            value.isEmpty ? '--' : value,
+            style: GoogleFonts.cormorantGaramond(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1A1814),
+              height: 1.1,
+            ),
+          ),
+        ],
       ),
     );
   }

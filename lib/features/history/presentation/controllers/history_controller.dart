@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
@@ -105,6 +107,8 @@ class HistoryGroup {
 class HistoryController extends GetxController {
   final totalFocusTime = ''.obs;
   final sinceDate = ''.obs;
+  final dailyFocusTime = ''.obs;
+  final weeklyFocusTime = ''.obs;
   final historyGroups = <HistoryGroup>[].obs;
   final isLoading = false.obs;
 
@@ -120,6 +124,7 @@ class HistoryController extends GetxController {
       if (token.isEmpty) return; // Skip if logged out
 
       isLoading.value = true;
+      unawaited(_fetchDailyWeekly());
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.history,
       );
@@ -164,6 +169,32 @@ class HistoryController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // Daily/weekly boxes use the focus-history summary. Independent from the
+  // main history call: never blocks the loader, fails silently.
+  Future<void> _fetchDailyWeekly() async {
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.focusHistory,
+      );
+      if (response == null || response["success"] != true) return;
+
+      final summary = response["data"]?["summary"];
+      if (summary is! Map) return;
+
+      final daily = summary['dailyFocusTime'];
+      dailyFocusTime.value = daily is Map
+          ? (daily['formatted']?.toString() ?? '')
+          : (summary['dailyTimeFocused']?.toString() ?? '');
+
+      final weekly = summary['weeklyFocusTime'];
+      weeklyFocusTime.value = weekly is Map
+          ? (weekly['formatted']?.toString() ?? '')
+          : (summary['weeklyTimeFocused']?.toString() ?? '');
+    } catch (_) {
+      // Non-fatal: boxes keep showing '--'
     }
   }
 }
