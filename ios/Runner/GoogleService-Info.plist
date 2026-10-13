@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.presencelabsllp.focuskeyapp.ShieldConfigurationExtension</string>
+	<string>com.presencelabsllp.focuskeyapp</string>
 	<key>PROJECT_ID</key>
 	<string>focuskey-77</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:377566147247:ios:901a0262b2da8af1e2da5a</string>
+	<string>1:377566147247:ios:92660ac8f8f04640e2da5a</string>
 </dict>
 </plist>

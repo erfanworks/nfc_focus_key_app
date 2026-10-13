@@ -66,10 +66,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCsY_-O_mwamnKjJO8pHi2MjTE7A7RPo3U',
-    appId: '1:377566147247:ios:901a0262b2da8af1e2da5a',
+    appId: '1:377566147247:ios:92660ac8f8f04640e2da5a',
     messagingSenderId: '377566147247',
     projectId: 'focuskey-77',
     storageBucket: 'focuskey-77.firebasestorage.app',
-    iosBundleId: 'com.presencelabsllp.focuskeyapp.ShieldConfigurationExtension',
+    iosBundleId: 'com.presencelabsllp.focuskeyapp',
   );
 }

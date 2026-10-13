@@ -322,35 +322,22 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
             size: 18.sp,
           ),
           SizedBox(width: 10.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'All breaks used today',
-                style: GoogleFonts.dmSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF8A8278),
-                  height: 15.0 / 12.0,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              SizedBox(height: 2.h),
-              Text(
-                'More available tomorrow',
-                style: GoogleFonts.dmSans(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFFB5AFA5),
-                  height: 1.0,
-                  letterSpacing: 0.55,
-                ),
-              ),
-            ],
+          Text(
+            'All breaks used',
+            style: GoogleFonts.dmSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF8A8278),
+              height: 15.0 / 12.0,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+
+// Updated Code
+
