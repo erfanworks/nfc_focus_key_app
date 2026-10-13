@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0EBE2"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="28dp">
+
+        <View
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@android:drawable/ic_lock_idle_lock"
+            android:backgroundTint="#C4A97D" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="App Locked"
+            android:textColor="#1A1814"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/reminder_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="You pity the moth for confusing a lamp for the moon, yet here you are confusing a screen for the world…"
+            android:textColor="#8A8278"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="Open Focus Key and scan your NFC key to unlock."
+            android:textColor="#B5AFA5"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_got_it"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="36dp"
+            android:backgroundTint="#1A1814"
+            android:text="Got it"
+            android:textAllCaps="false"
+            android:textColor="#F7F4EE" />
+    </LinearLayout>
+</FrameLayout>

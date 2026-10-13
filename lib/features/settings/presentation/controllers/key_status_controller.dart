@@ -13,10 +13,10 @@ class KeyStatusController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadPairedStatus();
+    loadPairedStatus();
   }
 
-  Future<void> _loadPairedStatus() async {
+  Future<void> loadPairedStatus() async {
     try {
       isLoading.value = true;
       isPaired.value = await StorageServices.instance.hasPairedKey();

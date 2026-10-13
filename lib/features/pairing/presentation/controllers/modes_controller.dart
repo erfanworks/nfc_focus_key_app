@@ -67,6 +67,9 @@ class ModesController extends GetxController {
   final modes = <ModeItem>[].obs;
   final selectedIndex = 0.obs;
   final isLoading = false.obs;
+  final isNavigatingNewMode = false.obs;
+  final isStartingMode = false.obs;
+  final navigatingEditModeId = RxnString();
   final hasError = false.obs;
   bool _hadCache = false;
 
@@ -93,6 +96,9 @@ class ModesController extends GetxController {
 
   Future<void> fetchModes() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
       isLoading.value = true;
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.getAllMood,
@@ -108,7 +114,13 @@ class ModesController extends GetxController {
 
       final data = response["data"];
       final List<dynamic> modesJson = data?["modes"] ?? [];
-      if (modesJson.isEmpty) return;
+      
+      // If server returns empty list, update local state
+      if (modesJson.isEmpty) {
+        modes.clear();
+        _saveModes();
+        return;
+      }
 
       modes.value = modesJson
           .map((e) => ModeItem.fromApi(e as Map<String, dynamic>))
@@ -142,13 +154,38 @@ class ModesController extends GetxController {
     selectedIndex.value = index;
   }
 
-  void onAddNewMode() {
+  Future<void> onAddNewMode() async {
+    if (isNavigatingNewMode.value) return;
+    isNavigatingNewMode.value = true;
+    await Future.delayed(const Duration(milliseconds: 300));
     Get.toNamed(Routes.newMode);
+    await Future.delayed(const Duration(milliseconds: 500));
+    isNavigatingNewMode.value = false;
   }
 
-  void onStartMode() {
-    final args = Get.arguments as Map<String, dynamic>?;
-    final isNudgeFlow = args?['isNudgeFlow'] == true;
+  Future<void> onEditMode(ModeItem mode) async {
+    if (navigatingEditModeId.value != null) return;
+    navigatingEditModeId.value = mode.id;
+    
+    await Future.delayed(const Duration(milliseconds: 300));
+    Get.toNamed(
+      Routes.newMode,
+      arguments: {
+        'modeId': mode.id,
+        'modeName': mode.title,
+        'totalLockedApps': mode.totalLockedApps,
+        'isEditMode': true,
+        'icon': mode.icon,
+      },
+    );
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    navigatingEditModeId.value = null;
+  }
+
+  Future<void> onStartMode() async {
+    if (isStartingMode.value) return;
+
     final selectedMode = modes[selectedIndex.value];
 
     if (selectedMode.id == null || selectedMode.id!.isEmpty) {
@@ -160,17 +197,16 @@ class ModesController extends GetxController {
       return;
     }
 
-    if (isNudgeFlow) {
-      Get.toNamed(
-        Routes.takeBreak,
-        arguments: {
-          'isNudgeFlow': true,
-          'modeId': selectedMode.id,
-          'participantIds': args?['participantIds'],
-        },
-      );
-    } else {
+    try {
+      isStartingMode.value = true;
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      StorageServices.instance.setCompletedInitialSetup();
       Get.offAllNamed(Routes.lock);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+    } finally {
+      isStartingMode.value = false;
     }
   }
 }

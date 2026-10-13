@@ -14,84 +14,126 @@ class HistoryPage extends GetView<HistoryController> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
       body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        child: RefreshIndicator(
+          onRefresh: controller.fetchHistory,
+          color: const Color(0xFF1A1814),
+          backgroundColor: const Color(0xFFF7F4EE),
+          child: Obx(() {
+            if (controller.isLoading.value &&
+                controller.historyGroups.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 20.w,
-              right: 20.w,
-              top: 24.h,
-              bottom: 16.h,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'History',
-                  style: GoogleFonts.cormorantGaramond(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.w300,
-                    color: const Color(0xFF1A1814),
-                    height: 1.0,
-                    letterSpacing: 0.4.w,
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: EdgeInsets.only(
+                left: 20.w,
+                right: 20.w,
+                top: 24.h,
+                bottom: 16.h,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'History',
+                    style: GoogleFonts.cormorantGaramond(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.w300,
+                      color: const Color(0xFF1A1814),
+                      height: 1.0,
+                      letterSpacing: 0.4.w,
+                    ),
                   ),
-                ),
-                SizedBox(height: 16.h),
-                TotalFocusCard(
-                  totalTime: controller.totalFocusTime.value,
-                  sinceDate: controller.sinceDate.value,
-                ),
-                // SizedBox(height: 8.h),
-                // Row(
-                //   children: [
-                //     Expanded(
-                //       child: LockStatCard(
-                //         title: 'TODAY',
-                //         value: controller.todayTime,
-                //       ),
-                //     ),
-                //     SizedBox(width: 8.w),
-                //     Expanded(
-                //       child: LockStatCard(
-                //         title: 'THIS WEEK',
-                //         value: controller.thisWeekTime,
-                //       ),
-                //     ),
-                //   ],
-                // ),
-                SizedBox(height: 16.h),
-                if (controller.historyGroups.isEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 40.h),
-                    child: Center(
-                      child: Text(
-                        'No focus sessions yet',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF8A8278),
+                  SizedBox(height: 16.h),
+                  TotalFocusCard(
+                    totalTime: controller.totalFocusTime.value,
+                    sinceDate: controller.sinceDate.value,
+                  ),
+                  SizedBox(height: 8.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatBox(
+                          'DAILY',
+                          controller.dailyFocusTime.value,
                         ),
                       ),
-                    ),
-                  )
-                else
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: controller.historyGroups.length,
-                    itemBuilder: (context, index) {
-                      final group = controller.historyGroups[index];
-                      return HistoryListSection(group: group);
-                    },
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: _buildStatBox(
+                          'WEEKLY',
+                          controller.weeklyFocusTime.value,
+                        ),
+                      ),
+                    ],
                   ),
-              ],
+                  SizedBox(height: 16.h),
+                  if (controller.historyGroups.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 40.h),
+                      child: Center(
+                        child: Text(
+                          'No focus sessions yet',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF8A8278),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      itemCount: controller.historyGroups.length,
+                      itemBuilder: (context, index) {
+                        final group = controller.historyGroups[index];
+                        return HistoryListSection(group: group);
+                      },
+                    ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBox(String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EBE2),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8A8278),
+              letterSpacing: 0.6.w,
             ),
-          );
-        }),
+          ),
+          SizedBox(height: 6.h),
+          Text(
+            value.isEmpty ? '--' : value,
+            style: GoogleFonts.cormorantGaramond(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1A1814),
+              height: 1.1,
+            ),
+          ),
+        ],
       ),
     );
   }

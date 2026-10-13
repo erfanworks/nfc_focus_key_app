@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../routes/app_routes.dart';
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────
@@ -112,81 +113,6 @@ class _RevealState extends State<Reveal> with SingleTickerProviderStateMixin {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  SCREEN 1 — SPLASH
-// ═══════════════════════════════════════════════════════════════
-class SplashScreen extends StatefulWidget {
-  final VoidCallback onDone;
-  const SplashScreen({super.key, required this.onDone});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  double _opacity = 0;
-  final List<Timer> _timers = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60),
-        () => mounted ? setState(() => _opacity = 1) : null,
-      ),
-    );
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60 + 600 + 2700),
-        () => mounted ? setState(() => _opacity = 0) : null,
-      ),
-    );
-    _timers.add(
-      Timer(
-        const Duration(milliseconds: 60 + 600 + 2700 + 500),
-        () => mounted ? widget.onDone() : null,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    for (final t in _timers) {
-      t.cancel();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: FK.cream,
-      alignment: Alignment.center,
-      child: AnimatedOpacity(
-        opacity: _opacity,
-        duration: Duration(milliseconds: _opacity == 0 ? 500 : 600),
-        curve: Curves.easeInOut,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('FocusKey', style: FK.wordmark(size: 40)),
-            const SizedBox(height: 9),
-            Text(
-              'by Presence Labs',
-              style: GoogleFonts.lora(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-                color: FK.ink,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
 //  SCREEN 2 — THE QUESTION
 // ═══════════════════════════════════════════════════════════════
 class QuestionScreen extends StatefulWidget {
@@ -270,9 +196,10 @@ class _QuestionScreenState extends State<QuestionScreen> {
                           child: Center(
                             child: Text(
                               _hrs.isEmpty ? '0' : _hrs,
-                              style: GoogleFonts.inter(
-                                fontSize: 62.sp,
-                                fontWeight: FontWeight.w300,
+                              style: TextStyle(
+                                fontFamily: 'AGaramondPro',
+                                fontSize: 72.sp,
+                                fontWeight: FontWeight.w400,
                                 color: _hrs.isEmpty ? FK.faint : FK.ink,
                                 height: 1.0,
                               ),
@@ -681,7 +608,7 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  int _screen = 0;
+  int _screen = 1;
   int _hours = 5;
 
   void _go(int next) => setState(() => _screen = next);
@@ -689,7 +616,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final Widget current = switch (_screen) {
-      0 => SplashScreen(key: const ValueKey(0), onDone: () => _go(1)),
       1 => QuestionScreen(
         key: const ValueKey(1),
         onNext: (h) {
@@ -704,7 +630,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
       ),
       _ => MessageScreen(
         key: const ValueKey(3),
-        onBegin: () {
+        onBegin: () async {
+          await StorageServices.instance.setCompletedOnboarding();
           Get.offAllNamed(Routes.login);
         },
       ),

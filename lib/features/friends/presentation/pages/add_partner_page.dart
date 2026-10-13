@@ -7,7 +7,8 @@ import '../controllers/friends_controller.dart';
 
 class AddPartnerPage extends StatelessWidget {
   AddPartnerPage({super.key}) {
-    controller.fetchAppUsers();
+    controller.appUsers.clear();
+    controller.isLoadingAppUsers.value = false;
   }
 
   final FriendsController controller = Get.find<FriendsController>();
@@ -17,84 +18,174 @@ class AddPartnerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              SizedBox(height: 32.h),
-              _buildSearchInput(),
-              SizedBox(height: 8.h),
-              Text(
-                'handles are lowercase, 3-15 characters',
-                style: GoogleFonts.dmSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w300,
-                  color: const Color(0xFFB5AFA5),
-                  height: 16.5 / 11,
-                  letterSpacing: -0.28.w,
-                ),
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 24.h, 20.w, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 32.h),
+                  _buildSearchInput(),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'handles are lowercase, 3-15 characters',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w300,
+                      color: const Color(0xFFB5AFA5),
+                      height: 16.5 / 11,
+                      letterSpacing: -0.28.w,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 32.h),
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoadingAppUsers.value) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+            ),
+            SizedBox(height: 16.h),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoadingAppUsers.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                  if (controller.appUsers.isEmpty) {
-                    return ListView(
-                      physics: const BouncingScrollPhysics(),
-                      children: [
-                        SizedBox(height: 48.h),
-                        // _buildContactsSection(),
-                      ],
-                    );
-                  }
-
-                  return ListView(
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      Column(
-                        children: controller.appUsers
-                            .map(
-                              (user) => _buildUserItem(
-                            user.name,
-                            user.userName,
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                            user.id.hashCode.isEven,
-                            user.id,
+                if (controller.appUsers.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 32.w),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 64.w,
+                            height: 64.w,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF0EBE2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.person_search_outlined,
+                              size: 28.sp,
+                              color: const Color(0xFF8A8278),
+                            ),
                           ),
-                        )
-                            .toList(),
+                          SizedBox(height: 16.h),
+                          Text(
+                            'Find your friends',
+                            style: GoogleFonts.cormorantGaramond(
+                              fontSize: 20.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF1A1814),
+                              letterSpacing: 0.2.w,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 6.h),
+                          Text(
+                            "Search by name, handle, or email above to connect.",
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF8A8278),
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 48.h),
-                      // _buildContactsSection(),
-                    ],
+                    ),
                   );
-                }),
-              ),
-              if (controller.addedFriends.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 8.h, bottom: 8.h),
-                  child: Center(
-                    child: TextButton(
-                      onPressed: () => Get.back(),
-                      child: Text(
-                        'See your friends list',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF1A1814),
-                          decoration: TextDecoration.underline,
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => controller.fetchAppUsers(),
+                  color: const Color(0xFF1A1814),
+                  backgroundColor: AppColors.background,
+                  child: ListView.builder(
+                    padding: EdgeInsets.only(
+                      left: 20.w,
+                      right: 20.w,
+                      bottom: controller.addedFriends.isNotEmpty ? 80.h : 20.h,
+                    ),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    itemCount: controller.appUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = controller.appUsers[index];
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        child: _buildUserItem(
+                          user.name,
+                          user.userName,
+                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                          user.id.hashCode.isEven,
+                          user.id,
                         ),
-                      ),
+                      );
+                    },
+                  ),
+                );
+              }),
+            ),
+            Obx(() {
+              if (controller.addedFriends.isEmpty) return SizedBox(height: MediaQuery.of(context).padding.bottom + 10.h);
+              
+              final isSubmitting = controller.isSubmitting.value && controller.loadingUserId.value.isEmpty;
+              
+              return Container(
+                padding: EdgeInsets.only(
+                  left: 20.w,
+                  right: 20.w,
+                  top: 12.h,
+                  bottom: MediaQuery.of(context).padding.bottom + 12.h,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  border: Border(
+                    top: BorderSide(
+                      color: const Color(0xFFE8E3DA),
+                      width: 1.0,
                     ),
                   ),
                 ),
-            ],
-          ),
+                child: InkWell(
+                  onTap: isSubmitting ? null : () => Get.back(),
+                  borderRadius: BorderRadius.circular(24.r),
+                  child: Container(
+                    width: double.infinity,
+                    height: 48.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1814),
+                      borderRadius: BorderRadius.circular(24.r),
+                    ),
+                    child: Center(
+                      child: isSubmitting
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF7F4EE)),
+                              ),
+                            )
+                          : Text(
+                              'See your friends list',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w400,
+                                color: const Color(0xFFF7F4EE),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
         ),
       ),
     );
@@ -113,7 +204,7 @@ class AddPartnerPage extends StatelessWidget {
           ),
           SizedBox(width: 8.w),
           Text(
-            'Add Partner',
+            'Add Friend',
             style: GoogleFonts.cormorantGaramond(
               fontSize: 24.sp,
               fontWeight: FontWeight.w300,
@@ -135,16 +226,20 @@ class AddPartnerPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(width: 12.w),
           Icon(Icons.search, size: 20.sp, color: const Color(0xFF8A8278)),
           SizedBox(width: 8.w),
           Expanded(
             child: TextField(
+              textAlignVertical: TextAlignVertical.center,
               onChanged: (value) => controller.fetchAppUsers(search: value),
               decoration: InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
                 border: InputBorder.none,
-                hintText: 'Search by email or handle...',
+                hintText: 'Search by name, handle, or email...',
                 hintStyle: GoogleFonts.dmSans(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w300,
@@ -233,9 +328,11 @@ class AddPartnerPage extends StatelessWidget {
           ),
           Obx(() {
             final isAdded = controller.isFriendAdded(userId);
+            final isLoading = controller.loadingUserId.value == userId;
+            
             return InkWell(
               onTap: () {
-                if (!isAdded) {
+                if (!isAdded && !isLoading) {
                   controller.addFriend(userId);
                 }
               },
@@ -251,18 +348,27 @@ class AddPartnerPage extends StatelessWidget {
                     width: 1.0,
                   ),
                 ),
-                child: Text(
-                  isAdded ? 'Added' : 'Add',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w400,
-                    color: isAdded
-                        ? const Color(0xFF8A8278)
-                        : const Color(0xFF1A1814),
-                    height: 15 / 10,
-                    letterSpacing: 0,
-                  ),
-                ),
+                child: isLoading
+                    ? SizedBox(
+                        width: 10.w,
+                        height: 10.w,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                        ),
+                      )
+                    : Text(
+                        isAdded ? 'Added' : 'Add',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w400,
+                          color: isAdded
+                              ? const Color(0xFF8A8278)
+                              : const Color(0xFF1A1814),
+                          height: 15 / 10,
+                          letterSpacing: 0,
+                        ),
+                      ),
               ),
             );
           }),

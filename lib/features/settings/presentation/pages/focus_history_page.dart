@@ -14,26 +14,36 @@ class FocusHistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EE),
       body: SafeArea(
-        child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                SizedBox(height: 24.h),
-                _buildTotalFocusCard(),
-                SizedBox(height: 24.h),
-                _buildFilters(),
-                SizedBox(height: 24.h),
-                _buildHistoryList(),
-              ],
-            ),
-          );
-        }),
+        child: RefreshIndicator(
+          onRefresh: controller.fetchFocusHistory,
+          color: const Color(0xFF1A1814),
+          backgroundColor: const Color(0xFFF7F4EE),
+          child: Obx(() {
+            if (controller.isLoading.value && controller.historyGroups.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 24.h),
+                  _buildTotalFocusCard(),
+                  SizedBox(height: 12.h),
+                  _buildDailyWeeklyRow(),
+                  SizedBox(height: 24.h),
+                  _buildFilters(),
+                  SizedBox(height: 24.h),
+                  _buildHistoryList(),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -121,6 +131,49 @@ class FocusHistoryPage extends StatelessWidget {
           )),
           SizedBox(height: 24.h),
           _buildBarChart(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyWeeklyRow() {
+    return Row(
+      children: [
+        Expanded(child: _buildStatBox('DAILY', controller.dailyFocusTime)),
+        SizedBox(width: 12.w),
+        Expanded(child: _buildStatBox('WEEKLY', controller.weeklyFocusTime)),
+      ],
+    );
+  }
+
+  Widget _buildStatBox(String label, RxString value) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 12.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EBE2),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8A8278),
+              letterSpacing: 0.6.w,
+            ),
+          ),
+          SizedBox(height: 6.h),
+          Obx(() => Text(
+            value.value,
+            style: GoogleFonts.cormorantGaramond(
+              fontSize: 22.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1A1814),
+              height: 1.1,
+            ),
+          )),
         ],
       ),
     );

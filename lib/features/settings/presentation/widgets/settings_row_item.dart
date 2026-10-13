@@ -34,13 +34,18 @@ class SettingsRowItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (trailingText != null) ...[
-            Text(
-              trailingText!,
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w300,
-                color: trailingTextColor ?? const Color(0xFF8A8278),
-                height: 1.5,
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 160.w),
+              child: Text(
+                trailingText!,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: GoogleFonts.dmSans(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w300,
+                  color: trailingTextColor ?? const Color(0xFF8A8278),
+                  height: 1.5,
+                ),
               ),
             ),
             if (showChevron) SizedBox(width: 4.w),
@@ -59,7 +64,6 @@ class SettingsRowItem extends StatelessWidget {
       height: 49.h,
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Text(
@@ -72,6 +76,7 @@ class SettingsRowItem extends StatelessWidget {
               ),
             ),
           ),
+          SizedBox(width: 8.w),
           rightWidget ?? const SizedBox.shrink(),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../routes/app_routes.dart';
 import '../controllers/lock_controller.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../../../../core/widgets/focus_icons.dart';
@@ -20,26 +21,58 @@ class LockModeSelector extends StatelessWidget {
       final modeTitle = controller.selectedMode.value;
 
       if (modesController.modes.isEmpty) {
-        return const SizedBox.shrink();
+        return GestureDetector(
+          onTap: () => Get.toNamed(Routes.selectMode),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0EBE2),
+              borderRadius: BorderRadius.circular(24.r),
+              border: Border.all(color: const Color(0xFFC4A97D), width: 1.2.w, style: BorderStyle.solid),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_circle_outline_rounded, color: const Color(0xFFC4A97D), size: 20.r),
+                SizedBox(width: 8.w),
+                Text(
+                  'CREATE MODE',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1814),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
 
       final selectedItem = modesController.modes.firstWhereOrNull((m) => m.title == modeTitle) ??
           ModeItem(modeTitle, '', FKIcon.deepwork);
 
-      if (controller.selectedModeId == null && modesController.modes.isNotEmpty) {
+      if (controller.selectedModeId == null && 
+          modesController.modes.isNotEmpty && 
+          !controller.isLocked.value) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           controller.selectMode(modesController.modes.first);
         });
       }
 
+      /*
+      [START NEW CHANGE - LockModeSelector UX Update]
+      Updated to be bigger and point to a new SelectModePage instead of a dialog.
+      */
       return GestureDetector(
-        onTap: () => _showModesDialog(context, modesController),
+        onTap: () => Get.toNamed(Routes.selectMode),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 8.h),
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h), // Increased padding
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
-            borderRadius: BorderRadius.circular(20.r),
-            border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+            borderRadius: BorderRadius.circular(24.r), // Slightly more rounded
+            border: Border.all(color: const Color(0xFFE8E3DA), width: 1.2.w),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -49,67 +82,34 @@ class LockModeSelector extends StatelessWidget {
               FocusIcon(
                 selectedItem.icon,
                 color: const Color(0xFFC4A97D),
-                size: 16.r,
+                size: 20.r, // Increased icon size
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 8.w), // Increased spacing
               Text(
                 selectedItem.title.replaceAll('.', ''),
                 style: GoogleFonts.dmSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF8A8278),
-                  letterSpacing: 0.55,
+                  fontSize: 14.sp, // Increased font size
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF1A1814), // Darker text for prominence
+                  letterSpacing: 0.5,
                 ),
               ),
-              SizedBox(width: 4.w),
+              SizedBox(width: 8.w), // Increased spacing
               Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: const Color(0xFF8A8278),
-                size: 16.r,
+                Icons.chevron_right_rounded, // Changed to right arrow
+                color: const Color(0xFFC4A97D),
+                size: 20.r, // Increased arrow size
               ),
             ],
           ),
         ),
       );
+      /* [END NEW CHANGE - LockModeSelector] */
     });
   }
 
-  void _showModesDialog(BuildContext context, ModesController modesController) {
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          width: 320.w,
-          padding: EdgeInsets.all(24.w),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF7F4EE),
-            borderRadius: BorderRadius.circular(24.r),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1A1814).withValues(alpha: 0.08),
-                offset: const Offset(0, 10),
-                blurRadius: 30.r,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListView.builder(
-                shrinkWrap: true,
-                itemCount: modesController.modes.length,
-                itemBuilder: (context, index) {
-                  return _buildDialogItem(modesController.modes[index]);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierColor: Colors.black.withValues(alpha: 0.15),
-    );
-  }
+  // Obsolete: Dialog is replaced by SelectModePage
+  // void _showModesDialog(BuildContext context, ModesController modesController) { ... }
 
   Widget _buildDialogItem(ModeItem mode) {
     return Obx(() {

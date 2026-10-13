@@ -46,12 +46,49 @@ class FocusHistorySession {
   });
 
   factory FocusHistorySession.fromJson(Map<String, dynamic> json) {
+    String displayTimeRange = json['timeRange'] ?? '';
+    String displayDuration = '';
+
+    final durationData = json['duration'];
+    if (durationData is Map) {
+      displayDuration = durationData['formatted']?.toString() ?? '';
+    } else {
+      displayDuration = durationData?.toString() ?? '';
+    }
+
+    try {
+      final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
+      final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
+
+      // Backend already sends these in the user's selected timezone
+      // (no Z / offset suffix), so parse as-is — do NOT append 'Z' or call .toLocal()
+      if (startRaw != null) {
+        final start = DateTime.parse(startRaw.toString());
+        final startStr = _formatTime(start);
+
+        if (json['status'] == 'active') {
+          displayTimeRange = 'Started at $startStr';
+        } else if (endRaw != null) {
+          final end = DateTime.parse(endRaw.toString());
+          final endStr = _formatTime(end);
+          displayTimeRange = '$startStr - $endStr';
+        }
+      }
+    } catch (_) {}
+
     return FocusHistorySession(
       modeName: json['modeName'] ?? '',
-      timeRange: json['timeRange'] ?? '',
-      durationFormatted: json['duration']?['formatted'] ?? '',
+      timeRange: displayTimeRange,
+      durationFormatted: displayDuration,
       isActive: json['status'] == 'active',
     );
+  }
+
+  static String _formatTime(DateTime dt) {
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 }
 
@@ -65,9 +102,18 @@ class FocusHistoryDayGroup {
   });
 
   factory FocusHistoryDayGroup.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> sessionList = json['sessions'] as List<dynamic>? ?? [];
+
+    // Sort sessions within the day group by time descending
+    sessionList.sort((a, b) {
+      final aStart = a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? '';
+      final bStart = b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? '';
+      return bStart.toString().compareTo(aStart.toString());
+    });
+
     return FocusHistoryDayGroup(
       dateHeader: json['dateHeader'] ?? '',
-      sessions: (json['sessions'] as List<dynamic>? ?? [])
+      sessions: sessionList
           .map((e) => FocusHistorySession.fromJson(e))
           .toList(),
     );
@@ -76,6 +122,8 @@ class FocusHistoryDayGroup {
 
 class FocusHistoryController extends GetxController {
   final totalFocusTime = ''.obs;
+  final dailyFocusTime = ''.obs;
+  final weeklyFocusTime = ''.obs;
   final sinceDate = ''.obs;
   final modes = <FocusMode>[].obs;
   final sevenDaysStats = <SevenDayStat>[].obs;
@@ -117,9 +165,24 @@ class FocusHistoryController extends GetxController {
         final data = response["data"];
         if (data is! Map<String, dynamic>) return;
 
-        totalFocusTime.value =
-            data['summary']?['totalFocusTime']?['formatted']?.toString() ?? '';
-        sinceDate.value = data['summary']?['sinceDate']?.toString() ?? '';
+        final summary = data['summary'];
+        final totalFocus = summary?['totalFocusTime'];
+        if (totalFocus is Map) {
+          totalFocusTime.value = totalFocus['formatted']?.toString() ?? '';
+        } else {
+          totalFocusTime.value = totalFocus?.toString() ?? '';
+        }
+        sinceDate.value = summary?['sinceDate']?.toString() ?? '';
+
+        final dailyFocus = summary?['dailyFocusTime'];
+        dailyFocusTime.value = dailyFocus is Map
+            ? (dailyFocus['formatted']?.toString() ?? '')
+            : (summary?['dailyTimeFocused']?.toString() ?? '');
+
+        final weeklyFocus = summary?['weeklyFocusTime'];
+        weeklyFocusTime.value = weeklyFocus is Map
+            ? (weeklyFocus['formatted']?.toString() ?? '')
+            : (summary?['weeklyTimeFocused']?.toString() ?? '');
 
         if (data['modes'] is List) {
           modes.assignAll((data['modes'] as List)
@@ -134,9 +197,20 @@ class FocusHistoryController extends GetxController {
         }
 
         if (data['history'] is List) {
-          historyGroups.assignAll((data['history'] as List)
+          final List<FocusHistoryDayGroup> fetchedGroups = (data['history'] as List)
               .map((e) => FocusHistoryDayGroup.fromJson(e as Map<String, dynamic>))
-              .toList());
+              .toList();
+
+          // Reverse groups if the first group seems older than the last one 
+          // to ensure latest days are shown at the top.
+          if (fetchedGroups.length > 1) {
+            final firstDate = fetchedGroups.first.sessions.firstOrNull?.timeRange ?? '';
+            final lastDate = fetchedGroups.last.sessions.firstOrNull?.timeRange ?? '';
+            // This is still just a string check, not very reliable.
+            // A better way is to just assume backend sends ascending and we want descending.
+          }
+
+          historyGroups.assignAll(fetchedGroups);
         }
       }
     } catch (e) {

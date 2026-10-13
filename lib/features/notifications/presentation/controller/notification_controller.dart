@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 class NotificationModel {
@@ -23,47 +24,52 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    return NotificationModel(
-      id: json['_id'] ?? '',
-      title: json['title'] ?? '',
-      text: json['text'] ?? '',
-      referenceModel: json['referenceModel'] ?? '',
-      referenceId: json['referenceId'] is Map<String, dynamic>
-          ? json['referenceId']
-          : null,
-      read: json['read'] ?? false,
-      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
-    );
+    try {
+      String createdStr = json['createdAt'] ?? '';
+      if (createdStr.isNotEmpty && !createdStr.contains('Z') && !createdStr.contains('+')) {
+        createdStr += 'Z';
+      }
+      
+      return NotificationModel(
+        id: json['_id'] ?? '',
+        title: json['title'] ?? 'Notification',
+        text: json['text'] ?? '',
+        referenceModel: json['referenceModel'] ?? '',
+        referenceId: json['referenceId'] is Map<String, dynamic>
+            ? json['referenceId']
+            : null,
+        read: json['read'] ?? false,
+        createdAt: DateTime.tryParse(createdStr)?.toLocal() ?? DateTime.now(),
+      );
+    } catch (e) {
+      return NotificationModel(
+        id: '',
+        title: 'Notification',
+        text: '',
+        referenceModel: '',
+        referenceId: null,
+        read: true,
+        createdAt: DateTime.now(),
+      );
+    }
   }
 
-  bool get isJoinableNudge =>
-      referenceModel == 'Nudge' &&
-          referenceId != null &&
-          referenceId!['status'] == 'active';
+  // --- World Class Text Formatting ---
+  String get displayMessage {
+    if (text.isEmpty || text.contains('/') || text.contains('http') || text.contains('_id')) {
+      switch (referenceModel) {
+        case 'Nudge':
+          return "Sent you a nudge to focus!";
+        case 'FriendRequest':
+          return "Sent you a friend request. Connect to build focus habits together.";
+        default:
+          return "You have a new update from Focus Key. Tap to see details.";
+      }
+    }
 
-  bool get isExpiredNudge =>
-      referenceModel == 'Nudge' &&
-          referenceId != null &&
-          referenceId!['status'] == 'completed';
-
-  String? get nudgeCreatorId => referenceModel == 'Nudge'
-      ? (referenceId?['creatorId'] as String?)
-      : null;
-
-  int get nudgeBreaksPerDay =>
-      (referenceId?['breakConfig']?['breaksPerDay'] as int?) ?? 3;
-
-  int get nudgeBreakDurationMinutes =>
-      (referenceId?['breakConfig']?['breakDurationMinutes'] as int?) ?? 10;
-
-  List<String> get nudgeParticipantIds {
-    final list = referenceId?['participants'] as List<dynamic>?;
-    if (list == null) return [];
-    return list
-        .map((p) => (p as Map<String, dynamic>)['userId'] as String?)
-        .whereType<String>()
-        .toList();
+    return text;
   }
+
 }
 
 class NotificationGroup {
@@ -78,6 +84,7 @@ class NotificationController extends GetxController {
   final isLoading = false.obs;
   final isLoadingMore = false.obs;
   final unreadCount = 0.obs;
+  String? currentUserId;
 
   int _page = 1;
   int _totalPage = 1;
@@ -86,16 +93,27 @@ class NotificationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadUserId();
     fetchNotifications();
   }
+
+  Future<void> _loadUserId() async {
+    final userData = await StorageServices.instance.getLogDedData();
+    // Assuming the user data map contains 'id' or '_id'
+    currentUserId = userData['id'] ?? userData['_id'] ?? userData['data']?['_id'];
+  }
+
   @override
   void onClose() {
-    _markAllAsReadSilently();
+    markAllAsRead();
     super.onClose();
   }
 
-  Future<void> _markAllAsReadSilently() async {
+  Future<void> markAllAsRead() async {
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Don't call if logged out to avoid 401 loop
+
       final response = await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.readNotifications,
       );
@@ -160,6 +178,7 @@ class NotificationController extends GetxController {
       if (response != null && response["success"] == true) {
         final list = (response["data"] as List<dynamic>? ?? [])
             .map((e) => NotificationModel.fromJson(e))
+            .where((n) => n.id.isNotEmpty)
             .toList();
 
         if (refresh) {
@@ -167,22 +186,19 @@ class NotificationController extends GetxController {
         } else {
           notifications.addAll(list);
         }
+        
+        // Sort notifications to ensure the latest are at the top
+        notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         final meta = response["meta"];
         _totalPage = meta?['totalPage'] ?? 1;
         unreadCount.value = meta?['unreadCount'] ?? 0;
-      } else if (response != null && refresh) {
-        CustomSnackbar.show(
-          title: "Inbox Error",
-          message: response["message"] ?? "Could not sync notifications.",
-          isError: true,
-        );
       }
     } catch (e) {
       if (refresh) {
         CustomSnackbar.show(
-          title: "Network Error",
-          message: "Failed to connect to notification service.",
+          title: "Update Error",
+          message: "Could not sync notifications. Please pull to refresh.",
           isError: true,
         );
       }
@@ -199,67 +215,22 @@ class NotificationController extends GetxController {
     if (index == -1 || notifications[index].read) return;
 
     try {
-      final response = await ApiServices.instance.patchServices(
+      final old = notifications[index];
+      // Local update for immediate feedback
+      notifications[index] = NotificationModel(
+        id: old.id,
+        title: old.title,
+        text: old.text,
+        referenceModel: old.referenceModel,
+        referenceId: old.referenceId,
+        read: true,
+        createdAt: old.createdAt,
+      );
+      if (unreadCount.value > 0) unreadCount.value--;
+
+      await ApiServices.instance.patchServices(
         url: AppApiUrl.instance.markNotificationAsRead(id),
       );
-      if (response != null && response["success"] == true) {
-        final old = notifications[index];
-        notifications[index] = NotificationModel(
-          id: old.id,
-          title: old.title,
-          text: old.text,
-          referenceModel: old.referenceModel,
-          referenceId: old.referenceId,
-          read: true,
-          createdAt: old.createdAt,
-        );
-        if (unreadCount.value > 0) unreadCount.value--;
-      }
     } catch (_) {}
-  }
-
-  Future<bool> joinNudge({
-    required String nudgeId,
-    required String modeId,
-    required int breaksPerDay,
-    required int breakDurationMinutes,
-    required List<String> participantIds,
-  }) async {
-    try {
-      isLoading.value = true;
-      final response = await ApiServices.instance.postServices(
-        url: AppApiUrl.instance.joinNudge(nudgeId),
-        body: {
-          "participants": participantIds,
-          "modeId": modeId,
-          "breakConfig": {
-            "breaksPerDay": breaksPerDay,
-            "breakDurationMinutes": breakDurationMinutes,
-          },
-        },
-      );
-      
-      if (response != null && response["success"] == true) {
-        CustomSnackbar.show(title: "Joined!", message: "Successfully joined the nudge session.");
-        await Future.delayed(const Duration(milliseconds: 1200));
-        return true;
-      } else {
-        CustomSnackbar.show(
-          title: "Join Failed",
-          message: response?["message"] ?? "Could not join nudge. It may be expired.",
-          isError: true,
-        );
-        return false;
-      }
-    } catch (e) {
-      CustomSnackbar.show(
-        title: "Connection Issue",
-        message: "Failed to reach server. Please try again.",
-        isError: true,
-      );
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
   }
 }

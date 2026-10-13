@@ -10,6 +10,6 @@ class DashboardBinding extends Bindings {
     Get.lazyPut<DashboardController>(() => DashboardController());
     Get.lazyPut<LockController>(() => LockController());
     Get.lazyPut<HistoryController>(() => HistoryController());
-    Get.lazyPut<SettingsController>(() => SettingsController());
+    Get.put<SettingsController>(SettingsController());
   }
 }

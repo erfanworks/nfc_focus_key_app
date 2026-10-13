@@ -16,11 +16,7 @@ class BreakController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments as Map<String, dynamic>?;
-    final isNudgeFlow = args?['isNudgeFlow'] == true;
-    if (!isNudgeFlow) {
-      _fetchBreakConfig();
-    }
+    _fetchBreakConfig();
   }
 
   Future<void> _fetchBreakConfig() async {
@@ -55,22 +51,6 @@ class BreakController extends GetxController {
 
   Future<void> onContinue() async {
     if (isSaving.value) return;
-
-    final args = Get.arguments as Map<String, dynamic>?;
-    final isNudgeFlow = args?['isNudgeFlow'] == true;
-
-    if (isNudgeFlow) {
-      Get.toNamed(
-        Routes.friendDetails,
-        arguments: {
-          'selectedFriends': args?['participantIds'],
-          'modeId': args?['modeId'],
-          'breaksPerDay': breaksPerDay.value ?? 0,
-          'breakDurationMinutes': breakLengthMinutes.value,
-        },
-      );
-      return;
-    }
 
     try {
       isSaving.value = true;

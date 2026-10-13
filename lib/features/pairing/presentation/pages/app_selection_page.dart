@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -59,92 +61,94 @@ class AppSelectionPage extends GetView<AppSelectionController> {
                     ),
                   ),
                   SizedBox(height: 20.h),
-                  Obx(() {
-                    final isBlock = controller.isBlockMode.value;
-                    return Container(
-                      width: double.infinity,
-                      height: 44.h,
-                      padding: EdgeInsets.all(4.w),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEBE6DD),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => controller.setBlockMode(true),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isBlock
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9.r),
-                                  boxShadow: isBlock
-                                      ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.04,
+                  if (!Platform.isIOS)
+                    Obx(() {
+                      final isBlock = controller.isBlockMode.value;
+                      return Container(
+                        width: double.infinity,
+                        height: 44.h,
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBE6DD),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => controller.setBlockMode(true),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isBlock
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(9.r),
+                                    boxShadow: isBlock
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.04,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Block',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF1A1814),
                                       ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Block',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF1A1814),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => controller.setBlockMode(false),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: !isBlock
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(9.r),
-                                  boxShadow: !isBlock
-                                      ? [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.04,
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => controller.setBlockMode(false),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: !isBlock
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(9.r),
+                                    boxShadow: !isBlock
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.04,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Allow only',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: isBlock
+                                            ? const Color(0xFF8A8278)
+                                            : const Color(0xFF1A1814),
                                       ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                      : null,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Allow only',
-                                    style: GoogleFonts.dmSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: isBlock
-                                          ? const Color(0xFF8A8278)
-                                          : const Color(0xFF1A1814),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                          ],
+                        ),
+                      );
+                    }),
+                  if (!Platform.isIOS) SizedBox(height: 16.h),
                   SizedBox(height: 16.h),
                   Obx(() {
                     final isBlock = controller.isBlockMode.value;
@@ -177,88 +181,125 @@ class AppSelectionPage extends GetView<AppSelectionController> {
               ),
             ),
             Expanded(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (controller.apps.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No apps found on this device.',
-                      style: GoogleFonts.dmSans(
-                        fontSize: 13.sp,
-                        color: const Color(0xFF8A8278),
-                      ),
-                    ),
-                  );
-                }
-                return ListView.separated(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: controller.apps.length,
-                  separatorBuilder: (context, index) => const SizedBox.shrink(),
-                  itemBuilder: (context, index) {
-                    final app = controller.apps[index];
-                    return Obx(() {
-                      final isSelected = controller.isSelected(app.packageName);
-                      return GestureDetector(
-                        onTap: () => controller.toggleApp(app.packageName),
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          height: 56.h,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          decoration: const BoxDecoration(
-                            color: Colors.transparent,
-                          ),
-                          child: Row(
+              child: Platform.isIOS
+                  ? _buildIOSAppPicker(context)
+                  : Obx(() {
+                      if (controller.isLoading.value) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SizedBox(
-                                width: 28.w,
-                                height: 28.w,
-                                child: app.icon != null
-                                    ? Image.memory(
-                                  app.icon!,
-                                  fit: BoxFit.contain,
-                                )
-                                    : const Icon(
-                                  Icons.apps,
-                                  color: Color(0xFF8A8278),
+                                width: 32.w,
+                                height: 32.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
                                 ),
                               ),
-                              SizedBox(width: 12.w),
-                              Expanded(
-                                child: Text(
-                                  app.name,
-                                  style: GoogleFonts.dmSans(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF141210),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                              SizedBox(height: 20.h),
+                              Text(
+                                'Loading your apps...',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF8A8278),
                                 ),
                               ),
-                              SizedBox(
-                                width: 42.w,
-                                height: 24.h,
-                                child: FittedBox(
-                                  fit: BoxFit.contain,
-                                  child: CupertinoSwitch(
-                                    value: isSelected,
-                                    onChanged: (val) =>
-                                        controller.toggleApp(app.packageName),
-                                    activeColor: const Color(0xFF1A1814),
-                                    trackColor: const Color(0xFFE8E3DA),
-                                  ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                'This may take a moment depending on your device.',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12.sp,
+                                  color: const Color(0xFFB5AFA5),
                                 ),
                               ),
                             ],
                           ),
-                        ),
+                        );
+                      }
+                      if (controller.apps.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'No apps found on this device.',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 13.sp,
+                              color: const Color(0xFF8A8278),
+                            ),
+                          ),
+                        );
+                      }
+                      return ListView.separated(
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: controller.apps.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox.shrink(),
+                        itemBuilder: (context, index) {
+                          final app = controller.apps[index];
+                          return Obx(() {
+                            final isSelected = controller.isSelected(
+                              app.packageName,
+                            );
+                            return GestureDetector(
+                              onTap: () =>
+                                  controller.toggleApp(app.packageName),
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                height: 56.h,
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                                decoration: const BoxDecoration(
+                                  color: Colors.transparent,
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 28.w,
+                                      height: 28.w,
+                                      child: app.icon != null
+                                          ? Image.memory(
+                                              app.icon!,
+                                              fit: BoxFit.contain,
+                                            )
+                                          : const Icon(
+                                              Icons.apps,
+                                              color: Color(0xFF8A8278),
+                                            ),
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Expanded(
+                                      child: Text(
+                                        app.name,
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF141210),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: 42.w,
+                                      height: 24.h,
+                                      child: FittedBox(
+                                        fit: BoxFit.contain,
+                                        child: CupertinoSwitch(
+                                          value: isSelected,
+                                          onChanged: (val) => controller
+                                              .toggleApp(app.packageName),
+                                          activeColor: const Color(0xFF1A1814),
+                                          trackColor: const Color(0xFFE8E3DA),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          });
+                        },
                       );
-                    });
-                  },
-                );
-              }),
+                    }),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w),
@@ -301,29 +342,53 @@ class AppSelectionPage extends GetView<AppSelectionController> {
           child: Center(
             child: isSubmitting
                 ? SizedBox(
-              width: 20.w,
-              height: 20.w,
-              child: const CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE)),
-              ),
-            )
+                    width: 20.w,
+                    height: 20.w,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(Color(0xFFF7F4EE)),
+                    ),
+                  )
                 : isEditMode
                 ? Text(
-              'Save',
-              style: GoogleFonts.dmSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFFF7F4EE),
-              ),
-            )
+                    'Save',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFF7F4EE),
+                    ),
+                  )
                 : Builder(builder: (_) {
+              if (Platform.isIOS) {
+                return Obx(() {
+                  final apps = controller.iosSelectedAppsCount.value;
+                  final cats = controller.iosSelectedCategoriesCount.value;
+                  
+                  String text;
+                  if (apps == 0 && cats == 0) {
+                    text = 'Save mode';
+                  } else if (apps > 0 && cats > 0) {
+                    text = 'Block $apps app${apps == 1 ? '' : 's'} & $cats cat';
+                  } else if (cats > 0) {
+                    text = 'Block $cats ${cats == 1 ? 'category' : 'categories'}';
+                  } else {
+                    text = 'Block $apps app${apps == 1 ? '' : 's'}';
+                  }
+                  
+                  return Text(
+                    text,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFF7F4EE),
+                    ),
+                  );
+                });
+              }
               final count = controller.selectedCount;
               final isBlock = controller.isBlockMode.value;
               final action = isBlock ? 'Block' : 'Allow';
-              final text = count == 1
-                  ? '$action 1 app'
-                  : '$action $count apps';
+              final text = count == 1 ? '$action 1 app' : '$action $count apps';
               return Text(
                 text,
                 style: GoogleFonts.dmSans(
@@ -338,4 +403,161 @@ class AppSelectionPage extends GetView<AppSelectionController> {
       );
     });
   }
+
+  Widget _buildIOSAppPicker(BuildContext context) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 32.w,
+                height: 32.w,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation(Color(0xFFC4A97D)),
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Text(
+                'Syncing with Screen Time...',
+                style: GoogleFonts.dmSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF8A8278),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: Column(
+          children: [
+            SizedBox(height: 8.h),
+            Expanded(
+              child: Center(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 36.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(24.r),
+                    border: Border.all(
+                      color: const Color(0xFFC4A97D).withValues(alpha: 0.25),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64.w,
+                        height: 64.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC4A97D).withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.square_grid_2x2_fill,
+                          size: 28.sp,
+                          color: const Color(0xFFC4A97D),
+                        ),
+                      ),
+                      SizedBox(height: 24.h),
+                      Obx(() {
+                        final apps = controller.iosSelectedAppsCount.value;
+                        final cats = controller.iosSelectedCategoriesCount.value;
+                        
+                        String text;
+                        if (apps == 0 && cats == 0) {
+                          text = 'No items selected';
+                        } else if (apps > 0 && cats > 0) {
+                          text = '$apps app${apps == 1 ? '' : 's'} & $cats cat selected';
+                        } else if (cats > 0) {
+                          text = '$cats ${cats == 1 ? 'category' : 'categories'} selected';
+                        } else {
+                          text = '$apps app${apps == 1 ? '' : 's'} selected';
+                        }
+                        
+                        return Text(
+                          text,
+                          style: GoogleFonts.cormorantGaramond(
+                            fontSize: 26.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1A1814),
+                            height: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                        );
+                      }),
+                      SizedBox(height: 10.h),
+                      Text(
+                        'iOS uses its own private picker — Focus Key never sees which apps you choose.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF8A8278),
+                          height: 1.5,
+                        ),
+                      ),
+                      SizedBox(height: 28.h),
+                      Obx(() {
+                        final busy = controller.isIOSBusy.value;
+                        final hasSelection = (controller.iosSelectedAppsCount.value + controller.iosSelectedCategoriesCount.value) > 0;
+                        return GestureDetector(
+                          onTap: busy ? null : controller.onIOSSelectApps,
+                          child: Container(
+                            width: double.infinity,
+                            height: 48.h,
+                            decoration: BoxDecoration(
+                              color: hasSelection
+                                  ? Colors.transparent
+                                  : const Color(0xFF1A1814),
+                              borderRadius: BorderRadius.circular(24.r),
+                              border: hasSelection
+                                  ? Border.all(color: const Color(0xFF1A1814), width: 1.2)
+                                  : null,
+                            ),
+                            child: Center(
+                              child: busy
+                                  ? SizedBox(
+                                width: 18.w,
+                                height: 18.w,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    hasSelection ? const Color(0xFF1A1814) : const Color(0xFFF7F4EE),
+                                  ),
+                                ),
+                              )
+                                  : Text(
+                                hasSelection ? 'Change Selection' : 'Select Apps to Lock',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: hasSelection
+                                      ? const Color(0xFF1A1814)
+                                      : const Color(0xFFF7F4EE),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
 }
+
+

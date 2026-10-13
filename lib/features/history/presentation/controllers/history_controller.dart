@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import '../../../../core/constants/app_api_url.dart';
 import '../../../../core/services/api_service.dart';
+import '../../../../core/services/storage_services.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
 
 class FocusSession {
@@ -17,12 +20,60 @@ class FocusSession {
   });
 
   factory FocusSession.fromJson(Map<String, dynamic> json) {
+    String displayTimeRange = json['timeRange'] ?? '';
+    String displayDuration = '';
+
+    // Handle duration which can be a string or a map
+    final durationData = json['duration'];
+    if (durationData is Map) {
+      displayDuration = durationData['formatted']?.toString() ?? '';
+    } else {
+      displayDuration = durationData?.toString() ?? '';
+    }
+
+    try {
+      final startRaw = json['startTime'] ?? json['startedAt'] ?? json['createdAt'];
+      final endRaw = json['endTime'] ?? json['endedAt'] ?? json['updatedAt'];
+
+      if (startRaw != null) {
+        // Ensure we parse as UTC if it doesn't have a timezone indicator
+        String startStrRaw = startRaw.toString();
+        if (!startStrRaw.contains('Z') && !startStrRaw.contains('+')) {
+          startStrRaw += 'Z';
+        }
+        
+        final start = DateTime.parse(startStrRaw).toLocal();
+        final startStr = _formatTime(start);
+
+        if (json['status'] == 'active') {
+          displayTimeRange = 'Started at $startStr';
+        } else if (endRaw != null) {
+          String endStrRaw = endRaw.toString();
+          if (!endStrRaw.contains('Z') && !endStrRaw.contains('+')) {
+            endStrRaw += 'Z';
+          }
+          final end = DateTime.parse(endStrRaw).toLocal();
+          final endStr = _formatTime(end);
+          displayTimeRange = '$startStr - $endStr';
+        }
+      }
+    } catch (e) {
+      // Fallback to timeRange if parsing fails
+    }
+
     return FocusSession(
-      timeRange: json['timeRange'] ?? '',
-      duration: json['duration'] ?? '',
+      timeRange: displayTimeRange,
+      duration: displayDuration,
       mode: json['modeName'] ?? '',
       isActive: json['status'] == 'active',
     );
+  }
+
+  static String _formatTime(DateTime dt) {
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 }
 
@@ -33,11 +84,22 @@ class HistoryGroup {
   const HistoryGroup({required this.date, required this.sessions});
 
   factory HistoryGroup.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> sessionList = json['sessions'] as List<dynamic>? ?? [];
+    
+    // Sort sessions within the group by startTime/createdAt descending (most recent first)
+    sessionList.sort((a, b) {
+      try {
+        final aTime = DateTime.parse(a['startTime'] ?? a['startedAt'] ?? a['createdAt'] ?? DateTime.now().toIso8601String());
+        final bTime = DateTime.parse(b['startTime'] ?? b['startedAt'] ?? b['createdAt'] ?? DateTime.now().toIso8601String());
+        return bTime.compareTo(aTime); // Latest session first
+      } catch (_) {
+        return 0;
+      }
+    });
+
     return HistoryGroup(
       date: json['dateGroup'] ?? '',
-      sessions: (json['sessions'] as List<dynamic>? ?? [])
-          .map((e) => FocusSession.fromJson(e))
-          .toList(),
+      sessions: sessionList.map((e) => FocusSession.fromJson(e)).toList(),
     );
   }
 }
@@ -45,6 +107,8 @@ class HistoryGroup {
 class HistoryController extends GetxController {
   final totalFocusTime = ''.obs;
   final sinceDate = ''.obs;
+  final dailyFocusTime = ''.obs;
+  final weeklyFocusTime = ''.obs;
   final historyGroups = <HistoryGroup>[].obs;
   final isLoading = false.obs;
 
@@ -55,19 +119,41 @@ class HistoryController extends GetxController {
   }
 
   Future<void> fetchHistory() async {
-    isLoading.value = true;
     try {
+      final token = await StorageServices.instance.getToken();
+      if (token.isEmpty) return; // Skip if logged out
+
+      isLoading.value = true;
+      unawaited(_fetchDailyWeekly());
       final response = await ApiServices.instance.getServices(
         AppApiUrl.instance.history,
       );
 
       if (response != null && response["success"] == true) {
         final data = response["data"];
-        totalFocusTime.value = data['totalFocusTime'] ?? '';
-        sinceDate.value = data['sinceDate'] ?? '';
-        historyGroups.value = (data['history'] as List<dynamic>? ?? [])
+        
+        final totalFocus = data['totalFocusTime'];
+        if (totalFocus is Map) {
+          totalFocusTime.value = totalFocus['formatted']?.toString() ?? '';
+        } else {
+          totalFocusTime.value = totalFocus?.toString() ?? '';
+        }
+        
+        sinceDate.value = data['sinceDate']?.toString() ?? '';
+        
+        final List<dynamic> historyData = data['history'] ?? [];
+        final List<HistoryGroup> groups = historyData
             .map((e) => HistoryGroup.fromJson(e))
             .toList();
+            
+        // Final sanity check: If the first group is older than the last group (e.g. Yesterday before Today), 
+        // we reverse them to ensure Newest First.
+        if (groups.length > 1 && groups.first.date.toLowerCase().contains('yesterday') && 
+            groups.any((g) => g.date.toLowerCase().contains('today'))) {
+          historyGroups.value = groups.reversed.toList();
+        } else {
+          historyGroups.value = groups;
+        }
       } else if (response != null) {
         CustomSnackbar.show(
           title: "Update Failed",
@@ -83,6 +169,32 @@ class HistoryController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // Daily/weekly boxes use the focus-history summary. Independent from the
+  // main history call: never blocks the loader, fails silently.
+  Future<void> _fetchDailyWeekly() async {
+    try {
+      final response = await ApiServices.instance.getServices(
+        AppApiUrl.instance.focusHistory,
+      );
+      if (response == null || response["success"] != true) return;
+
+      final summary = response["data"]?["summary"];
+      if (summary is! Map) return;
+
+      final daily = summary['dailyFocusTime'];
+      dailyFocusTime.value = daily is Map
+          ? (daily['formatted']?.toString() ?? '')
+          : (summary['dailyTimeFocused']?.toString() ?? '');
+
+      final weekly = summary['weeklyFocusTime'];
+      weeklyFocusTime.value = weekly is Map
+          ? (weekly['formatted']?.toString() ?? '')
+          : (summary['weeklyTimeFocused']?.toString() ?? '');
+    } catch (_) {
+      // Non-fatal: boxes keep showing '--'
     }
   }
 }

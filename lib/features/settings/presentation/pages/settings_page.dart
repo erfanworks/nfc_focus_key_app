@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../core/services/storage_services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/custom_snackbar.dart';
@@ -9,6 +11,7 @@ import '../../../../routes/app_routes.dart';
 import '../../../pairing/presentation/controllers/modes_controller.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_row_item.dart';
+import '../../../../core/utils/timezone_helper.dart';
 
 import '../controllers/settings_controller.dart';
 
@@ -63,6 +66,11 @@ class SettingsPage extends GetView<SettingsController> {
                           title: 'Change Password',
                           onTap: () => Get.toNamed(Routes.changePassword),
                         ),
+                        Obx(() => SettingsRowItem(
+                              title: 'Timezone',
+                              trailingText: controller.userTimezone.value,
+                              onTap: () => _showTimezonePicker(context),
+                            )),
                         SettingsRowItem(
                           title: 'Delete account',
                           titleColor: const Color(0xFFC0392B),
@@ -72,6 +80,12 @@ class SettingsPage extends GetView<SettingsController> {
                       ],
                     ),
                   ),
+                  /*
+                  [START NEW CHANGE - Remove MODES from Settings]
+                  As per client request, modes are now managed directly from the Focus screen.
+                  Removed this section to simplify settings.
+                  */
+                  /*
                   SizedBox(height: 24.h),
                   _AnimatedEntrance(delay: 350, child: _buildSectionHeader('MODES')),
                   Builder(builder: (_) {
@@ -98,6 +112,7 @@ class SettingsPage extends GetView<SettingsController> {
                                   arguments: {
                                     'modeId': mode.id,
                                     'modeName': mode.title,
+                                    'totalLockedApps': mode.totalLockedApps,
                                     'isEditMode': true,
                                   },
                                 ),
@@ -122,6 +137,8 @@ class SettingsPage extends GetView<SettingsController> {
                       );
                     });
                   }),
+                  */
+                  /* [END NEW CHANGE - MODES Section Removed] */
                   SizedBox(height: 24.h),
                   _AnimatedEntrance(delay: 500, child: _buildSectionHeader('FOCUS')),
                   Obx(() {
@@ -208,6 +225,15 @@ class SettingsPage extends GetView<SettingsController> {
                           showChevron: false,
                           onTap: () {},
                         ),
+                        /// Notification test debug section
+                        /*
+                        if (kDebugMode)
+                          SettingsRowItem(
+                            title: 'Debug Notification',
+                            titleColor: const Color(0xFFC4A97D),
+                            onTap: () => Get.toNamed(Routes.notificationDebug),
+                          ),
+                        */
                       ],
                     ),
                   ),
@@ -292,31 +318,49 @@ class SettingsPage extends GetView<SettingsController> {
                   ),
                 ),
                 SizedBox(height: 22.h),
-                InkWell(
-                  onTap: () async {
-                    await StorageServices.instance.logout();
-                    Get.offAllNamed(Routes.login);
-                  },
-                  borderRadius: BorderRadius.circular(90.r),
-                  child: Container(
-                    width: double.infinity,
-                    height: 52.h,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC0392B),
-                      borderRadius: BorderRadius.circular(90.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Log out',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                        ),
+                Obx(() {
+                  final isLoading = controller.isLoggingOut.value;
+                  return InkWell(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            controller.isLoggingOut.value = true;
+                            try {
+                              await ApiServices.instance.logoutAndRedirect();
+                            } finally {
+                              controller.isLoggingOut.value = false;
+                            }
+                          },
+                    borderRadius: BorderRadius.circular(90.r),
+                    child: Container(
+                      width: double.infinity,
+                      height: 52.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC0392B),
+                        borderRadius: BorderRadius.circular(90.r),
+                      ),
+                      child: Center(
+                        child: isLoading
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                'Log out',
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
                 SizedBox(height: 22.h),
                 GestureDetector(
                   onTap: () => Get.back(),
@@ -338,6 +382,110 @@ class SettingsPage extends GetView<SettingsController> {
           ),
         );
       },
+    );
+  }
+
+  void _showTimezonePicker(BuildContext context) {
+    final TextEditingController searchController = TextEditingController();
+    final List<String> allTz = TimezoneHelper.allTimezones;
+    final RxList<String> filteredTimezones = allTz.obs;
+
+    Get.bottomSheet(
+      Container(
+        height: 0.8.sh,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F4EE),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.only(top: 12.h, bottom: 8.h),
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8E3DA),
+                borderRadius: BorderRadius.circular(2.r),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+              child: Text(
+                'Select Timezone',
+                style: GoogleFonts.cormorantGaramond(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF1A1814),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search city or country...',
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF8A8278)),
+                  filled: true,
+                  fillColor: const Color(0xFFE8E3DA).withOpacity(0.3),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+                onChanged: (value) {
+                  filteredTimezones.value = allTz
+                      .where((tz) => tz.toLowerCase().contains(value.toLowerCase()))
+                      .toList();
+                },
+              ),
+            ),
+            Expanded(
+              child: Obx(() {
+                if (controller.isProfileLoading.value) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFC4A97D),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
+                  itemCount: filteredTimezones.length,
+                  separatorBuilder: (context, index) => Divider(
+                    color: const Color(0xFFE8E3DA),
+                    height: 1.h,
+                  ),
+                  itemBuilder: (context, index) {
+                    final tz = filteredTimezones[index];
+                    return ListTile(
+                      title: Text(
+                        tz,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15.sp,
+                          color: const Color(0xFF1A1814),
+                        ),
+                      ),
+                      trailing: controller.userTimezone.value == tz
+                          ? const Icon(Icons.check, color: Color(0xFFC4A97D))
+                          : null,
+                      onTap: () async {
+                        final success = await controller.updateTimezone(tz);
+                        if (success) {
+                          Get.back();
+                        }
+                      },
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 

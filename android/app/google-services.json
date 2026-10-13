@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "377566147247",
+    "project_id": "focuskey-77",
+    "storage_bucket": "focuskey-77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377566147247:android:d2412297d54d1880e2da5a",
+        "android_client_info": {
+          "package_name": "com.presencelabsllp.focuskeyapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhkpK4TLNph989FhChYdROcEWn7QCFQac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

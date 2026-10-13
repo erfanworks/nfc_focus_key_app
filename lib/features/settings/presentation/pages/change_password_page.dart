@@ -30,10 +30,35 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   Future<void> _changePassword() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
+    final currentPassword = _currentPasswordController.text;
+    final newPassword = _newPasswordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    // 1. Basic Validation
+    if (currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
       CustomSnackbar.show(
         title: 'Error',
-        message: 'Passwords do not match',
+        message: 'Please fill in all fields',
+        isError: true,
+      );
+      return;
+    }
+
+    // 2. Password Length Validation (Minimum 6 as per Auth flow)
+    if (newPassword.length < 6) {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'New password must be at least 6 characters',
+        isError: true,
+      );
+      return;
+    }
+
+    // 3. New Password Match Validation
+    if (newPassword != confirmPassword) {
+      CustomSnackbar.show(
+        title: 'Error',
+        message: 'New passwords do not match',
         isError: true,
       );
       return;
@@ -44,9 +69,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       final response = await ApiServices.instance.postServices(
         url: AppApiUrl.instance.changePassword,
         body: {
-          "currentPassword": _currentPasswordController.text,
-          "newPassword": _newPasswordController.text,
-          "confirmPassword": _confirmPasswordController.text,
+          "currentPassword": currentPassword,
+          "newPassword": newPassword,
+          "confirmPassword": confirmPassword,
         },
       );
 
@@ -55,8 +80,23 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           title: 'Success',
           message: response["message"] ?? 'Password changed successfully',
         );
-        Get.back();
+        // Delay slightly for user to see success message
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted) Get.back();
+      } else {
+        // This handles cases like "Incorrect current password" from API
+        CustomSnackbar.show(
+          title: 'Error',
+          message: response?["message"] ?? 'Failed to change password. Please check your current password.',
+          isError: true,
+        );
       }
+    } catch (e) {
+      CustomSnackbar.show(
+        title: 'Connection Error',
+        message: 'Something went wrong. Please check your internet connection.',
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

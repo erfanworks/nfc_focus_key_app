@@ -22,7 +22,7 @@ class LockPage extends GetView<LockController> {
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Obx(() {
-            final isLocked = controller.isLocked.value;
+            final isLocked = controller.isLocked.value || controller.isOnBreak.value;
             final mode = controller.selectedMode.value;
 
             return Column(
@@ -43,6 +43,7 @@ class LockPage extends GetView<LockController> {
                         child: HoldToLockCircle(
                           isLocked: controller.isOnBreak.value ? false : isLocked,
                           isDisabled: !isLocked && controller.selectedModeId == null,
+                          isToggling: controller.isTogglingLock.value,
                           onDisabledTap: () => CustomSnackbar.show(
                             title: 'Select a mode',
                             message: 'Pick a focus mode before locking.',

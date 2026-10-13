@@ -6,8 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/friend_list_item.dart';
 import '../controllers/friends_controller.dart';
-import '../../../lock/presentation/controllers/lock_controller.dart';
-import '../../../../core/widgets/custom_snackbar.dart';
 
 class FriendsPage extends StatelessWidget {
   FriendsPage({super.key});
@@ -30,14 +28,26 @@ class FriendsPage extends StatelessWidget {
               ),
               SizedBox(height: 24.h),
               Expanded(
-                child: Obx(
-                  () => controller.addedFriends.isNotEmpty
-                      ? _buildFriendsList()
-                      : _AnimatedEntrance(
-                          delay: 300,
-                          type: EntranceType.scale,
-                          child: _buildEmptyState(),
-                        ),
+                child: RefreshIndicator(
+                  onRefresh: controller.refreshData,
+                  color: const Color(0xFF1A1814),
+                  backgroundColor: AppColors.background,
+                  child: Obx(
+                    () => controller.addedFriends.isNotEmpty
+                        ? _buildFriendsList()
+                        : ListView(
+                            physics: const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics()),
+                            children: [
+                              SizedBox(height: 100.h),
+                              _AnimatedEntrance(
+                                delay: 300,
+                                type: EntranceType.scale,
+                                child: _buildEmptyState(),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ),
             ],
@@ -61,92 +71,45 @@ class FriendsPage extends StatelessWidget {
   }
 
   Widget _buildFriendsList() {
-    final lockController = Get.find<LockController>();
-    return Column(
-      children: [
-        Obx(() {
-          if (!lockController.isLocked.value) return const SizedBox.shrink();
-          return _AnimatedEntrance(
-            delay: 150,
-            child: Container(
-              width: double.infinity,
-              margin: EdgeInsets.only(bottom: 12.h),
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0EBE2),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.lock_outline_rounded,
-                      size: 16.sp, color: const Color(0xFF8A8278)),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Text(
-                      "You're focusing right now. End your session to start a nudge.",
-                      style: GoogleFonts.dmSans(
-                          fontSize: 12.sp,
-                          color: const Color(0xFF8A8278),
-                          height: 1.3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-        Expanded(
-          child: Obx(
-            () => ListView(
-              physics: const BouncingScrollPhysics(),
-              children: [
-                ...controller.addedFriends.asMap().entries.map(
-                  (entry) {
-                    final index = entry.key;
-                    final friend = entry.value;
-                    return _AnimatedEntrance(
-                      delay: 200 + (index * 50),
-                      child: FriendListItem(
-                        name: friend.name,
-                        initials: friend.initials,
-                        isDarkAvatar: friend.isDarkAvatar,
-                        status: friend.status,
-                        isFocusing: friend.isFocusing,
-                        isSelected: controller.isSelectedForNudge(friend.id),
-                        onSelectToggle: () =>
-                            controller.toggleNudgeSelection(friend.id),
-                        disabledMessage: lockController.isLocked.value
-                            ? "End your focus session first."
-                            : null,
-                        onTap: () {
-                          Get.toNamed(Routes.friendDetails, arguments: friend);
-                        },
-                      ),
-                    );
+    return Obx(
+      () => ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        children: [
+          ...controller.addedFriends.asMap().entries.map(
+            (entry) {
+              final index = entry.key;
+              final friend = entry.value;
+              return _AnimatedEntrance(
+                delay: 200 + (index * 50),
+                child: FriendListItem(
+                  name: friend.name,
+                  initials: friend.initials,
+                  isDarkAvatar: friend.isDarkAvatar,
+                  status: friend.status,
+                  isFocusing: friend.isFocusing,
+                  onTap: () {
+                    Get.toNamed(Routes.friendDetails, arguments: friend);
                   },
                 ),
-                SizedBox(height: 16.h),
-                _AnimatedEntrance(
-                  delay: 250 + (controller.addedFriends.length * 50),
-                  child: Obx(
-                    () => controller.selectedForNudge.isEmpty
-                        ? _buildAddFriendsOutlineButton()
-                        : _buildSelectModeButton(lockController),
-                  ),
-                ),
-                SizedBox(height: 24.h),
-              ],
-            ),
+              );
+            },
           ),
-        ),
-      ],
+          SizedBox(height: 16.h),
+          _AnimatedEntrance(
+            delay: 250 + (controller.addedFriends.length * 50),
+            child: _buildAddFriendsOutlineButton(),
+          ),
+          SizedBox(height: 24.h),
+        ],
+      ),
     );
   }
 
   Widget _buildAddFriendsOutlineButton() {
-    return InkWell(
-      onTap: () => Get.toNamed(Routes.addPartner),
+    return Obx(() => InkWell(
+      onTap: controller.isSubmitting.value ? null : () => Get.toNamed(Routes.addPartner),
       borderRadius: BorderRadius.circular(24.r),
       child: Container(
         width: double.infinity,
@@ -155,68 +118,34 @@ class FriendsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(24.r),
           border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add, size: 18.sp, color: const Color(0xFF1A1814)),
-            SizedBox(width: 8.w),
-            Text(
-              'Add friends',
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF1A1814),
+        child: controller.isSubmitting.value
+            ? Center(
+                child: SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                  ),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, size: 18.sp, color: const Color(0xFF1A1814)),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Add friends',
+                    style: GoogleFonts.dmSans(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF1A1814),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
-    );
-  }
-
-  Widget _buildSelectModeButton(LockController lockController) {
-    return Obx(() {
-      final isBlocked = lockController.isLocked.value;
-      return InkWell(
-        onTap: () {
-          if (isBlocked) {
-            CustomSnackbar.show(
-              title: 'Focus session active',
-              message: 'End your focus session first to start a nudge.',
-              isError: true,
-            );
-            return;
-          }
-          Get.toNamed(
-            Routes.modes,
-            arguments: {
-              'isNudgeFlow': true,
-              'participantIds': controller.selectedForNudge.toList(),
-            },
-          );
-        },
-        borderRadius: BorderRadius.circular(24.r),
-        child: Container(
-          width: double.infinity,
-          height: 48.h,
-          decoration: BoxDecoration(
-            color:
-                isBlocked ? const Color(0xFFCCC8C0) : const Color(0xFF1A1814),
-            borderRadius: BorderRadius.circular(24.r),
-          ),
-          child: Center(
-            child: Text(
-              'Select Mood',
-              style: GoogleFonts.dmSans(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFFF7F4EE),
-              ),
-            ),
-          ),
-        ),
-      );
-    });
+    ));
   }
 
   Widget _buildEmptyState() {
@@ -275,8 +204,8 @@ class FriendsPage extends StatelessWidget {
   Widget _buildAddPartnerButton() {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Get.toNamed(Routes.addPartner),
+      child: Obx(() => InkWell(
+        onTap: controller.isSubmitting.value ? null : () => Get.toNamed(Routes.addPartner),
         borderRadius: BorderRadius.circular(30.r),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 40.w, vertical: 14.h),
@@ -284,18 +213,27 @@ class FriendsPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(30.r),
             border: Border.all(color: const Color(0xFF1A1814), width: 1.0),
           ),
-          child: Text(
-            'Add a partner',
-            style: GoogleFonts.dmSans(
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF1A1814),
-              height: 19.5 / 13,
-              letterSpacing: 0,
-            ),
-          ),
+          child: controller.isSubmitting.value
+              ? SizedBox(
+                  width: 16.w,
+                  height: 16.w,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A1814)),
+                  ),
+                )
+              : Text(
+                  'Add a friend',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF1A1814),
+                    height: 19.5 / 13,
+                    letterSpacing: 0,
+                  ),
+                ),
         ),
-      ),
+      )),
     );
   }
 }

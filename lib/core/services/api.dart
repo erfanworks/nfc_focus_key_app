@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../constants/app_api_url.dart';
 import '../utils/log_print.dart';
 import 'non_auth_api.dart';
+import 'push_notification_service.dart';
 
 class AppApi {
   AppApi._privateConstructor() {
@@ -71,17 +72,18 @@ class AppApi {
       DioException error,
       ErrorInterceptorHandler handler,
       ) async {
+    // Silently handle 401 without flooding logs
+    if (error.response?.statusCode == 401) {
+      await _handle401(error, handler);
+      return;
+    }
+
     appLog("""
 API Error ►
   Status  : ${error.response?.statusCode}
   Message : ${error.message}
   URL     : ${error.requestOptions.path}
 """);
-
-    if (error.response?.statusCode == 401) {
-      await _handle401(error, handler);
-      return;
-    }
 
     return handler.next(error);
   }
@@ -96,7 +98,8 @@ API Error ►
 
       if (refreshToken.isEmpty) {
         await _logoutAndRedirect();
-        return handler.next(error);
+        // Silent rejection to stop propagation to controllers/UI
+        return handler.reject(error); 
       }
 
       final newAccessToken = await reFreshNewAccessToken(refreshToken);
@@ -107,19 +110,43 @@ API Error ►
         return handler.resolve(retryResponse);
       } else {
         await _logoutAndRedirect();
-        return handler.next(error);
+        return handler.reject(error);
       }
     } catch (e) {
       errorLog("_handle401", e);
-      return handler.next(error);
+      return handler.reject(error);
     }
   }
 
   // ==================== Logout Helper ====================
-  Future<void> _logoutAndRedirect() async {
+  bool _isRedirecting = false;
+  Future<void> logoutAndRedirect() async {
+    if (_isRedirecting) return;
+    _isRedirecting = true;
+    
     await _storage.logout();
-    Get.offAllNamed(Routes.login); // 🔴 Replace with your login route
+    
+    try {
+      if (Get.isRegistered<PushNotificationService>()) {
+        await Get.find<PushNotificationService>().resetSyncState();
+      }
+    } catch (e) {
+      errorLog("logoutAndRedirect.resetSyncState", e);
+    }
+
+    _dio.options.headers.remove("Authorization");
+    
+    // Check if we are already on login page or if the route is being disposed
+    if (Get.currentRoute != Routes.login) {
+      Get.offAllNamed(Routes.login);
+    }
+    
+    // Reset flag after a delay to allow navigation to complete
+    await Future.delayed(const Duration(seconds: 1));
+    _isRedirecting = false;
   }
+
+  Future<void> _logoutAndRedirect() => logoutAndRedirect();
 
   Dio get sendRequest => _dio;
 }

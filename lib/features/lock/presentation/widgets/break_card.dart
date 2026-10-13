@@ -5,7 +5,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/lock_controller.dart';
-import '../../../friends/presentation/controllers/friends_controller.dart';
 
 class BreakCard extends StatefulWidget {
   final LockController controller;
@@ -20,7 +19,6 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
   late AnimationController _activateController;
   late AnimationController _cancelController;
   Timer? _vibrationTimer;
-
 
   @override
   void initState() {
@@ -47,7 +45,7 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
       if (status == AnimationStatus.completed) {
         _stopVibration();
         HapticFeedback.vibrate();
-        widget.controller.endBreak();
+        widget.controller.stopBreak();
         _cancelController.reset();
         widget.controller.isHoldingCancel.value = false;
       }
@@ -82,117 +80,119 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         return Container(
           width: 337.w,
           height: 52.h,
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
-          child: Row(
-            children: [
-              // No icon! (Removed coffee cup as per feedback)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        'Break ends in ',
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF1A1814),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        widget.controller.formattedBreakTime,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFC4A97D),
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                ],
-              ),
-              const Spacer(),
-              // Cancel button disabled — backend has no break-cancel/end-early
-              // endpoint yet. Breaks currently must run their full duration
-              // and end automatically. Uncomment this block if/when a
-              // cancel endpoint becomes available.
-              /*
-              GestureDetector(
-                onTapDown: (_) {
-                  widget.controller.isHoldingCancel.value = true;
-                  _startVibration();
-                  _cancelController.forward();
-                },
-                onTapUp: (_) {
-                  _stopVibration();
-                  widget.controller.isHoldingCancel.value = false;
-                  if (_cancelController.status != AnimationStatus.completed) {
-                    _cancelController.reverse();
-                  }
-                },
-                onTapCancel: () {
-                  _stopVibration();
-                  widget.controller.isHoldingCancel.value = false;
-                  if (_cancelController.status != AnimationStatus.completed) {
-                    _cancelController.reverse();
-                  }
-                },
-                child: SizedBox(
-                  width: 36.w,
-                  height: 36.w,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 36.w,
-                        height: 36.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE8E3DA),
-                            width: 1.5.w,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          'Break ends in ',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF1A1814),
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      ),
-                      AnimatedBuilder(
-                        animation: _cancelController,
-                        builder: (context, child) {
-                          return CircularProgressIndicator(
-                            value: widget.controller.isHoldingCancel.value
-                                ? _cancelController.value
-                                : 0.0,
-                            strokeWidth: 1.5.w,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFFC4A97D),
+                        Text(
+                          widget.controller.formattedBreakTime,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFC4A97D),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTapDown: (_) {
+                    widget.controller.isHoldingCancel.value = true;
+                    _startVibration();
+                    _cancelController.forward();
+                  },
+                  onTapUp: (_) {
+                    _stopVibration();
+                    widget.controller.isHoldingCancel.value = false;
+                    if (_cancelController.status != AnimationStatus.completed) {
+                      _cancelController.reverse();
+                    }
+                  },
+                  onTapCancel: () {
+                    _stopVibration();
+                    widget.controller.isHoldingCancel.value = false;
+                    if (_cancelController.status != AnimationStatus.completed) {
+                      _cancelController.reverse();
+                    }
+                  },
+                  child: SizedBox(
+                    width: 36.w,
+                    height: 36.w,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 36.w,
+                          height: 36.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFE8E3DA),
+                              width: 1.5.w,
                             ),
-                            backgroundColor: Colors.transparent,
-                          );
-                        },
-                      ),
-                      Icon(
-                        Icons.close_rounded,
-                        color: const Color(0xFFC4A97D),
-                        size: 18.sp,
-                      ),
-                    ],
+                          ),
+                        ),
+                        AnimatedBuilder(
+                          animation: _cancelController,
+                          builder: (context, child) {
+                            return CircularProgressIndicator(
+                              value: widget.controller.isHoldingCancel.value
+                                  ? _cancelController.value
+                                  : 0.0,
+                              strokeWidth: 1.5.w,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                Color(0xFFC4A97D),
+                              ),
+                              backgroundColor: Colors.transparent,
+                            );
+                          },
+                        ),
+                        Icon(
+                          Icons.close_rounded,
+                          color: const Color(0xFFC4A97D),
+                          size: 18.sp,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              */
-            ],
+              ],
+            ),
           ),
         );
+      }
+
+      final isLoadingSettings = widget.controller.isLoadingBreakSettings.value;
+      final breaksLeft = widget.controller.breaksLeft.value;
+
+      if (!isLoadingSettings && breaksLeft <= 0) {
+        return _buildNoBreaksLeftCard();
       }
 
       return GestureDetector(
@@ -215,103 +215,129 @@ class _BreakCardState extends State<BreakCard> with TickerProviderStateMixin {
         child: Container(
           width: 337.w,
           height: 52.h,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFF0EBE2),
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.r),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  right: 0,
-                  child: AnimatedBuilder(
-                    animation: _activateController,
-                    builder: (context, child) {
-                      return FractionalTranslation(
-                        translation: Offset(_activateController.value - 1.0, 0.0),
-                        child: Container(
-                          color: const Color(0xFFE5DDD0),
-                        ),
-                      );
-                    },
-                  ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                right: 0,
+                child: AnimatedBuilder(
+                  animation: _activateController,
+                  builder: (context, child) {
+                    return FractionalTranslation(
+                      translation: Offset(_activateController.value - 1.0, 0.0),
+                      child: Container(
+                        color: const Color(0xFFE5DDD0),
+                      ),
+                    );
+                  },
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w),
-                  child: Row(
-                    children: [
-                      // No icon! (Removed phone dotted line as per feedback)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Take a break',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w400,
-                              color: const Color(0xFF1A1814),
-                              height: 15.0 / 12.0,
-                              letterSpacing: 0.5,
-                            ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Take a break',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF1A1814),
+                            height: 15.0 / 12.0,
+                            letterSpacing: 0.5,
                           ),
-                          SizedBox(height: 2.h),
-                          Obx(() {
-                            final friendsController = Get.find<FriendsController>();
-                            final nudge = friendsController.currentNudge.value;
-                            final isNudge = nudge != null && nudge.isActive;
-
-                            if (!isNudge && widget.controller.isLoadingBreakSettings.value) {
-                              return Text(
-                                '— min • — left today',
-                                style: GoogleFonts.dmSans(
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFFB5AFA5),
-                                  height: 1.0,
-                                  letterSpacing: 0.55,
-                                ),
-                              );
-                            }
-
-                            final minutes = isNudge
-                                ? nudge!.breakDurationMinutes
-                                : widget.controller.personalBreakLengthMinutes.value;
-                            final left = isNudge
-                                ? nudge!.breaksRemaining
-                                : widget.controller.breaksLeft.value;
+                        ),
+                        SizedBox(height: 2.h),
+                        Obx(() {
+                          if (widget.controller.isLoadingBreakSettings.value) {
                             return Text(
-                              '$minutes min • $left left today',
+                              '— min • — left',
                               style: GoogleFonts.dmSans(
                                 fontSize: 10.sp,
                                 fontWeight: FontWeight.w400,
-                                color: const Color(0xFF8A8278),
+                                color: const Color(0xFFB5AFA5),
                                 height: 1.0,
                                 letterSpacing: 0.55,
                               ),
                             );
-                          }),
-                        ],
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: const Color(0xFF8A8278),
-                        size: 18.sp,
-                      ),
-                    ],
-                  ),
+                          }
+
+                          final minutes = widget.controller.personalBreakLengthMinutes.value;
+                          final left = widget.controller.breaksLeft.value;
+                          return Text(
+                            '$minutes min • $left left',
+                            style: GoogleFonts.dmSans(
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFF8A8278),
+                              height: 1.0,
+                              letterSpacing: 0.55,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: const Color(0xFF8A8278),
+                      size: 18.sp,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       );
     });
   }
+
+  Widget _buildNoBreaksLeftCard() {
+    return Container(
+      width: 337.w,
+      height: 52.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0EBE2).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: const Color(0xFFE8E3DA), width: 1.0),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle_outline_rounded,
+            color: const Color(0xFFB5AFA5),
+            size: 18.sp,
+          ),
+          SizedBox(width: 10.w),
+          Text(
+            'All breaks used',
+            style: GoogleFonts.dmSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF8A8278),
+              height: 15.0 / 12.0,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+
+// Updated Code
+

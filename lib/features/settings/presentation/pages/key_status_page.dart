@@ -19,28 +19,31 @@ class KeyStatusPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
-          child: Obx(
-                () => Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                SizedBox(height: 24.h),
-                if (controller.isPaired.value) ...[
-                  const KeyPairedCard(),
-                  SizedBox(height: 16.h),
-                  const KeyDetailCard(),
-                  SizedBox(height: 16.h),
-                  controller.showConfirmUnpair.value
-                      ? _buildConfirmUnpairCard()
-                      : _buildInitialUnpairButton(),
-                ] else ...[
-                  _buildUnpairedCard(),
-                  SizedBox(height: 16.h),
-                  _buildPairNewKeyButton(),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
+            child: Obx(
+                  () => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 24.h),
+                  if (controller.isPaired.value) ...[
+                    const KeyPairedCard(),
+                    SizedBox(height: 16.h),
+                    const KeyDetailCard(),
+                    SizedBox(height: 16.h),
+                    controller.showConfirmUnpair.value
+                        ? _buildConfirmUnpairCard()
+                        : _buildInitialUnpairButton(),
+                  ] else ...[
+                    _buildUnpairedCard(),
+                    SizedBox(height: 16.h),
+                    _buildPairNewKeyButton(),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -233,8 +236,9 @@ class KeyStatusPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14.r),
-          onTap: () {
-            Get.toNamed(Routes.pairing);
+          onTap: () async {
+            await Get.toNamed(Routes.pairing, arguments: {'fromSettings': true});
+            controller.loadPairedStatus();
           },
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),

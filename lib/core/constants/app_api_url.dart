@@ -4,7 +4,7 @@ import '../utils/log_print.dart';
 class AppApiUrl {
   AppApiUrl._privateConstructor();
 
-  static final AppApiUrl _instance = AppApiUrl._privateConstructor();
+  static final AppApiUrl _instance = AppApiUrl. _privateConstructor();
 
   static AppApiUrl get instance => _instance;
 
@@ -30,12 +30,17 @@ class AppApiUrl {
   final String createMood = "/modes";
   final String getAllMood = "/modes";
   final String getMoodById = "/modes";
+
   String updateMoodById(String modeId) => "/modes/$modeId";
   final String deleteMoodById = "/modes";
+
   String toggleModeActivation(String modeId) =>
       "/modes/$modeId/toggle-activation";
   final String lockStatus = "/modes/lock-status";
   final String lock = "/modes/lock-status";
+  final String reconcile = "/focus-sessions/reconcile"; //POST METHOD
+  final String breakReconcile = "/breaks/reconcile"; //POST METHOD
+
   // String updateLockUnlock(String modeId) =>
   //     "/modes/$modeId/toggle-activation";
 
@@ -45,21 +50,28 @@ class AppApiUrl {
   final String breakStart = "/breaks/start";
   final String breakStatus = "/breaks/status";
   final String breakRemaining = "/breaks/remaining";
+  // new add
+  final String breakCancel = "/breaks/stop";
+
+
+
+
 
   // ==================== Friends ========================
   final String seeAppUsers = "/friends/users"; // GET METHOD
   final String addFriend = "/friends/add-friend"; // POST METHOD
   final String friendsList = "/friends/list"; // GET METHOD
   String removeFriend(String friendId) =>
-      "/friends/remove-friend/$friendId";  // DELETE METHOD
+      "/friends/remove-friend/$friendId"; // DELETE METHOD
   final String createNudge = "/friends/create-nudge"; // POST METHOD
   String joinNudge(String nudgeId) =>
       "/friends/join-nudge/$nudgeId"; // POST METHOD
   final String removeParticipant = "/friends/remove-participant"; // POST METHOD
   final String friendsNudgeHistory = "/friends/nudge-history"; // GET METHOD
-  final String currentNudgeStatus = "/friends/current-nudge-status"; // GET METHOD
-  String takeNudgeBreak(String nudgeId) =>
-      "/friends/take-nudge-break/$nudgeId";
+  final String currentNudgeStatus =
+      "/friends/current-nudge-status"; // GET METHOD
+  String takeNudgeBreak(String nudgeId) => "/friends/take-nudge-break/$nudgeId";
+
   // final String initiateNudge = "/friends/current-nudge-status"; // POST METHOD
   // String nudgePreviewByDetails(String previewId) =>  // GET METHOD
   //     "/friends/nudge/preview/$previewId";
@@ -68,9 +80,18 @@ class AppApiUrl {
   // String leaveNudgeBYID(String nudgeId) => // POST METHOD
   //     "/friends/leave-nudge/$nudgeId";
   final String initiateNudge = "/friends/nudge/initiate";
-  String nudgePreviewByDetails(String previewId) => "/friends/nudge/preview/$previewId";
-  String midgeConfirmById(String previewId) => "/friends/nudge/confirm/$previewId";
+
+  String nudgePreviewByDetails(String previewId) =>
+      "/friends/nudge/preview/$previewId";
+
+  String midgeConfirmById(String previewId) =>
+      "/friends/nudge/confirm/$previewId";
+
   String leaveNudgeBYID(String nudgeId) => "/friends/leave-nudge/$nudgeId";
+  // new
+  String friendDetails(String friendId) => "/friends/details/$friendId"; // GET METHOD
+  String sendNudge(String friendId) => "/friends/send-nudge/$friendId"; // POST METHOD
+  final String friendsFocusingStatus = "/friends/focusing-status"; // GET METHOD
 
   // ==================== Settings ====================
   final String refreshToken = "/refreshToken";
@@ -96,20 +117,15 @@ class AppApiUrl {
   final String notifications = "/notifications"; // GET METHOD
   String getNotificationById(String id) => // GET METHOD
       "/notifications/$id";
-  String markNotificationAsRead(String id) =>  // PATCH METHOD
+
+  String markNotificationAsRead(String id) => // PATCH METHOD
       "/notifications/$id/read";
+
   final String readNotifications = "/notifications"; // PATCH METHOD
   final String saveFcmToken = "/fcmTokens/save-token"; // POST METHOD
 
-
   // ==================== Banner ====================
   final String banner = "/banners";
-
-
-
-
-
-
 
   static String resolveImageUrl(String? path) {
     if (path == null || path.isEmpty || path.toLowerCase().contains("null")) {
@@ -130,15 +146,16 @@ class AppApiUrl {
 }
 
 String _getDomain() {
-  // const String liveServer = "http://148.230.126.149:5001"; // 🔴live URL
-  const String localServer = "http://10.10.7.10:5002"; // 🟡 local Server
+  // New live url
+  const String liveServer = "http://195.35.6.13:5001"; // 🔴live URL
+  // const String localServer = "http://10.10.7.10:5002"; // 🟡 local Server
 
   try {
-    if (kDebugMode) return localServer;
-    return localServer;
+    if (kDebugMode) return liveServer;
+    return liveServer;
   } catch (e) {
     errorLog("_getDomain", e);
-    return localServer;
+    return liveServer;
   }
 }
 

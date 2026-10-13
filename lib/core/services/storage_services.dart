@@ -28,6 +28,29 @@ class StorageKey {
 
   // ==================== Modes cache (migrated off GetStorage) ====================
   final String cachedModes = "cachedModes";
+
+  // ==================== App Lock (NFC key lock/unlock, native shield sync) ====================
+  final String isLockActiveInternal  = "internal_is_lock_active";
+  final String activeModeId          = "active_mode_id";
+  final String activeModeName        = "active_mode_name";
+  final String isLockActive          = "is_lock_active";
+  final String lockedApps            = "locked_apps";
+  final String cachedReminderMessage = "cached_reminder_message";
+  final String completedInitialSetup = "completedInitialSetup";
+  final String lastSelectedModeId    = "last_selected_mode_id";
+  final String lastSelectedModeName  = "last_selected_mode_name";
+
+  // ==================== Offline lock reconciliation ====================
+  // A single JSON blob (clientSessionId, modeId, startedAt, status, endedAt)
+  // for whichever lock session hasn't been confirmed-synced with the
+  // backend yet. Cleared once /focus-sessions/reconcile confirms it.
+  final String pendingReconcileSession = "pending_reconcile_session";
+
+  // Same idea as pendingReconcileSession, but for a personal break that
+  // was started/ended while offline.
+  // Personal breaks only — nudge (shared) breaks are inherently real-time
+  // and are not supported offline.
+  final String pendingReconcileBreak = "pending_reconcile_break";
 }
 
 class StorageServices {
@@ -281,6 +304,25 @@ class StorageServices {
     }
   }
 
+  Future<void> setCompletedInitialSetup() async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(StorageKey.instance.completedInitialSetup, true);
+    } catch (e) {
+      errorLog("setCompletedInitialSetup", e);
+    }
+  }
+
+  Future<bool> hasCompletedInitialSetup() async {
+    try {
+      final pref = await _pref;
+      return pref.getBool(StorageKey.instance.completedInitialSetup) ?? false;
+    } catch (e) {
+      errorLog("hasCompletedInitialSetup", e);
+      return false;
+    }
+  }
+
   // ==================== Modes Cache ====================
   Future<void> cacheModes(List<Map<String, dynamic>> modes) async {
     try {
@@ -313,6 +355,15 @@ class StorageServices {
     }
   }
 
+  Future<void> setBoolValue(String key, bool value) async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(key, value);
+    } catch (e) {
+      errorLog("setBoolValue:$key", e);
+    }
+  }
+
   Future<String?> getValue(String key) async {
     try {
       final pref = await _pref;
@@ -320,6 +371,231 @@ class StorageServices {
     } catch (e) {
       errorLog("getValue:$key", e);
       return null;
+    }
+  }
+
+
+
+  Future<void> setLockActive(bool value) async {
+    try {
+      final pref = await _pref;
+      await pref.setBool(StorageKey.instance.isLockActiveInternal, value);
+    } catch (e) {
+      errorLog("setLockActive", e);
+    }
+  }
+
+  Future<bool> isLockActive() async {
+    try {
+      final pref = await _pref;
+      return pref.getBool(StorageKey.instance.isLockActiveInternal) ?? false;
+    } catch (e) {
+      errorLog("isLockActive", e);
+      return false;
+    }
+  }
+
+  Future<void> setActiveModeId(String? modeId) async {
+    try {
+      final pref = await _pref;
+      if (modeId == null) {
+        await pref.remove(StorageKey.instance.activeModeId);
+      } else {
+        await pref.setString(StorageKey.instance.activeModeId, modeId);
+      }
+    } catch (e) {
+      errorLog("setActiveModeId", e);
+    }
+  }
+
+  Future<String?> getActiveModeId() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.activeModeId);
+    } catch (e) {
+      errorLog("getActiveModeId", e);
+      return null;
+    }
+  }
+
+  Future<void> setActiveModeName(String? name) async {
+    try {
+      final pref = await _pref;
+      if (name == null) {
+        await pref.remove(StorageKey.instance.activeModeName);
+      } else {
+        await pref.setString(StorageKey.instance.activeModeName, name);
+      }
+    } catch (e) {
+      errorLog("setActiveModeName", e);
+    }
+  }
+
+  Future<String?> getActiveModeName() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.activeModeName);
+    } catch (e) {
+      errorLog("getActiveModeName", e);
+      return null;
+    }
+  }
+
+  /// Android package names only (e.g. com.instagram.android).
+  /// iOS locked-app identity (opaque ApplicationToken) native side e alada
+  /// App Group storage e thake — eikhane jabe na.
+  Future<void> setLockedApps(List<String> packageNames) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.lockedApps, jsonEncode(packageNames));
+    } catch (e) {
+      errorLog("setLockedApps", e);
+    }
+  }
+
+  Future<List<String>> getLockedApps() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.lockedApps) ?? "";
+      if (raw.isEmpty) return [];
+      return List<String>.from(jsonDecode(raw));
+    } catch (e) {
+      errorLog("getLockedApps", e);
+      return [];
+    }
+  }
+
+  Future<void> cacheReminderMessage(String message) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.cachedReminderMessage, message);
+    } catch (e) {
+      errorLog("cacheReminderMessage", e);
+    }
+  }
+
+  Future<String> getCachedReminderMessage() async {
+    try {
+      final pref = await _pref;
+      return pref.getString(StorageKey.instance.cachedReminderMessage) ?? "";
+    } catch (e) {
+      errorLog("getCachedReminderMessage", e);
+      return "";
+    }
+  }
+
+  // ==================== Selection Persistence ====================
+  Future<void> setLastSelectedMode(String id, String name) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(StorageKey.instance.lastSelectedModeId, id);
+      await pref.setString(StorageKey.instance.lastSelectedModeName, name);
+    } catch (e) {
+      errorLog("setLastSelectedMode", e);
+    }
+  }
+
+  Future<Map<String, String?>> getLastSelectedMode() async {
+    try {
+      final pref = await _pref;
+      return {
+        "id": pref.getString(StorageKey.instance.lastSelectedModeId),
+        "name": pref.getString(StorageKey.instance.lastSelectedModeName),
+      };
+    } catch (e) {
+      errorLog("getLastSelectedMode", e);
+      return {"id": null, "name": null};
+    }
+  }
+
+  // ==================== Offline lock reconciliation ====================
+  Future<void> savePendingReconcileSession({
+    required String clientSessionId,
+    required String modeId,
+    required String startedAt,
+    required String status, // "active" | "completed"
+    String? endedAt,
+  }) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(
+        StorageKey.instance.pendingReconcileSession,
+        jsonEncode({
+          "clientSessionId": clientSessionId,
+          "modeId": modeId,
+          "startedAt": startedAt,
+          "status": status,
+          if (endedAt != null) "endedAt": endedAt,
+        }),
+      );
+    } catch (e) {
+      errorLog("savePendingReconcileSession", e);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPendingReconcileSession() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.pendingReconcileSession);
+      if (raw == null || raw.isEmpty) return null;
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (e) {
+      errorLog("getPendingReconcileSession", e);
+      return null;
+    }
+  }
+
+  Future<void> clearPendingReconcileSession() async {
+    try {
+      final pref = await _pref;
+      await pref.remove(StorageKey.instance.pendingReconcileSession);
+    } catch (e) {
+      errorLog("clearPendingReconcileSession", e);
+    }
+  }
+
+  Future<void> savePendingReconcileBreak({
+    required String clientBreakId,
+    required String modeId,
+    required String startedAt,
+    required String status, // "active" | "completed"
+    String? endedAt,
+  }) async {
+    try {
+      final pref = await _pref;
+      await pref.setString(
+        StorageKey.instance.pendingReconcileBreak,
+        jsonEncode({
+          "clientBreakId": clientBreakId,
+          "modeId": modeId,
+          "startedAt": startedAt,
+          "status": status,
+          if (endedAt != null) "endedAt": endedAt,
+        }),
+      );
+    } catch (e) {
+      errorLog("savePendingReconcileBreak", e);
+    }
+  }
+
+  Future<Map<String, dynamic>?> getPendingReconcileBreak() async {
+    try {
+      final pref = await _pref;
+      final raw = pref.getString(StorageKey.instance.pendingReconcileBreak);
+      if (raw == null || raw.isEmpty) return null;
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (e) {
+      errorLog("getPendingReconcileBreak", e);
+      return null;
+    }
+  }
+
+  Future<void> clearPendingReconcileBreak() async {
+    try {
+      final pref = await _pref;
+      await pref.remove(StorageKey.instance.pendingReconcileBreak);
+    } catch (e) {
+      errorLog("clearPendingReconcileBreak", e);
     }
   }
 

@@ -8,7 +8,7 @@ class PairingController extends GetxController {
     super.onReady();
     // Auto-navigate to pairing scanner after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {
-      Get.offNamed(Routes.pairingScanner);
+      Get.offNamed(Routes.pairingScanner, arguments: Get.arguments);
     });
   }
 }

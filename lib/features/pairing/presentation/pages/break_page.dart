@@ -188,7 +188,7 @@ class BreakPage extends GetView<BreakController> {
 
                           // Helper bottom text
                           Text(
-                            'Breaks are limited and reset each session.',
+                            'Breaks are limited and reset each session. Changes will apply to your next focus session.',
                             style: GoogleFonts.dmSans(
                               fontSize: 12.sp,
                               fontWeight: FontWeight.w400,

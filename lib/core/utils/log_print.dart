@@ -5,7 +5,10 @@ import 'package:flutter/foundation.dart';
 void errorLog(String message, dynamic e, {String title = "Error form"}) {
   try {
     if (kDebugMode) {
-      log("👿😈😡😡😡😡 $title ➡️➡️➡️➡️➡️➡️ $message >>> 😭😭😭😭 ${e.toString()} 🔚🔚");
+      // Don't log 401 unauthorized errors with emojis to keep console clean during logout
+      if (e.toString().contains('401')) return;
+
+      debugPrint("👿😈😡😡😡😡 $title ➡️➡️➡️➡️➡️➡️ $message >>> 😭😭😭😭 ${e.toString()} 🔚🔚");
     }
   } catch (e) {
     ///////
@@ -15,7 +18,7 @@ void errorLog(String message, dynamic e, {String title = "Error form"}) {
 void appLog(dynamic message) {
   try {
     if (kDebugMode) {
-      log("""
+      debugPrint("""
 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 $message

@@ -17,9 +17,22 @@ class NfcService {
       return;
     }
 
+    // Stop any active session before starting a new one
+    try {
+      await stopScanning();
+    } catch (_) {}
+
+    // iOS requires a slight delay if a session was just closed
+    await Future.delayed(const Duration(milliseconds: 200));
+
     NfcManager.instance.startSession(
+      pollingOptions: {
+        NfcPollingOption.iso14443,
+        NfcPollingOption.iso15693,
+      },
       onDiscovered: (NfcTag tag) async {
         try {
+          print("NFC Tag Discovered: ${tag.data}");
           String? tagId;
 
           final identifier = tag.data['ndef']?['identifier'] ??
@@ -30,7 +43,7 @@ class NfcService {
               tag.data['nfcv']?['identifier'];
 
           if (identifier != null) {
-            // Plain hex, no separator — matches backend UID format (e.g. 04598A7AD92290)
+            // Plain hex, no separator — matches backend UID format
             tagId = (identifier as List<int>)
                 .map((e) => e.toRadixString(16).padLeft(2, '0'))
                 .join()
@@ -45,11 +58,13 @@ class NfcService {
 
           await stopScanning();
         } catch (e) {
-          onError("Error reading NFC tag: $e");
+          print("Error reading NFC tag: $e");
           await stopScanning(errorMessage: e.toString());
+          onError("Error reading NFC tag: $e");
         }
       },
       onError: (error) async {
+        print("NFC session failed: ${error.message} (${error.details})");
         onError("NFC session failed: ${error.message}");
       },
     );
@@ -57,6 +72,10 @@ class NfcService {
 
   // Stop NFC scanning
   Future<void> stopScanning({String? errorMessage}) async {
-    await NfcManager.instance.stopSession(errorMessage: errorMessage);
+    try {
+      await NfcManager.instance.stopSession(errorMessage: errorMessage);
+    } catch (e) {
+      print("Error stopping NFC session: $e");
+    }
   }
 }

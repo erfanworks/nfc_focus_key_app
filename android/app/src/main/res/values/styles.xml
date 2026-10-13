@@ -19,4 +19,9 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+
+    <style name="ShieldTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">#18181A</item>
+    </style>
 </resources>

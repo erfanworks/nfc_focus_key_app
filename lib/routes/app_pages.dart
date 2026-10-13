@@ -1,7 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:focus_key/features/pairing/presentation/bindings/new_mode_binding.dart';
 import 'package:focus_key/features/pairing/presentation/nfc_uid_debug_page.dart';
+import 'package:focus_key/features/pairing/presentation/pages/notification_debug_page.dart';
 import 'package:focus_key/features/pairing/presentation/pages/customize_modes_page.dart';
 import 'package:get/get.dart';
+import '../features/pairing/presentation/bindings/enable_permissions_binding.dart';
+import '../features/pairing/presentation/pages/enable_permissions_page.dart';
+import '../features/pairing/presentation/pages/shield_page.dart';
 import '../features/settings/presentation/pages/total_focus_apps_page.dart';
 import 'app_routes.dart';
 import '../features/auth/presentation/bindings/auth_binding.dart';
@@ -34,6 +39,7 @@ import '../features/pairing/presentation/bindings/customize_modes_binding.dart';
 import '../features/pairing/presentation/pages/new_mode_page.dart';
 import '../features/pairing/presentation/bindings/app_selection_binding.dart';
 import '../features/pairing/presentation/pages/app_selection_page.dart';
+import '../features/pairing/presentation/pages/select_mode_page.dart';
 import '../features/pairing/presentation/bindings/modes_binding.dart';
 import '../features/pairing/presentation/pages/modes_page.dart';
 import '../features/pairing/presentation/bindings/break_binding.dart';
@@ -62,25 +68,29 @@ class AppPages {
       name: Routes.splash,
       page: () => const SplashPage(),
       binding: SplashBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.onboarding,
       page: () => const OnboardingPage(),
       binding: OnboardingBinding(),
-      transition: Transition.fadeIn,
+      transition: Transition.fade,
       transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.focusMessage,
       page: () => const FocusMessagePage(),
       binding: FocusMessageBinding(),
-      transition: Transition.fadeIn,
+      transition: Transition.fade,
       transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.login,
       page: () => const LoginPage(),
       binding: AuthBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.forgotPassword,
@@ -111,6 +121,8 @@ class AppPages {
       name: Routes.pairing,
       page: () => const PairingPage(),
       binding: PairingBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 500),
     ),
     GetPage(
       name: Routes.pairingScanner,
@@ -121,6 +133,11 @@ class AppPages {
       name: Routes.paired,
       page: () => const PairedSuccessPage(),
       binding: PairedSuccessBinding(),
+    ),
+    GetPage(
+      name: Routes.enablePermissions,
+      page: () => const EnablePermissionsPage(),
+      binding: EnablePermissionsBinding(),
     ),
     GetPage(
       name: Routes.letsUnlock,
@@ -148,6 +165,11 @@ class AppPages {
       binding: ModesBinding(),
     ),
     GetPage(
+      name: Routes.selectMode,
+      page: () => const SelectModePage(),
+      binding: ModesBinding(),
+    ),
+    GetPage(
       name: Routes.takeBreak,
       page: () => const BreakPage(),
       binding: BreakBinding(),
@@ -156,6 +178,8 @@ class AppPages {
       name: Routes.lock,
       page: () => const DashboardPage(),
       binding: DashboardBinding(),
+      transition: Transition.fade,
+      transitionDuration: const Duration(milliseconds: 500),
     ),
 
     GetPage(
@@ -176,11 +200,11 @@ class AppPages {
       page: () => const NotificationPage(),
       binding: NotificationBinding(),
     ),
-    GetPage(
-      name: Routes.joinFocus,
-      page: () => const JoinFocusPage(),
-      binding: NotificationBinding(),
-    ),
+    // GetPage(
+    //   name: Routes.joinFocus,
+    //   page: () => const JoinFocusPage(),
+    //   binding: NotificationBinding(),
+    // ),
     GetPage(
       name: Routes.changePassword,
       page: () => const ChangePasswordPage(),
@@ -199,6 +223,7 @@ class AppPages {
       page: () => const LegalInformationPage(),
     ),
 
+    GetPage(name: Routes.shield, page: () => const ShieldPage()),
     GetPage(
       name: Routes.totalFocusApps,
       page: () => const TotalFocusAppsPage(),
@@ -207,5 +232,6 @@ class AppPages {
 
 
     GetPage(name: Routes.nfcUidDebugPage, page: () => const NfcUidDebugPage()),
+    // GetPage(name: Routes.notificationDebug, page: () => const NotificationDebugPage()),
   ];
 }
