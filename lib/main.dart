@@ -139,7 +139,7 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return GetMaterialApp(
-          title: 'Smart Lock',
+          title: 'Focus Key',
           debugShowCheckedModeBanner: false,
 
           theme: AppTheme.light,
