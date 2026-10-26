@@ -13,7 +13,6 @@ Focus Key combines Flutter-based mobile development with native platform integra
   <img src="focuskey-appstore-02.jpg" width="19%" alt="Focus Key screenshot 2" />
   <img src="focuskey-appstore-03.jpg" width="19%" alt="Focus Key screenshot 3" />
   <img src="focuskey-appstore-04.jpg" width="19%" alt="Focus Key screenshot 4" />
-  <img src="focuskey-appstore-05.jpg" width="19%" alt="Focus Key screenshot 5" />
 </p>
 
 𝗞𝗲𝘆 𝗙𝗲𝗮𝘁𝘂𝗿𝗲𝘀
