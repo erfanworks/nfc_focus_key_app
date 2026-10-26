@@ -23,6 +23,11 @@ class MainActivity : FlutterActivity() {
 
     private val CHANNEL = "com.presencelabsllp.focuskeyapp/app_lock"
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Consumes NFC intents to prevent system TagDispatcher popups
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 

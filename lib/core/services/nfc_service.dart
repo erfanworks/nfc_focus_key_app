@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:nfc_manager/nfc_manager.dart';
 
 class NfcService {
@@ -56,6 +57,11 @@ class NfcService {
             onError("NFC tag detected, but could not retrieve unique ID.");
           }
 
+          // On Android, delay stopping session briefly so the user can pull the NFC key away
+          // before ReaderMode turns off, preventing System TagDispatcher popup ("New tag collected")
+          if (Platform.isAndroid) {
+            await Future.delayed(const Duration(milliseconds: 1500));
+          }
           await stopScanning();
         } catch (e) {
           print("Error reading NFC tag: $e");

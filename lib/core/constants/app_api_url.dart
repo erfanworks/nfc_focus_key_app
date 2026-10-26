@@ -147,7 +147,8 @@ class AppApiUrl {
 
 String _getDomain() {
   // New live url
-  const String liveServer = "http://195.35.6.13:5001"; // 🔴live URL
+  const String liveServer = "https://api.focuskey.cloud"; // 🔴live URL
+  // const String liveServer = "http://195.35.6.13:5001"; // 🔴live URL
   // const String localServer = "http://10.10.7.10:5002"; // 🟡 local Server
 
   try {
