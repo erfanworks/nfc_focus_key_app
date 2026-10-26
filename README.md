@@ -6,7 +6,7 @@ A mobile application designed to help users stay focused by managing app access 
 
 Focus Key combines Flutter-based mobile development with native platform integrations to support focus management features and device-level functionality.
 
-## Screenshots
+𝗦𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁𝘀
 
 | Focus Experience | App Controls |
 | --- | --- |
